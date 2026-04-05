@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 import sqlite3
 from dataclasses import asdict
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -240,6 +241,16 @@ class Repository:
             raise LookupError("default template not found")
         return TemplateRecord(**dict(row))
 
+    def get_template(self, template_id: int) -> TemplateRecord:
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM templates WHERE id = ?",
+                (template_id,),
+            ).fetchone()
+        if row is None:
+            raise LookupError(f"template not found: {template_id}")
+        return TemplateRecord(**dict(row))
+
     def insert_draft(self, record: DraftRecord) -> int:
         with self.connect() as connection:
             cursor = connection.execute(
@@ -261,7 +272,13 @@ class Repository:
             )
             return int(cursor.lastrowid)
 
-    def attach_citations_from_markers(self, draft_id: int, content: str) -> list[CitationRecord]:
+    def attach_citations_from_markers(
+        self,
+        draft_id: int,
+        content: str,
+        *,
+        allowed_section_ids: set[int] | None = None,
+    ) -> list[CitationRecord]:
         marker_ids = [int(item) for item in re.findall(r"\[CITATION:(\d+)\]", content)]
         if not marker_ids:
             return []
@@ -273,6 +290,8 @@ class Repository:
                 unique_marker_ids,
             ).fetchall()
             existing_ids = {int(row["id"]) for row in existing_rows}
+            if allowed_section_ids is not None:
+                existing_ids &= allowed_section_ids
             valid_marker_ids = [section_id for section_id in marker_ids if section_id in existing_ids]
             if valid_marker_ids:
                 connection.executemany(
@@ -354,6 +373,13 @@ class Repository:
     def update_draft_content(self, draft_id: int, content: str) -> None:
         with self.connect() as connection:
             connection.execute("UPDATE drafts SET content_markdown = ? WHERE id = ?", (content, draft_id))
+
+    def mark_draft_exported(self, draft_id: int, exported_at: datetime) -> None:
+        with self.connect() as connection:
+            connection.execute(
+                "UPDATE drafts SET exported_at = ? WHERE id = ?",
+                (exported_at.isoformat(), draft_id),
+            )
 
     def clear_validation_issues(self, draft_id: int) -> None:
         with self.connect() as connection:

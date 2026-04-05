@@ -27,7 +27,7 @@ class DraftService:
         template_id: int,
     ):
         started = perf_counter()
-        template = self.repository.get_default_template()
+        template = self.repository.get_template(template_id)
         sections = self._collect_sections(selected_document_ids)
         prompt = self._build_prompt(topic=topic, template=template, sections=sections)
         content = self.llm_client.generate_markdown(prompt=prompt)
@@ -102,7 +102,16 @@ class DraftService:
         if reset_existing:
             self.repository.clear_citations(draft_id)
             self.repository.clear_validation_issues(draft_id)
-        citations = self.repository.attach_citations_from_markers(draft_id, content)
+        allowed_section_ids = {
+            section.id
+            for section in self._collect_sections(selected_document_ids)
+            if section.id is not None
+        }
+        citations = self.repository.attach_citations_from_markers(
+            draft_id,
+            content,
+            allowed_section_ids=allowed_section_ids,
+        )
         issues = self.validator.validate(
             selected_document_ids=selected_document_ids,
             citations=citations,

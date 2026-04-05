@@ -29,4 +29,4 @@
 - 导入阶段写入 `documents`、`sections`，模板文档额外写入 `templates`。
 - 生成阶段写入 `drafts`、`citations`、`generation_runs`。
 - 校验阶段写入 `validation_issues`，并回写 `drafts.status` 为 `ready`、`warning` 或 `blocked`。
-- 导出阶段当前直接读取 `drafts.content_markdown` 返回 Markdown 响应，不额外落新表。
+- 导出阶段更新 `drafts.exported_at` 并返回 `drafts.content_markdown`，让最终交付有可追踪时间戳。

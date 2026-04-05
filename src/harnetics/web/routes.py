@@ -4,6 +4,8 @@
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from pathlib import Path
+from datetime import datetime
+from datetime import timezone
 
 from fastapi import APIRouter
 from fastapi import File
@@ -139,12 +141,18 @@ def plan_draft(
     target_doc_type: str = Form(...),
     target_system_level: str = Form(...),
 ):
-    plan = request.app.state.retrieval_planner.plan(
-        topic=topic,
-        department=department,
-        target_doc_type=target_doc_type,
-        target_system_level=target_system_level,
-    )
+    try:
+        plan = request.app.state.retrieval_planner.plan(
+            topic=topic,
+            department=department,
+            target_doc_type=target_doc_type,
+            target_system_level=target_system_level,
+        )
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="no template available for draft planning",
+        ) from exc
     return templates.TemplateResponse(
         request,
         "draft_new.html",
@@ -214,6 +222,10 @@ def export_draft(request: Request, draft_id: int):
         draft = request.app.state.repository.get_draft_detail(draft_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail="draft not found") from exc
+    request.app.state.repository.mark_draft_exported(
+        draft_id,
+        datetime.now(timezone.utc),
+    )
     return PlainTextResponse(
         draft.content_markdown,
         media_type="text/markdown; charset=utf-8",
