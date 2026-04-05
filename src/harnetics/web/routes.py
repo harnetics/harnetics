@@ -73,13 +73,24 @@ async def import_document(request: Request, file: UploadFile = File(...)):
 
     target_path = Path(request.app.state.settings.raw_upload_dir) / safe_name
     target_path.parent.mkdir(parents=True, exist_ok=True)
+    if target_path.exists():
+        raise HTTPException(status_code=400, detail="file already exists")
+
     target_path.write_bytes(await file.read())
 
     try:
         request.app.state.import_service.import_file(target_path)
     except yaml.YAMLError as exc:
+        try:
+            target_path.unlink()
+        except FileNotFoundError:
+            pass
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ValueError as exc:
+        try:
+            target_path.unlink()
+        except FileNotFoundError:
+            pass
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return {"status": "imported"}

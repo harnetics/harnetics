@@ -68,6 +68,7 @@ engineering_phase: Requirement
 
 def test_upload_route_rejects_malformed_yaml(temp_app) -> None:
     client = TestClient(temp_app)
+    uploads_dir = temp_app.state.settings.raw_upload_dir
 
     response = client.post(
         "/documents/import",
@@ -81,6 +82,60 @@ def test_upload_route_rejects_malformed_yaml(temp_app) -> None:
     )
 
     assert response.status_code == 400
+    assert not uploads_dir.exists() or not any(uploads_dir.iterdir())
+
+
+def test_upload_route_keeps_existing_raw_file_intact(temp_app) -> None:
+    client = TestClient(temp_app)
+    uploads_dir = temp_app.state.settings.raw_upload_dir
+    upload_name = "same-name.md"
+    original_content = """---
+doc_id: DOC-SYS-001
+title: original
+version: v1.0
+status: Approved
+department: 系统工程部
+doc_type: Requirement
+system_level: System
+engineering_phase: Requirement
+---
+# original body
+"""
+
+    first = client.post(
+        "/documents/import",
+        files={"file": (upload_name, original_content, "text/markdown")},
+    )
+    assert first.status_code == 200
+
+    stored_path = uploads_dir / upload_name
+    assert stored_path.read_text(encoding="utf-8") == original_content
+
+    second = client.post(
+        "/documents/import",
+        files={
+            "file": (
+                upload_name,
+                """---
+doc_id: DOC-SYS-001
+title: updated
+version: v1.1
+status: Approved
+department: 系统工程部
+doc_type: Requirement
+system_level: System
+engineering_phase: Requirement
+---
+# updated body
+""",
+                "text/markdown",
+            )
+        },
+    )
+
+    assert second.status_code == 400
+    assert stored_path.read_text(encoding="utf-8") == original_content
+    assert uploads_dir.exists()
 
 
 def test_documents_page_lists_and_filters_imported_docs(imported_fixture_app) -> None:
