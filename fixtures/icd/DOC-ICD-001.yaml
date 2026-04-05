@@ -1,0 +1,237 @@
+# [INPUT]: 依赖 DOC-SYS-001 的需求约束与跨分系统接口定义
+# [OUTPUT]: 对外提供接口参数真相源、版本历史与需求追溯关系
+# [POS]: fixtures/icd 的权威 ICD 样本，被设计、质量与测试文档共同引用
+# [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+#
+# 天行一号运载火箭全局接口控制文档
+# DOC-ICD-001 v2.3
+# 状态：Approved
+# 部门：技术负责人
+# 批准日期：2026-02-01
+
+metadata:
+  doc_id: DOC-ICD-001
+  title: 天行一号运载火箭全局接口控制文档
+  version: "v2.3"
+  status: Approved
+  department: 技术负责人
+  doc_type: ICD
+  system_level: System
+  engineering_phase: Design
+  approved_date: "2026-02-01"
+  author: 张伟（技术副总师）
+  description: |
+    本文档定义天行一号（TH-1）运载火箭各分系统之间的物理接口、
+    功能接口和数据接口参数。所有涉及跨分系统的接口参数以本文档为准。
+  references:
+    - doc_id: DOC-SYS-001
+      version: "v3.1"
+      relation: derived_from
+    - doc_id: GJB 1188A
+      version: null
+      relation: references
+
+version_history:
+  - version: "v1.0"
+    date: "2025-04-01"
+    changes: 初版发布，基于 DOC-SYS-001 v1.0
+  - version: "v2.0"
+    date: "2025-07-01"
+    changes: 更新推进剂接口参数
+  - version: "v2.1"
+    date: "2025-08-15"
+    changes: 更新推力参数为 600 kN（基于 DOC-SYS-001 v2.0）
+  - version: "v2.3"
+    date: "2026-02-01"
+    changes: |
+      推力参数更新至 650 kN（基于 DOC-SYS-001 v3.1），
+      燃烧室压力更新至 10.0 MPa，
+      新增推力调节范围参数
+
+interfaces:
+
+  # ═══════════════════════════════════════════════
+  # 1. 性能接口参数
+  # ═══════════════════════════════════════════════
+
+  - param_id: ICD-PRP-001
+    name: 一级发动机地面推力
+    interface_type: Mechanical
+    subsystem_a: 动力系统
+    subsystem_b: 总体结构
+    value: "650"
+    unit: kN
+    range: "630.5 ~ 669.5"
+    tolerance: "±3%"
+    requirement_trace: REQ-SYS-003
+    owner_department: 动力系统部
+    notes: v2.1 时为 600 kN，v2.3 更新至 650 kN
+
+  - param_id: ICD-PRP-002
+    name: 一级发动机真空比冲
+    interface_type: Mechanical
+    subsystem_a: 动力系统
+    subsystem_b: 总体
+    value: "315"
+    unit: s
+    range: "≥ 315"
+    tolerance: null
+    requirement_trace: REQ-SYS-004
+    owner_department: 动力系统部
+    notes: 设计目标 316.5 s
+
+  - param_id: ICD-PRP-003
+    name: 推进剂混合比
+    interface_type: Propellant
+    subsystem_a: 动力系统
+    subsystem_b: 推进剂供应
+    value: "3.5"
+    unit: "LOX:LCH4"
+    range: "3.325 ~ 3.675"
+    tolerance: "±5%"
+    requirement_trace: null
+    owner_department: 动力系统部
+    notes: 质量混合比，液氧/液甲烷
+
+  - param_id: ICD-PRP-004
+    name: 燃烧室压力
+    interface_type: Mechanical
+    subsystem_a: 动力系统
+    subsystem_b: null
+    value: "10.0"
+    unit: MPa
+    range: "9.5 ~ 10.5"
+    tolerance: "±5%"
+    requirement_trace: null
+    owner_department: 动力系统部
+    notes: v2.1 时为 9.5 MPa，v2.3 更新至 10.0 MPa
+
+  - param_id: ICD-PRP-005
+    name: 发动机干重
+    interface_type: Mechanical
+    subsystem_a: 动力系统
+    subsystem_b: 总体结构
+    value: "480"
+    unit: kg
+    range: "≤ 480"
+    tolerance: null
+    requirement_trace: REQ-SYS-012
+    owner_department: 动力系统部
+    notes: 设计目标 470 kg
+
+  # ═══════════════════════════════════════════════
+  # 2. 机械接口参数
+  # ═══════════════════════════════════════════════
+
+  - param_id: ICD-PRP-006
+    name: 发动机安装法兰
+    interface_type: Mechanical
+    subsystem_a: 动力系统
+    subsystem_b: 箭体结构
+    value: "Φ420"
+    unit: mm
+    range: null
+    tolerance: "±0.5 mm"
+    bolt_spec: "24×M16 高强度螺栓，12.9 级"
+    requirement_trace: REQ-SYS-015
+    owner_department: 结构部
+    notes: 法兰平面度 ≤ 0.1 mm
+
+  # ═══════════════════════════════════════════════
+  # 3. 电气接口参数
+  # ═══════════════════════════════════════════════
+
+  - param_id: ICD-PRP-007
+    name: 发动机控制总线
+    interface_type: Electrical
+    subsystem_a: 动力系统
+    subsystem_b: GNC
+    value: MIL-STD-1553B
+    unit: null
+    range: null
+    data_rate: "1 Mbps"
+    connector: MIL-DTL-38999 Series III
+    requirement_trace: REQ-SYS-016
+    owner_department: GNC 部
+    notes: 双冗余总线
+
+  # ═══════════════════════════════════════════════
+  # 4. 推进剂接口参数
+  # ═══════════════════════════════════════════════
+
+  - param_id: ICD-PRP-008
+    name: 推进剂入口接口
+    interface_type: Propellant
+    subsystem_a: 推进剂供应系统
+    subsystem_b: 动力系统
+    lox_inlet_pressure:
+      value: "0.8"
+      unit: MPa
+      range: "≥ 0.8"
+    lch4_inlet_pressure:
+      value: "0.6"
+      unit: MPa
+      range: "≥ 0.6"
+    lox_inlet_temperature:
+      value: "-183"
+      unit: "°C"
+      range: "-185 ~ -180"
+    lch4_inlet_temperature:
+      value: "-161"
+      unit: "°C"
+      range: "-164 ~ -158"
+    requirement_trace: REQ-SYS-017
+    owner_department: 动力系统部
+    notes: 入口管路直径 DN80（LOX）/ DN65（LCH4）
+
+  - param_id: ICD-PRP-009
+    name: 发动机工作时间
+    interface_type: Mechanical
+    subsystem_a: 动力系统
+    subsystem_b: 总体
+    value: "185"
+    unit: s
+    range: "≥ 185"
+    tolerance: null
+    requirement_trace: REQ-SYS-005
+    owner_department: 动力系统部
+    notes: 单次连续工作时间
+
+  - param_id: ICD-PRP-010
+    name: 发动机启动时间
+    interface_type: Mechanical
+    subsystem_a: 动力系统
+    subsystem_b: GNC
+    value: "3.0"
+    unit: s
+    range: "≤ 3.0"
+    tolerance: null
+    requirement_trace: REQ-SYS-008
+    owner_department: 动力系统部
+    notes: 从点火指令到 90% 额定推力
+
+  - param_id: ICD-PRP-011
+    name: 发动机关机延时
+    interface_type: Mechanical
+    subsystem_a: 动力系统
+    subsystem_b: GNC
+    value: "0.5"
+    unit: s
+    range: "≤ 0.5"
+    tolerance: null
+    requirement_trace: null
+    owner_department: 动力系统部
+    notes: 从关机指令到推力 < 5% 额定值
+
+  - param_id: ICD-PRP-012
+    name: 推力调节范围
+    interface_type: Mechanical
+    subsystem_a: 动力系统
+    subsystem_b: GNC
+    value: "50% ~ 100%"
+    unit: "额定推力"
+    range: "325 ~ 650 kN"
+    tolerance: null
+    requirement_trace: REQ-SYS-006
+    owner_department: 动力系统部
+    notes: v2.3 新增参数
