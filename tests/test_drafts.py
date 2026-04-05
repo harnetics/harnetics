@@ -73,9 +73,10 @@ def test_draft_workspace_supports_plan_edit_and_export(imported_fixture_app) -> 
             "selected_document_ids": [documents[0].id or 0, documents[1].id or 0],
             "template_id": template.id or 0,
         },
+        follow_redirects=False,
     )
-    draft_id = response.json()["draft_id"]
-    show_response = client.get(f"/drafts/{draft_id}")
+    show_response = client.get(response.headers["location"])
+    draft_id = int(response.headers["location"].rstrip("/").split("/")[-1])
     edit_response = client.post(
         f"/drafts/{draft_id}/edit",
         data={"content": "## 更新后的草稿"},
@@ -83,7 +84,8 @@ def test_draft_workspace_supports_plan_edit_and_export(imported_fixture_app) -> 
     )
     export_response = client.get(f"/drafts/{draft_id}/export")
 
-    assert response.status_code == 200
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/drafts/")
     assert show_response.status_code == 200
     assert edit_response.status_code == 303
     assert export_response.status_code == 200

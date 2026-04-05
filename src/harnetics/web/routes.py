@@ -177,7 +177,7 @@ def create_draft(
         selected_document_ids=selected_document_ids,
         template_id=template_id,
     )
-    return {"draft_id": draft.id}
+    return RedirectResponse(f"/drafts/{draft.id}", status_code=303)
 
 
 @router.get("/drafts/{draft_id}", response_class=HTMLResponse)
