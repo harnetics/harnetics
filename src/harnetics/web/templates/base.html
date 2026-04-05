@@ -1,0 +1,23 @@
+<!--
+[INPUT]: 依赖 Jinja2 模板继承与全站导航链接
+[OUTPUT]: 提供页面基础布局、顶栏导航与内容块
+[POS]: web/templates 的母版页面，供后续页面继承
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Harnetics{% endblock %}</title>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a href="/documents">Documents</a>
+        <a href="/drafts/new">New Draft</a>
+      </nav>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+  </body>
+</html>
