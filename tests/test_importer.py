@@ -49,6 +49,39 @@ def test_import_service_ingests_controlled_yaml(temp_db_path: Path, fixture_root
     assert "param_id: ICD-PRP-001" in detail.sections[0].content
 
 
+def test_import_service_persists_default_template(temp_db_path: Path, fixture_root: Path) -> None:
+    repo = Repository(temp_db_path)
+    service = ImportService(repo)
+
+    service.import_file(fixture_root / "fixtures" / "templates" / "DOC-TPL-001.md")
+    template = repo.get_default_template()
+
+    assert template.name == "地面试验测试大纲编写模板"
+    assert template.required_sections == "1. 概述\n2. 测试依据\n3. 测试项目"
+    assert "## 1. 概述 【必填】" in template.structure
+
+
+def test_import_service_cleans_up_on_template_persistence_failure(
+    temp_db_path: Path,
+    fixture_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = Repository(temp_db_path)
+    service = ImportService(repo)
+
+    def boom(_: object) -> int:
+        raise RuntimeError("template write failed")
+
+    monkeypatch.setattr(repo, "upsert_template", boom)
+
+    with pytest.raises(RuntimeError, match="template write failed"):
+        service.import_file(fixture_root / "fixtures" / "templates" / "DOC-TPL-001.md")
+
+    assert repo.list_documents() == []
+    with pytest.raises(LookupError, match="default template not found"):
+        repo.get_default_template()
+
+
 def test_import_service_rejects_missing_metadata(temp_db_path: Path, tmp_path: Path) -> None:
     repo = Repository(temp_db_path)
     service = ImportService(repo)

@@ -53,11 +53,18 @@ class ImportService:
             replace(section, id=None, document_id=document_id)
             for section in sections
         ]
-        self.repository.replace_sections(document_id, stored_sections)
-        if template is not None:
-            self.repository.upsert_template(
-                replace(template, id=None, document_id=document_id),
-            )
+        try:
+            self.repository.replace_sections(document_id, stored_sections)
+            if template is not None:
+                self.repository.upsert_template(
+                    replace(template, id=None, document_id=document_id),
+                )
+        except Exception:
+            try:
+                self.repository.delete_document_tree(document_id)
+            except Exception:
+                pass
+            raise
         return ImportResult(document=stored_document, section_count=len(stored_sections))
 
     def _parse_markdown(self, path: Path) -> tuple[DocumentRecord, list[SectionRecord], TemplateRecord | None]:

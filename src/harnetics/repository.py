@@ -156,6 +156,10 @@ class Repository:
                 ],
             )
 
+    def delete_document_tree(self, document_id: int) -> None:
+        with self.connect() as connection:
+            connection.execute("DELETE FROM documents WHERE id = ?", (document_id,))
+
     def upsert_template(self, record: TemplateRecord) -> int:
         with self.connect() as connection:
             connection.execute(
