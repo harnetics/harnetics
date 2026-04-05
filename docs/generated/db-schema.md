@@ -7,7 +7,7 @@
 
 # DB Schema
 
-`Repository` 是唯一的 SQLite 边界，启动时会初始化下列表。
+`Repository` 是唯一的 SQLite 边界。当前运行时已经真实使用这些表完成导入、检索辅助、草稿生成、校验与导出工作流。
 
 | 表 | 归属记录 | 作用 | 关键约束 |
 | --- | --- | --- | --- |
@@ -24,3 +24,9 @@
 - 所有外键在 `Repository.connect()` 中启用 `PRAGMA foreign_keys = ON`。
 - `trace_refs`、`source_refs`、`content_markdown` 这类文本字段直接存储原始字符串，不做二次拆分。
 - `selected_document_ids` 以逗号分隔字符串保存，保持生成流程最小可用。
+
+运行时对应关系：
+- 导入阶段写入 `documents`、`sections`，模板文档额外写入 `templates`。
+- 生成阶段写入 `drafts`、`citations`、`generation_runs`。
+- 校验阶段写入 `validation_issues`，并回写 `drafts.status` 为 `ready`、`warning` 或 `blocked`。
+- 导出阶段当前直接读取 `drafts.content_markdown` 返回 Markdown 响应，不额外落新表。

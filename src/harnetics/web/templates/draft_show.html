@@ -1,0 +1,40 @@
+<!--
+[INPUT]: 依赖 base.html、draft、issues 与 citations
+[OUTPUT]: 对外提供草稿轻编辑、告警展示与 Markdown 导出界面
+[POS]: web/templates 的草稿工作台页，承载最小可运行的编辑闭环
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+-->
+{% extends "base.html" %}
+{% block title %}Draft {{ draft.id }} | Harnetics{% endblock %}
+{% block content %}
+<article>
+  <header>
+    <h1>草稿工作台</h1>
+    <p>{{ draft.topic }}</p>
+    <p>状态：{{ draft.status }}</p>
+  </header>
+
+  <form method="post" action="/drafts/{{ draft.id }}/edit">
+    <textarea name="content" rows="24" cols="100">{{ draft.content_markdown }}</textarea>
+    <button type="submit">保存修改</button>
+  </form>
+
+  <aside>
+    <h2>告警</h2>
+    {% for issue in issues %}
+      <div><mark>{{ issue.severity }}</mark> {{ issue.message }}</div>
+    {% else %}
+      <p>无告警。</p>
+    {% endfor %}
+
+    <h2>引注</h2>
+    {% for citation in citations %}
+      <div>{{ citation.draft_anchor }} -> Section {{ citation.section_id }}</div>
+    {% else %}
+      <p>无引注。</p>
+    {% endfor %}
+  </aside>
+
+  <p><a href="/drafts/{{ draft.id }}/export">导出 Markdown</a></p>
+</article>
+{% endblock %}

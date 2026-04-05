@@ -1,0 +1,53 @@
+<!--
+[INPUT]: 依赖 base.html、RetrievalPlan 与草稿输入字段
+[OUTPUT]: 对外提供两步式草稿创建界面
+[POS]: web/templates 的草稿新建页，承载候选检索与来源选择
+[PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+-->
+{% extends "base.html" %}
+{% block title %}New Draft | Harnetics{% endblock %}
+{% block content %}
+<section>
+  <h1>生成草稿</h1>
+  <form action="/drafts/plan" method="post">
+    <label>
+      主题
+      <input name="topic" value="{{ topic or '' }}" required>
+    </label>
+    <label>
+      部门
+      <input name="department" value="{{ department or '' }}" required>
+    </label>
+    <label>
+      目标文档类型
+      <input name="target_doc_type" value="{{ target_doc_type or '' }}" required>
+    </label>
+    <label>
+      目标系统层级
+      <input name="target_system_level" value="{{ target_system_level or '' }}" required>
+    </label>
+    <button type="submit">检索候选</button>
+  </form>
+</section>
+
+{% if plan %}
+<section>
+  <h2>候选来源</h2>
+  <p>模板：{{ plan.template.name }}</p>
+  <form action="/drafts" method="post">
+    <input type="hidden" name="topic" value="{{ topic }}">
+    <input type="hidden" name="department" value="{{ department }}">
+    <input type="hidden" name="target_doc_type" value="{{ target_doc_type }}">
+    <input type="hidden" name="target_system_level" value="{{ target_system_level }}">
+    <input type="hidden" name="template_id" value="{{ plan.template.id }}">
+    {% for document in plan.documents %}
+      <label>
+        <input type="checkbox" name="selected_document_ids" value="{{ document.id }}" checked>
+        {{ document.doc_id }} | {{ document.title }}
+      </label>
+    {% endfor %}
+    <button type="submit">生成草稿</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

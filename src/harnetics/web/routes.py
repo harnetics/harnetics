@@ -1,16 +1,19 @@
-# [INPUT]: 依赖 FastAPI 请求对象、Jinja2 模板、Repository 与 ImportService
-# [OUTPUT]: 对外提供文档导入、文档列表和文档详情路由
-# [POS]: harnetics/web 的文档目录 HTTP 入口，负责 catalog 页面和上传落盘
+# [INPUT]: 依赖 FastAPI 请求对象、Jinja2 模板、Repository、ImportService 与 draft services
+# [OUTPUT]: 对外提供文档导入、列表、详情与草稿工作流路由
+# [POS]: harnetics/web 的 HTTP 入口，负责 catalog 页面与草稿生成/编辑/导出闭环
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from pathlib import Path
 
 from fastapi import APIRouter
 from fastapi import File
+from fastapi import Form
 from fastapi import HTTPException
 from fastapi import Request
 from fastapi import UploadFile
 from fastapi.responses import HTMLResponse
+from fastapi.responses import PlainTextResponse
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 import yaml
 
@@ -109,4 +112,110 @@ def document_detail(request: Request, document_id: int):
             "request": request,
             "detail": detail,
         },
+    )
+
+
+@router.get("/drafts/new", response_class=HTMLResponse)
+def new_draft(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "draft_new.html",
+        {
+            "request": request,
+            "plan": None,
+            "topic": "",
+            "department": "",
+            "target_doc_type": "",
+            "target_system_level": "",
+        },
+    )
+
+
+@router.post("/drafts/plan", response_class=HTMLResponse)
+def plan_draft(
+    request: Request,
+    topic: str = Form(...),
+    department: str = Form(...),
+    target_doc_type: str = Form(...),
+    target_system_level: str = Form(...),
+):
+    plan = request.app.state.retrieval_planner.plan(
+        topic=topic,
+        department=department,
+        target_doc_type=target_doc_type,
+        target_system_level=target_system_level,
+    )
+    return templates.TemplateResponse(
+        request,
+        "draft_new.html",
+        {
+            "request": request,
+            "plan": plan,
+            "topic": topic,
+            "department": department,
+            "target_doc_type": target_doc_type,
+            "target_system_level": target_system_level,
+        },
+    )
+
+
+@router.post("/drafts")
+def create_draft(
+    request: Request,
+    topic: str = Form(...),
+    department: str = Form(...),
+    target_doc_type: str = Form(...),
+    target_system_level: str = Form(...),
+    selected_document_ids: list[int] = Form(...),
+    template_id: int = Form(...),
+):
+    draft = request.app.state.draft_service.generate(
+        topic=topic,
+        department=department,
+        target_doc_type=target_doc_type,
+        target_system_level=target_system_level,
+        selected_document_ids=selected_document_ids,
+        template_id=template_id,
+    )
+    return {"draft_id": draft.id}
+
+
+@router.get("/drafts/{draft_id}", response_class=HTMLResponse)
+def show_draft(request: Request, draft_id: int):
+    try:
+        draft = request.app.state.repository.get_draft_detail(draft_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="draft not found") from exc
+    return templates.TemplateResponse(
+        request,
+        "draft_show.html",
+        {
+            "request": request,
+            "draft": draft,
+            "issues": draft.issues,
+            "citations": draft.citations,
+        },
+    )
+
+
+@router.post("/drafts/{draft_id}/edit")
+def update_draft(request: Request, draft_id: int, content: str = Form(...)):
+    try:
+        request.app.state.repository.get_draft_detail(draft_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="draft not found") from exc
+    request.app.state.repository.update_draft_content(draft_id, content)
+    return RedirectResponse(f"/drafts/{draft_id}", status_code=303)
+
+
+@router.get("/drafts/{draft_id}/export")
+def export_draft(request: Request, draft_id: int):
+    try:
+        draft = request.app.state.repository.get_draft_detail(draft_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="draft not found") from exc
+    return PlainTextResponse(
+        draft.content_markdown,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="draft-{draft_id}.md"'},
     )
