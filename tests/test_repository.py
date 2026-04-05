@@ -4,8 +4,9 @@
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 import pytest
+from types import SimpleNamespace
 
-from harnetics.models import DocumentRecord, SectionRecord
+from harnetics.models import DocumentRecord, DraftRecord, SectionRecord
 from harnetics.repository import Repository
 
 
@@ -68,3 +69,31 @@ def test_repository_rejects_duplicate_doc_version(temp_db_path) -> None:
 
     with pytest.raises(ValueError, match="duplicate document version"):
         repo.insert_document(record)
+
+
+def test_repository_defaults_missing_issue_source_refs(temp_db_path) -> None:
+    repo = Repository(temp_db_path)
+    draft_id = repo.insert_draft(
+        DraftRecord(
+            id=None,
+            topic="审阅",
+            department="系统工程部",
+            target_doc_type="Requirement",
+            target_system_level="System",
+            status="generated",
+            content_markdown="正文",
+            exported_at=None,
+        )
+    )
+
+    repo.insert_validation_issues(
+        draft_id,
+        [SimpleNamespace(severity="warning", message="missing reference")],
+    )
+
+    detail = repo.get_draft_detail(draft_id)
+
+    assert len(detail.issues) == 1
+    assert detail.issues[0].severity == "warning"
+    assert detail.issues[0].message == "missing reference"
+    assert detail.issues[0].source_refs == ""

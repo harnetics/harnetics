@@ -287,7 +287,7 @@ class Repository:
                         draft_id,
                         issue.severity,
                         issue.message,
-                        issue.source_refs,
+                        getattr(issue, "source_refs", ""),
                     )
                     for issue in issues
                 ],
