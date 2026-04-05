@@ -14,4 +14,7 @@
 - `exec-plans/completed/`：已经落地并收口的计划
 - `exec-plans/tech-debt-tracker.md`：尚未偿还的工程欠账
 
-下一步最合理的动作：从 `docs/product-specs/mvp-prd.md` 提炼第一份实现计划，切出最小可运行闭环。
+当前 active：
+- `docs/exec-plans/active/2026-04-06-v1-minimal-deliverable-loop-implementation-plan.md`
+
+下一步最合理的动作：按 active plan 执行第一份最小可运行闭环。
