@@ -262,20 +262,35 @@ class Repository:
             return int(cursor.lastrowid)
 
     def attach_citations_from_markers(self, draft_id: int, content: str) -> list[CitationRecord]:
-        match = re.search(r"\[CITATION:(\d+)\]", content)
-        if match is None:
+        marker_ids = [int(item) for item in re.findall(r"\[CITATION:(\d+)\]", content)]
+        if not marker_ids:
             return []
-        section_id = int(match.group(1))
+        unique_marker_ids = list(dict.fromkeys(marker_ids))
+        placeholders = ", ".join("?" for _ in unique_marker_ids)
         with self.connect() as connection:
-            connection.execute(
-                "INSERT INTO citations (draft_id, draft_anchor, section_id, quote_excerpt) VALUES (?, ?, ?, ?)",
-                (draft_id, "body", section_id, "generated citation"),
-            )
+            existing_rows = connection.execute(
+                f"SELECT id FROM sections WHERE id IN ({placeholders})",
+                unique_marker_ids,
+            ).fetchall()
+            existing_ids = {int(row["id"]) for row in existing_rows}
+            valid_marker_ids = [section_id for section_id in marker_ids if section_id in existing_ids]
+            if valid_marker_ids:
+                connection.executemany(
+                    "INSERT INTO citations (draft_id, draft_anchor, section_id, quote_excerpt) VALUES (?, ?, ?, ?)",
+                    [
+                        (draft_id, "body", section_id, "generated citation")
+                        for section_id in valid_marker_ids
+                    ],
+                )
             rows = connection.execute(
                 "SELECT * FROM citations WHERE draft_id = ? ORDER BY id",
                 (draft_id,),
             ).fetchall()
         return [CitationRecord(**dict(row)) for row in rows]
+
+    def clear_citations(self, draft_id: int) -> None:
+        with self.connect() as connection:
+            connection.execute("DELETE FROM citations WHERE draft_id = ?", (draft_id,))
 
     def insert_validation_issues(
         self,
@@ -316,6 +331,22 @@ class Repository:
                 ),
             )
 
+    def get_selected_document_ids_for_draft(self, draft_id: int) -> list[int]:
+        with self.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT selected_document_ids
+                FROM generation_runs
+                WHERE draft_id = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (draft_id,),
+            ).fetchone()
+        if row is None:
+            return []
+        return [int(item) for item in row["selected_document_ids"].split(",") if item]
+
     def update_draft_status(self, draft_id: int, status: str) -> None:
         with self.connect() as connection:
             connection.execute("UPDATE drafts SET status = ? WHERE id = ?", (status, draft_id))
@@ -323,6 +354,13 @@ class Repository:
     def update_draft_content(self, draft_id: int, content: str) -> None:
         with self.connect() as connection:
             connection.execute("UPDATE drafts SET content_markdown = ? WHERE id = ?", (content, draft_id))
+
+    def clear_validation_issues(self, draft_id: int) -> None:
+        with self.connect() as connection:
+            connection.execute(
+                "DELETE FROM validation_issues WHERE owner_type = 'draft' AND owner_id = ?",
+                (draft_id,),
+            )
 
     def get_draft_detail(self, draft_id: int):
         with self.connect() as connection:

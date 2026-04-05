@@ -204,7 +204,7 @@ def update_draft(request: Request, draft_id: int, content: str = Form(...)):
         request.app.state.repository.get_draft_detail(draft_id)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail="draft not found") from exc
-    request.app.state.repository.update_draft_content(draft_id, content)
+    request.app.state.draft_service.update_content(draft_id=draft_id, content=content)
     return RedirectResponse(f"/drafts/{draft_id}", status_code=303)
 
 

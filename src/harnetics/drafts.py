@@ -1,6 +1,6 @@
 # [INPUT]: 依赖 Repository、LLM client 与 DraftValidator
-# [OUTPUT]: 对外提供 DraftService 的草稿生成与 prompt 拼装能力
-# [POS]: harnetics 的草稿编排服务，负责把候选来源编成可校验草稿
+# [OUTPUT]: 对外提供 DraftService 的草稿生成、编辑后重算与 prompt 拼装能力
+# [POS]: harnetics 的草稿编排服务，负责把候选来源编成可校验草稿并维护工作台状态
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from __future__ import annotations
@@ -43,12 +43,6 @@ class DraftService:
                 exported_at=None,
             )
         )
-        citations = self.repository.attach_citations_from_markers(draft_id, content)
-        issues = self.validator.validate(
-            selected_document_ids=selected_document_ids,
-            citations=citations,
-            content=content,
-        )
         self.repository.insert_generation_run(
             GenerationRunRecord(
                 id=None,
@@ -60,8 +54,22 @@ class DraftService:
                 input_summary=topic,
             )
         )
-        self.repository.insert_validation_issues(draft_id, issues)
-        self.repository.update_draft_status(draft_id, self._status_for(issues))
+        self._refresh_state(
+            draft_id=draft_id,
+            selected_document_ids=selected_document_ids,
+            content=content,
+        )
+        return self.repository.get_draft_detail(draft_id)
+
+    def update_content(self, *, draft_id: int, content: str):
+        selected_document_ids = self.repository.get_selected_document_ids_for_draft(draft_id)
+        self.repository.update_draft_content(draft_id, content)
+        self._refresh_state(
+            draft_id=draft_id,
+            selected_document_ids=selected_document_ids,
+            content=content,
+            reset_existing=True,
+        )
         return self.repository.get_draft_detail(draft_id)
 
     def _collect_sections(self, selected_document_ids: list[int]) -> list[object]:
@@ -82,6 +90,26 @@ class DraftService:
             f"来源：\n{source_text}\n"
             "输出 Markdown，并在每个段落后添加 [CITATION:<section_id>]。"
         )
+
+    def _refresh_state(
+        self,
+        *,
+        draft_id: int,
+        selected_document_ids: list[int],
+        content: str,
+        reset_existing: bool = False,
+    ) -> None:
+        if reset_existing:
+            self.repository.clear_citations(draft_id)
+            self.repository.clear_validation_issues(draft_id)
+        citations = self.repository.attach_citations_from_markers(draft_id, content)
+        issues = self.validator.validate(
+            selected_document_ids=selected_document_ids,
+            citations=citations,
+            content=content,
+        )
+        self.repository.insert_validation_issues(draft_id, issues)
+        self.repository.update_draft_status(draft_id, self._status_for(issues))
 
     def _status_for(self, issues: list[object]) -> str:
         severities = {issue.severity for issue in issues}
