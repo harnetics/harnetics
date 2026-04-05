@@ -12,12 +12,12 @@
 | 表 | 归属记录 | 作用 | 关键约束 |
 | --- | --- | --- | --- |
 | `documents` | `DocumentRecord` | 文档元数据与版本索引 | `UNIQUE(doc_id, version)` |
-| `sections` | `SectionRecord` | 文档分段内容与检索切片 | `document_id -> documents.id` |
-| `templates` | `TemplateRecord` | 文档模板与结构约束 | `document_id UNIQUE` |
+| `sections` | `SectionRecord` | 文档分段内容与检索切片 | `document_id -> documents.id ON DELETE CASCADE` |
+| `templates` | `TemplateRecord` | 文档模板与结构约束 | `document_id UNIQUE`，`document_id -> documents.id ON DELETE CASCADE` |
 | `drafts` | `DraftRecord` | 生成草稿的主体记录 | `exported_at` 可空 |
-| `citations` | `CitationRecord` | 草稿到源 section 的引用 | `draft_id -> drafts.id`，`section_id -> sections.id` |
-| `validation_issues` | `ValidationIssueRecord` | 草稿校验问题与来源 | `owner_type` + `owner_id` 组合定位 |
-| `generation_runs` | `GenerationRunRecord` | 草稿生成运行日志 | `draft_id -> drafts.id` |
+| `citations` | `CitationRecord` | 草稿到源 section 的引用 | `draft_id -> drafts.id ON DELETE CASCADE`，`section_id -> sections.id ON DELETE CASCADE` |
+| `validation_issues` | `ValidationIssueRecord` | 草稿校验问题与来源 | `owner_type` + `owner_id` 定位 owner |
+| `generation_runs` | `GenerationRunRecord` | 草稿生成运行日志 | `draft_id -> drafts.id ON DELETE CASCADE` |
 
 字段约定：
 - 所有主键都是 `INTEGER PRIMARY KEY AUTOINCREMENT`。

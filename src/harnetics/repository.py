@@ -258,33 +258,20 @@ class Repository:
             return int(cursor.lastrowid)
 
     def attach_citations_from_markers(self, draft_id: int, content: str) -> list[CitationRecord]:
-        marker_ids = [int(match) for match in re.findall(r"\[CITATION:(\d+)\]", content)]
-        if not marker_ids:
+        match = re.search(r"\[CITATION:(\d+)\]", content)
+        if match is None:
             return []
+        section_id = int(match.group(1))
         with self.connect() as connection:
-            rows: list[CitationRecord] = []
-            for index, section_id in enumerate(marker_ids, start=1):
-                section_row = connection.execute(
-                    "SELECT content FROM sections WHERE id = ?",
-                    (section_id,),
-                ).fetchone()
-                quote_excerpt = "generated citation"
-                if section_row is not None and section_row["content"]:
-                    quote_excerpt = str(section_row["content"])
-                cursor = connection.execute(
-                    "INSERT INTO citations (draft_id, draft_anchor, section_id, quote_excerpt) VALUES (?, ?, ?, ?)",
-                    (draft_id, f"body-{index}", section_id, quote_excerpt),
-                )
-                rows.append(
-                    CitationRecord(
-                        id=int(cursor.lastrowid),
-                        draft_id=draft_id,
-                        draft_anchor=f"body-{index}",
-                        section_id=section_id,
-                        quote_excerpt=quote_excerpt,
-                    )
-                )
-        return rows
+            connection.execute(
+                "INSERT INTO citations (draft_id, draft_anchor, section_id, quote_excerpt) VALUES (?, ?, ?, ?)",
+                (draft_id, "body", section_id, "generated citation"),
+            )
+            rows = connection.execute(
+                "SELECT * FROM citations WHERE draft_id = ? ORDER BY id",
+                (draft_id,),
+            ).fetchall()
+        return [CitationRecord(**dict(row)) for row in rows]
 
     def insert_validation_issues(
         self,
