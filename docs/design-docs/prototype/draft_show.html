@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="corporate">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>草稿台 | Harnetics</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-base-200 text-base-content font-sans">
+  <div class="navbar bg-base-100 shadow-sm px-4 mb-6">
+    <div class="flex-1">
+      <a href="index.html" class="btn btn-ghost text-xl font-bold flex gap-2">Harnetics</a>
+      <ul class="menu menu-horizontal px-1 hidden lg:flex">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="documents.html">文档库</a></li>
+        <li><a href="draft_new.html" class="active">草稿台</a></li>
+        <li><a href="impact.html">变更影响</a></li>
+        <li><a href="graph.html">图谱</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <main class="container mx-auto max-w-7xl px-4 pb-12 w-full">
+    <div class="mb-4 flex justify-between items-center">
+      <div>
+         <h1 class="text-3xl font-bold font-mono">草稿工作台 <span class="badge badge-success ml-2 align-middle">Ready</span></h1>
+         <p class="text-base-content/70 mt-2">基于 ICD 的发动机冷试车大纲草排版本，可对照侧边栏告警与引注二次编辑。</p>
+      </div>
+      <div>
+         <button class="btn btn-primary gap-2">💾 提交定稿</button>
+         <button class="btn btn-outline gap-2 ml-2">📥 导出 Markdown</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+      <div class="lg:col-span-2 card bg-base-100 shadow-sm border border-base-200">
+        <div class="card-body p-0 focus-within:ring-2 focus-within:ring-primary focus-within:ring-inset rounded-box h-full">
+          <textarea class="textarea textarea-ghost h-[600px] w-full font-mono text-sm resize-none focus:outline-none focus:bg-transparent" placeholder="键入正文...">
+# 1. 试车目的
+对 XXX 发动机系统的冷试车阶段，验证低温管路推进剂加载的时序安全性...
+
+# 2. 前置条件 (依赖 ICD-001 v2.1)
+- [ ] 测控接口：Y-L32 供电开启 [参见引注1]
+- [ ] 阀门接口：V298 关闭 [参见引注2]
+
+# 3. 操作流程
+## 3.1 预冷准备 (T-60s 开始)
+预冷管路需要在预冷前完成吹除...
+[告警：此处原操作时间窗口与 SYS-001 要求存在微秒级背离，请人为核定最新阀门响应余量]
+          </textarea>
+        </div>
+      </div>
+      
+      <div class="flex flex-col gap-6">
+         <!-- Alerts -->
+         <div class="card bg-base-100 shadow-sm border border-base-200">
+           <div class="card-body p-4">
+             <h2 class="card-title text-base border-b pb-2">🚨 对齐告警</h2>
+             <div class="alert shadow-sm alert-error text-xs p-2 mt-2">
+               <span>[High] 上游 SYS-001 的预冷起始时间轴已变更为 T-60s，草稿仍默认 T-40s，请修复。</span>
+             </div>
+           </div>
+         </div>
+         <!-- Citations -->
+         <div class="card bg-base-100 shadow-sm border border-base-200 flex-1">
+           <div class="card-body p-4">
+             <h2 class="card-title text-base border-b pb-2">📚 来源引注</h2>
+             <ul class="text-xs space-y-4 mt-2 text-base-content/80">
+               <li class="bg-base-200 p-2 rounded-box hover:bg-base-300">
+                  <span class="font-mono bg-base-300 text-xs px-1 rounded block w-fit mb-1">DOC-ICD-001:Sec3</span>
+                  供电接口要求 Y-L32 的默认开机时基不能超过 T-1s。
+               </li>
+               <li class="bg-base-200 p-2 rounded-box hover:bg-base-300">
+                  <span class="font-mono bg-base-300 text-xs px-1 rounded block w-fit mb-1">DOC-SYS-001:Sec4</span>
+                  低温预冷对阀门寿命的影响评估（包含 V298 的约束）。
+               </li>
+             </ul>
+           </div>
+         </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
