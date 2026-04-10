@@ -30,3 +30,9 @@ def test_app_state_settings_matches_defaults() -> None:
 
     assert isinstance(app.state.settings, Settings)
     assert app.state.settings == Settings()
+
+
+def test_settings_separate_legacy_and_graph_databases() -> None:
+    settings = Settings()
+
+    assert settings.database_path != settings.graph_db_path

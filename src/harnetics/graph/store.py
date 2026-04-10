@@ -12,8 +12,44 @@ from typing import Generator
 
 _SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
+_EXPECTED_TABLE_COLUMNS: dict[str, set[str]] = {
+    "documents": {
+        "doc_id", "title", "doc_type", "department", "system_level",
+        "engineering_phase", "version", "status", "content_hash",
+        "file_path", "created_at", "updated_at",
+    },
+    "sections": {
+        "section_id", "doc_id", "heading", "content", "level",
+        "order_index", "tags",
+    },
+    "edges": {
+        "edge_id", "source_doc_id", "source_section_id", "target_doc_id",
+        "target_section_id", "relation", "confidence", "created_by",
+        "created_at",
+    },
+    "icd_parameters": {
+        "param_id", "doc_id", "name", "interface_type", "subsystem_a",
+        "subsystem_b", "value", "unit", "range_", "owner_department",
+        "version",
+    },
+    "versions": {
+        "version_id", "doc_id", "version", "content_hash", "file_path",
+        "created_at",
+    },
+    "drafts": {
+        "draft_id", "request_json", "content_md", "citations_json",
+        "conflicts_json", "eval_results_json", "status", "generated_by",
+        "created_at", "reviewed_at",
+    },
+    "impact_reports": {
+        "report_id", "trigger_doc_id", "old_version", "new_version",
+        "changed_sections_json", "impacted_docs_json", "summary",
+        "created_at",
+    },
+}
+
 # ---- 模块级默认路径，由 init_db() 设置 ----
-_db_path: Path = Path("var/harnetics.db")
+_db_path: Path = Path("var/harnetics-graph.db")
 
 
 def init_db(db_path: Path | str | None = None) -> None:
@@ -24,6 +60,7 @@ def init_db(db_path: Path | str | None = None) -> None:
     _db_path.parent.mkdir(parents=True, exist_ok=True)
     schema_sql = _SCHEMA_PATH.read_text(encoding="utf-8")
     with _connect(_db_path) as conn:
+        _assert_graph_schema_compatible(conn, _db_path)
         conn.executescript(schema_sql)
 
 
@@ -48,6 +85,34 @@ def _connect(path: Path) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     return conn
+
+
+def _assert_graph_schema_compatible(conn: sqlite3.Connection, db_path: Path) -> None:
+    existing_tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'"
+        ).fetchall()
+    }
+    for table_name, required_columns in _EXPECTED_TABLE_COLUMNS.items():
+        if table_name not in existing_tables:
+            continue
+        actual_columns = _get_table_columns(conn, table_name)
+        missing_columns = required_columns - actual_columns
+        if not missing_columns:
+            continue
+        missing_list = ", ".join(sorted(missing_columns))
+        raise RuntimeError(
+            f"Incompatible graph database at {db_path}: table '{table_name}' is missing columns [{missing_list}]. "
+            "This path appears to point at the legacy repository database. "
+            "Use the default graph path 'var/harnetics-graph.db', set HARNETICS_GRAPH_DB_PATH to a separate file, "
+            "or rerun 'harnetics init --reset --db <path>'."
+        )
+
+
+def _get_table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return {row[1] for row in rows}
 
 
 # ================================================================

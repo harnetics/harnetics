@@ -2,6 +2,8 @@
 
 商业航天文档对齐产品工作台。基于 FastAPI + SQLite + ChromaDB + Ollama，实现文档库管理、AI 草稿生成、评估闭环、变更影响分析与文档关系图谱。
 
+> 注：仓库中仍保留旧版 `Repository` 工作流，其默认数据库为 `var/harnetics.db`；本次 spec 对应的新图谱栈默认使用独立的 `var/harnetics-graph.db`，两者不要混用同一文件。
+
 ## 核心功能
 
 | 功能模块 | 说明 |
@@ -38,6 +40,9 @@ uv run python -m harnetics.cli.main init
 
 # 批量导入样本文档
 uv run python -m harnetics.cli.main ingest fixtures/
+
+# 如需同时构建 Chroma 向量索引（首次运行可能较慢）
+uv run python -m harnetics.cli.main ingest fixtures/ --with-embeddings
 
 # 启动 Web 服务
 uv run python -m harnetics.cli.main serve --reload
@@ -105,7 +110,8 @@ uv run pytest tests/ -q
 
 ```
 var/
-├── harnetics.db   # SQLite 图谱数据库
+├── harnetics.db         # 旧版 Repository 工作流数据库（兼容保留）
+├── harnetics-graph.db   # 新版 spec 图谱数据库
 └── chroma/        # ChromaDB 向量索引
 ```
 

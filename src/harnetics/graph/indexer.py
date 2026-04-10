@@ -19,6 +19,7 @@ from harnetics.parsers.markdown_parser import parse_markdown
 from harnetics.parsers.yaml_parser import parse_yaml
 
 _DOC_ID_RE = re.compile(r"DOC-[A-Z]{3}-\d{3}")
+_LEADING_HTML_COMMENT_RE = re.compile(r"^\s*<!--.*?-->\s*", re.DOTALL)
 
 # ---- 根据文档类型推断关系 ----
 _TYPE_KEYWORDS: dict[str, str] = {
@@ -57,6 +58,9 @@ def extract_relations(doc_id: str, content: str) -> list[DocumentEdge]:
 class DocumentIndexer:
     """文档入库索引器：解析 → 存储 → 建关系。"""
 
+    def __init__(self, embedding_store=None) -> None:
+        self._embedding_store = embedding_store
+
     def ingest_document(
         self, file_path: str, metadata: dict | None = None
     ) -> DocumentNode:
@@ -79,7 +83,8 @@ class DocumentIndexer:
         content_hash: str, meta: dict,
     ) -> DocumentNode:
         # frontmatter 提取
-        post = frontmatter.loads(content)
+        normalized_content = _LEADING_HTML_COMMENT_RE.sub("", content, count=1)
+        post = frontmatter.loads(normalized_content)
         fm: dict = dict(post.metadata) if post.metadata else {}
         fm.update({k: v for k, v in meta.items() if v})
 
@@ -99,6 +104,8 @@ class DocumentIndexer:
 
         sections = parse_markdown(post.content, doc_id)
         store.insert_sections(sections)
+        if self._embedding_store is not None:
+            self._embedding_store.index_sections(doc_id, sections)
 
         edges = extract_relations(doc_id, content)
         self._safe_insert_edges(edges)
@@ -136,7 +143,10 @@ class DocumentIndexer:
                 heading="description", content=str(desc).strip(),
                 level=1, order_index=0,
             )
-            store.insert_sections([sec])
+            sections = [sec]
+            store.insert_sections(sections)
+            if self._embedding_store is not None:
+                self._embedding_store.index_sections(doc_id, sections)
 
         edges = extract_relations(doc_id, content)
         self._safe_insert_edges(edges)
@@ -172,6 +182,8 @@ class DocumentIndexer:
         pattern = "**/*" if recursive else "*"
         docs: list[DocumentNode] = []
         for p in sorted(root.glob(pattern)):
+            if p.name == "AGENTS.md":
+                continue
             if p.suffix.lower() in (".md", ".yaml", ".yml") and p.is_file():
                 docs.append(self.ingest_document(str(p)))
         return docs
