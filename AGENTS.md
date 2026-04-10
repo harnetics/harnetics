@@ -27,3 +27,10 @@ README.md - 项目运行入口，提供安装、启动、冒烟与文档导航
 - 2026-04-05: 为 `docs/` 与 `fixtures/` 补齐分形 `AGENTS.md` 导航
 - 2026-04-05: 新增 `docs/superpowers/specs/`，存放经 brainstorming 确认的设计 spec
 - 2026-04-06: 新增根级 `README.md`，固化项目启动、冒烟与导航入口
+
+## Active Technologies
+- Python 3.11+ + FastAPI (web framework), Jinja2 (templates), HTMX (frontend interactivity), litellm (LLM client), chromadb (vector store), sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (embeddings), PyYAML (parsing), typer+rich (CLI), uvicorn (ASGI server), python-multipart (file upload) (001-aerospace-doc-alignment)
+- SQLite (relational store, single-file) + chromadb (vector embeddings, section-level) (001-aerospace-doc-alignment)
+
+## Recent Changes
+- 001-aerospace-doc-alignment: Added Python 3.11+ + FastAPI (web framework), Jinja2 (templates), HTMX (frontend interactivity), litellm (LLM client), chromadb (vector store), sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (embeddings), PyYAML (parsing), typer+rich (CLI), uvicorn (ASGI server), python-multipart (file upload)
