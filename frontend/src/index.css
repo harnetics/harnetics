@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* amethyst-haze light theme */
+:root {
+  --background: 274 25% 99%;
+  --foreground: 274 10% 8%;
+  --card: 274 15% 99%;
+  --card-foreground: 274 10% 8%;
+  --popover: 274 15% 99%;
+  --popover-foreground: 274 10% 8%;
+  --primary: 274 52% 52%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 274 18% 93%;
+  --secondary-foreground: 274 18% 25%;
+  --muted: 270 18% 95%;
+  --muted-foreground: 270 8% 46%;
+  --accent: 280 20% 88%;
+  --accent-foreground: 280 20% 25%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 274 18% 87%;
+  --input: 274 18% 87%;
+  --ring: 274 52% 52%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 274 15% 7%;
+  --foreground: 274 8% 95%;
+  --card: 274 12% 9%;
+  --card-foreground: 274 8% 95%;
+  --popover: 274 12% 9%;
+  --popover-foreground: 274 8% 95%;
+  --primary: 274 60% 65%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 274 15% 17%;
+  --secondary-foreground: 274 8% 80%;
+  --muted: 274 12% 15%;
+  --muted-foreground: 270 8% 55%;
+  --accent: 280 15% 18%;
+  --accent-foreground: 280 8% 85%;
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 274 12% 18%;
+  --input: 274 12% 18%;
+  --ring: 274 60% 65%;
+}
+
+* {
+  border-color: hsl(var(--border));
+  box-sizing: border-box;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
