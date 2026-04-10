@@ -20,7 +20,7 @@ def test_default_create_app_can_serve_documents_in_temp_cwd(
     response = client.get("/documents")
 
     assert response.status_code == 200
-    assert "No documents found." in response.text
+    assert "暂无符合条件的文档" in response.text
 
 
 def test_upload_route_rejects_missing_metadata(temp_app) -> None:

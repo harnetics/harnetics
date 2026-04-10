@@ -311,8 +311,8 @@ def test_edit_recomputes_draft_citations_issues_and_status(imported_fixture_app)
     assert updated_draft.citations == []
     assert any(issue.message == "草稿缺少引用" for issue in updated_draft.issues)
     assert any(issue.message == "模板必填章节缺失：1. 概述" for issue in updated_draft.issues)
-    assert "状态：blocked" in workspace_response.text
-    assert "无引注。" in workspace_response.text
+    assert "[blocking]" in workspace_response.text
+    assert "无引注数据" in workspace_response.text
     assert "状态：ready" not in workspace_response.text
 
 

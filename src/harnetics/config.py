@@ -9,11 +9,26 @@ from pathlib import Path
 
 @dataclass(frozen=True, slots=True)
 class Settings:
+    # ---- 旧版 Repository 路径（保留兼容） ----
     database_path: Path = Path("var/harnetics.db")
     raw_upload_dir: Path = Path("var/uploads")
     export_dir: Path = Path("var/exports")
-    llm_base_url: str = "http://127.0.0.1:11434/v1"
-    llm_model: str = "gemma-3-27b-it"
+
+    # ---- 图谱 SQLite ----
+    graph_db_path: Path = Path("var/harnetics.db")
+
+    # ---- ChromaDB 向量库 ----
+    chromadb_path: Path = Path("var/chroma/")
+
+    # ---- LLM ----
+    llm_base_url: str = "http://localhost:11434"
+    llm_model: str = "ollama/gemma4:26b-it-a4b-q4_K_M"
+
+    # ---- Embedding ----
+    embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
+
+    # ---- Server ----
+    server_port: int = 8080
 
 
 def get_settings() -> Settings:

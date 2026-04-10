@@ -1,6 +1,6 @@
 # [INPUT]: 依赖 httpx 与 Settings 中的本地 LLM 配置
 # [OUTPUT]: 对外提供 OpenAI-compatible 本地模型客户端
-# [POS]: harnetics 与本地 LLM 服务之间的最小适配层
+# [POS]: llm 包的 HTTP 客户端，harnetics 与本地 LLM 服务之间的最小适配层
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from __future__ import annotations

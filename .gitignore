@@ -3,4 +3,4 @@ __pycache__/
 .pytest_cache/
 var/
 .superpowers/
-node_modules
+node_modules*.egg-info/

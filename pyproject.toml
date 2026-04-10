@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "harnetics"
 version = "0.1.0"
@@ -10,6 +14,11 @@ dependencies = [
   "PyYAML>=6.0.2",
   "httpx>=0.28.1",
   "uvicorn>=0.35.0",
+  "litellm>=1.60.0",
+  "chromadb>=0.6.0",
+  "sentence-transformers>=3.4.0",
+  "typer>=0.15.0",
+  "rich>=13.9.0",
 ]
 
 [dependency-groups]
@@ -20,3 +29,6 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 addopts = "-s"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/harnetics"]

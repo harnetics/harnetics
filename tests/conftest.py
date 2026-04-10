@@ -10,6 +10,7 @@ import pytest
 
 from harnetics.app import create_app
 from harnetics.drafts import DraftService
+from harnetics.graph.store import init_db, get_connection
 from harnetics.importer import ImportService
 from harnetics.repository import Repository
 from harnetics.retrieval import RetrievalPlanner
@@ -59,3 +60,31 @@ def imported_fixture_app(temp_app, fixture_root: Path):
     importer.import_file(fixture_root / "fixtures" / "templates" / "DOC-TPL-001.md")
     importer.import_file(fixture_root / "fixtures" / "test_plans" / "DOC-TST-003.md")
     return temp_app
+
+
+@pytest.fixture()
+def graph_db_path(tmp_path: Path) -> Path:
+    """初始化图谱 SQLite 数据库并返回路径。"""
+    db_path = tmp_path / "graph_test.db"
+    init_db(db_path)
+    return db_path
+
+
+@pytest.fixture()
+def graph_conn(graph_db_path: Path):
+    """获取图谱数据库连接，测试结束后关闭。"""
+    with get_connection(graph_db_path) as conn:
+        yield conn
+
+
+@pytest.fixture()
+def fixture_doc_paths(fixture_root: Path) -> dict[str, Path]:
+    """常用 fixture 文档路径映射。"""
+    base = fixture_root / "fixtures"
+    return {
+        "sys_req": base / "requirements" / "DOC-SYS-001.md",
+        "design": base / "design" / "DOC-DES-001.md",
+        "template": base / "templates" / "DOC-TPL-001.md",
+        "test_plan": base / "test_plans" / "DOC-TST-003.md",
+        "icd": base / "icd" / "DOC-ICD-001.yaml",
+    }

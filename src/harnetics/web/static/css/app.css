@@ -1,0 +1,28 @@
+/*
+ * [INPUT]: 依赖 Tailwind CDN + DaisyUI CDN (通过 base.html <link>/<script> 引入)
+ * [OUTPUT]: 提供项目级自定义样式覆盖
+ * [POS]: web/static/css 的全局样式扩展层
+ * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+ *
+ * Tailwind 与 DaisyUI 通过 CDN 加载，本文件仅做主题微调与自定义工具类。
+ */
+
+/* ---- amethyst-haze 色调覆盖 ---- */
+:root {
+  --harn-primary-h: 274;
+  --harn-primary-s: 45%;
+  --harn-primary-l: 52%;
+  --harn-primary: hsl(var(--harn-primary-h), var(--harn-primary-s), var(--harn-primary-l));
+  --harn-primary-focus: hsl(var(--harn-primary-h), var(--harn-primary-s), 42%);
+  --harn-primary-content: hsl(0, 0%, 100%);
+}
+
+/* ---- HTMX 过渡态 ---- */
+.htmx-indicator {
+  opacity: 0;
+  transition: opacity 200ms ease-in;
+}
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  opacity: 1;
+}
