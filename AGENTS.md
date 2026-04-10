@@ -4,6 +4,7 @@ Markdown + YAML + docs-first
 <directory>
 docs/ - 项目文档真相源，承载设计、规格、执行计划、生成物、技能流程产物与外部参考 (6 子目录: design-docs, exec-plans, generated, product-specs, references, superpowers)
 fixtures/ - 航天领域样本文档语料，模拟跨部门、跨层级、跨版本对齐场景，作为未来解析、检索、评测与演示输入
+frontend/ - React 18 + TypeScript 5.7 + Vite 6 SPA 前端 (shadcn/ui amethyst-haze 主题)
 </directory>
 
 <config>
@@ -15,6 +16,7 @@ README.md - 项目运行入口，提供安装、启动、冒烟与文档导航
 目录树
 - docs/：当前有效文档与治理页面
 - fixtures/：样本需求、设计、ICD、质量、模板与测试大纲
+- frontend/：React SPA 前端 (开发: `npm run dev` / 生产: `npm run build` → FastAPI 托管)
 
 架构法则
 - 根目录只保留全局入口；产品规格、设计叙事、执行计划统一进入 `docs/`
@@ -31,6 +33,9 @@ README.md - 项目运行入口，提供安装、启动、冒烟与文档导航
 ## Active Technologies
 - Python 3.11+ + FastAPI (web framework), Jinja2 (templates), HTMX (frontend interactivity), litellm (LLM client), chromadb (vector store), sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (embeddings), PyYAML (parsing), typer+rich (CLI), uvicorn (ASGI server), python-multipart (file upload) (001-aerospace-doc-alignment)
 - SQLite (relational store, single-file) + chromadb (vector embeddings, section-level) (001-aerospace-doc-alignment)
+- TypeScript 5.7 (frontend) + Python 3.11+ (backend, 已有) + React 18, Vite 6, react-router-dom 6, shadcn/ui, Tailwind CSS v4, lucide-react, FastAPI (backend) (002-react-frontend-replacement)
+- SQLite (backend, 已有) — 前端无本地持久化 (002-react-frontend-replacement)
 
 ## Recent Changes
 - 001-aerospace-doc-alignment: Added Python 3.11+ + FastAPI (web framework), Jinja2 (templates), HTMX (frontend interactivity), litellm (LLM client), chromadb (vector store), sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (embeddings), PyYAML (parsing), typer+rich (CLI), uvicorn (ASGI server), python-multipart (file upload)
+- 002-react-frontend-replacement: Replaced Jinja2/HTMX frontend with React 18 SPA. Added frontend/ directory with TypeScript, Vite, shadcn/ui, Tailwind v4. Removed web_router from api/app.py, added SPA fallback. Added GET /api/graph/edges, GET /api/impact (list), and GET /api/dashboard/stats while保留 /api/status 兼容别名。
