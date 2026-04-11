@@ -39,7 +39,10 @@ def system_status() -> dict:
         from harnetics.llm.client import HarneticsLLM
 
         settings = get_settings()
-        llm_ok = HarneticsLLM(model=settings.llm_model).check_availability()
+        llm_ok = HarneticsLLM(
+            model=settings.llm_model,
+            api_base=settings.llm_base_url,
+        ).check_availability()
     except Exception:
         pass
 

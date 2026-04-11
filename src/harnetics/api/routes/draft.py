@@ -1,19 +1,20 @@
 """
-# [INPUT]: 依赖 engine.draft_generator.DraftGenerator、graph.store (drafts 表)
+# [INPUT]: 依赖 engine.draft_generator.DraftGenerator、llm.client.HarneticsLLM、graph.store (drafts 表)
 # [OUTPUT]: 对外提供 router: POST /api/draft/generate、GET /api/draft/{id}、GET /api/drafts、GET /api/draft/{id}/export
-# [POS]: api/routes 的草稿域端点，US2 草稿生成的 HTTP 入口
+# [POS]: api/routes 的草稿域端点，US2 草稿生成的 HTTP 入口，显式复用 app.state.settings 的 LLM 配置
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
 from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 from harnetics.engine.draft_generator import DraftGenerator
 from harnetics.graph import store
+from harnetics.llm.client import HarneticsLLM
 
 router = APIRouter(prefix="/api/draft", tags=["draft"])
 
@@ -30,7 +31,7 @@ class DraftGenerateRequest(BaseModel):
 # ---- 端点 ----------------------------------------------------------
 
 @router.post("/generate")
-def generate_draft(req: DraftGenerateRequest) -> dict:
+def generate_draft(req: DraftGenerateRequest, request: Request) -> dict:
     """异步触发草稿生成（同步实现，返回完整 AlignedDraft）。"""
     request_dict = {
         "subject": req.subject,
@@ -39,7 +40,12 @@ def generate_draft(req: DraftGenerateRequest) -> dict:
         **req.extra,
     }
     try:
-        draft = DraftGenerator().generate(request_dict)
+        settings = request.app.state.settings
+        llm = HarneticsLLM(
+            model=settings.llm_model,
+            api_base=settings.llm_base_url,
+        )
+        draft = DraftGenerator(llm=llm).generate(request_dict)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
