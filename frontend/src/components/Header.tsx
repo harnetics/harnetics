@@ -49,20 +49,6 @@ export default function Header() {
             )
           })}
         </nav>
-
-        {/* Design system link */}
-        <Link
-          to="/design-system"
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0',
-            pathname === '/design-system'
-              ? 'bg-primary/10 text-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-          )}
-        >
-          <Palette className="h-4 w-4" />
-          DesignSystem
-        </Link>
       </div>
     </header>
   )
