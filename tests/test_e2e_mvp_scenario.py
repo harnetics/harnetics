@@ -152,7 +152,7 @@ def test_draft_generation_with_mock_llm(client):
         "推进系统推力参数：650 kN。[📎 DOC-SYS-001 §sec-1]\n"
     )
 
-    with patch("harnetics.engine.draft_generator.HarneticsLLM") as MockLLM:
+    with patch("harnetics.api.routes.draft.HarneticsLLM") as MockLLM:
         instance = MockLLM.return_value
         instance.generate_draft.return_value = mock_draft_content
         instance.check_availability.return_value = True
@@ -187,7 +187,7 @@ def test_evaluator_run_on_draft(client):
     """生成草稿后运行评估，验证返回 EvalResult 列表。"""
     mock_content = "## 草稿\n本文档无引注内容，评估应产生警告。\n"
 
-    with patch("harnetics.engine.draft_generator.HarneticsLLM") as MockLLM:
+    with patch("harnetics.api.routes.draft.HarneticsLLM") as MockLLM:
         instance = MockLLM.return_value
         instance.generate_draft.return_value = mock_content
 
@@ -280,6 +280,110 @@ status: Approved
     data = impact_res.json()
     impacted_ids = [doc["doc_id"] for doc in data["impacted_docs"]]
     assert dependent_doc_id in impacted_ids
+
+
+def test_draft_route_uses_app_settings_for_llm(client):
+    from types import SimpleNamespace
+
+    from harnetics.config import Settings
+
+    client.app.state.settings = Settings(
+        graph_db_path=client.app.state.settings.graph_db_path,
+        chromadb_path=client.app.state.settings.chromadb_path,
+        llm_model="gemma4:26b",
+        llm_base_url="http://localhost:11434",
+    )
+
+    with patch("harnetics.api.routes.draft.HarneticsLLM") as MockLLM, patch(
+        "harnetics.api.routes.draft.DraftGenerator"
+    ) as MockGenerator:
+        llm_instance = MockLLM.return_value
+        MockGenerator.return_value.generate.return_value = SimpleNamespace(
+            draft_id="DRAFT-TEST-001",
+            status="completed",
+            content_md="# test",
+            citations=[],
+            conflicts=[],
+        )
+
+        res = client.post(
+            "/api/draft/generate",
+            json={"subject": "路由配置传递测试", "related_doc_ids": [], "template_id": ""},
+        )
+
+    assert res.status_code == 200, res.text
+    MockLLM.assert_called_once_with(
+        model="gemma4:26b",
+        api_base="http://localhost:11434",
+    )
+    MockGenerator.assert_called_once_with(llm=llm_instance)
+
+
+def test_impact_analysis_localizes_sections_for_section_aware_edges(client):
+    upstream_doc_id = _upload_inline_markdown(
+        client,
+        "DOC-UPR-001.md",
+        """---
+doc_id: DOC-UPR-001
+title: 上游需求文档
+doc_type: Requirement
+department: 系统工程部
+system_level: System
+engineering_phase: Requirement
+version: v1.0
+status: Approved
+---
+# 上游需求
+
+## 1. 动力需求
+
+**REQ-UPR-001** 发动机点火压力应不低于 10.0 MPa。
+""",
+    )
+    downstream_doc_id = _upload_inline_markdown(
+        client,
+        "DOC-DSN-001.md",
+        """---
+doc_id: DOC-DSN-001
+title: 下游设计文档
+doc_type: Design
+department: 动力系统部
+system_level: Subsystem
+engineering_phase: Design
+version: v1.0
+status: Approved
+---
+# 下游设计
+
+## 1. 设计约束
+
+本设计基于 DOC-UPR-001 的 **REQ-UPR-001**，将点火压力设计值设置为 10.2 MPa。
+""",
+    )
+
+    sections_res = client.get(f"/api/documents/{upstream_doc_id}/sections")
+    assert sections_res.status_code == 200
+    sections_body = sections_res.json()
+    sections = sections_body.get("sections", sections_body)
+    changed_section_id = next(
+        section["section_id"] for section in sections if "REQ-UPR-001" in section["content"]
+    )
+
+    impact_res = client.post(
+        "/api/impact/analyze",
+        json={
+            "doc_id": upstream_doc_id,
+            "old_version": "v1.0",
+            "new_version": "v1.1",
+            "changed_section_ids": [changed_section_id],
+        },
+    )
+
+    assert impact_res.status_code == 200, impact_res.text
+    impacted = next(
+        doc for doc in impact_res.json()["impacted_docs"] if doc["doc_id"] == downstream_doc_id
+    )
+    assert impacted["affected_sections"]
 
 
 # ================================================================
