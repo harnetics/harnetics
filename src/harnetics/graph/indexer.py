@@ -20,6 +20,9 @@ from harnetics.parsers.yaml_parser import parse_yaml
 
 _DOC_ID_RE = re.compile(r"DOC-[A-Z]{3}-\d{3}")
 _LEADING_HTML_COMMENT_RE = re.compile(r"^\s*<!--.*?-->\s*", re.DOTALL)
+_TRACE_TOKEN_RE = re.compile(r"\b(?:REQ-[A-Z]+-\d+|ICD-[A-Z]+-\d+|TH1-[A-Z]+-\d+)\b")
+_SECTION_REF_RE = re.compile(r"(?:DOC-[A-Z]{3}-\d{3}\s*)?§\s*([0-9]+(?:\.[0-9]+)*)")
+_HEADING_REF_RE = re.compile(r"^([0-9]+(?:\.[0-9]+)*)\b")
 
 # ---- 根据文档类型推断关系 ----
 _TYPE_KEYWORDS: dict[str, str] = {
@@ -32,27 +35,145 @@ def extract_relations(doc_id: str, content: str) -> list[DocumentEdge]:
     """正则扫描文档引用，推断关系类型。"""
     refs = set(_DOC_ID_RE.findall(content))
     refs.discard(doc_id)
+    return [
+        DocumentEdge(
+            source_doc_id=doc_id,
+            source_section_id="",
+            target_doc_id=target_id,
+            target_section_id="",
+            relation=_relation_for_target(target_id),
+            confidence=0.6,
+        )
+        for target_id in sorted(refs)
+    ]
+
+
+def extract_section_relations(doc_id: str, sections: list[Section]) -> list[DocumentEdge]:
+    """在章节级抽取引用关系，并尽量定位到目标章节。"""
     edges: list[DocumentEdge] = []
-    for target_id in sorted(refs):
-        # 判断关系类型
-        target_doc = store.get_document(target_id)
-        if target_doc and target_doc.doc_type == "ICD":
-            relation = "constrained_by"
-        elif target_doc and target_doc.doc_type == "Requirement":
-            relation = "derived_from"
-        else:
-            relation = "references"
-        edges.append(
-            DocumentEdge(
+    seen: set[tuple[str, str, str, str]] = set()
+
+    for section in sections:
+        section_text = _section_text(section)
+        refs = set(_DOC_ID_RE.findall(section_text))
+        refs.discard(doc_id)
+        for target_id in sorted(refs):
+            target_section_ids = _infer_target_section_ids(target_id, section_text)
+            if target_section_ids:
+                for target_section_id in target_section_ids:
+                    _append_edge(
+                        edges,
+                        seen,
+                        source_doc_id=doc_id,
+                        source_section_id=section.section_id,
+                        target_doc_id=target_id,
+                        target_section_id=target_section_id,
+                        relation=_relation_for_target(target_id),
+                        confidence=1.0,
+                    )
+                continue
+
+            _append_edge(
+                edges,
+                seen,
                 source_doc_id=doc_id,
-                source_section_id="",
+                source_section_id=section.section_id,
                 target_doc_id=target_id,
                 target_section_id="",
-                relation=relation,
-                confidence=1.0,
+                relation=_relation_for_target(target_id),
+                confidence=0.85,
             )
-        )
+
     return edges
+
+
+def _append_edge(
+    edges: list[DocumentEdge],
+    seen: set[tuple[str, str, str, str]],
+    *,
+    source_doc_id: str,
+    source_section_id: str,
+    target_doc_id: str,
+    target_section_id: str,
+    relation: str,
+    confidence: float,
+) -> None:
+    key = (source_section_id, target_doc_id, target_section_id, relation)
+    if key in seen:
+        return
+    seen.add(key)
+    edges.append(
+        DocumentEdge(
+            source_doc_id=source_doc_id,
+            source_section_id=source_section_id,
+            target_doc_id=target_doc_id,
+            target_section_id=target_section_id,
+            relation=relation,
+            confidence=confidence,
+        )
+    )
+
+
+def _relation_for_target(target_id: str) -> str:
+    target_doc = store.get_document(target_id)
+    if target_doc and target_doc.doc_type == "ICD":
+        return "constrained_by"
+    if target_doc and target_doc.doc_type == "Requirement":
+        return "derived_from"
+    return "references"
+
+
+def _infer_target_section_ids(target_doc_id: str, source_text: str) -> list[str]:
+    target_sections = store.get_sections(target_doc_id)
+    if not target_sections:
+        return []
+
+    source_tokens = _extract_trace_tokens(source_text)
+    source_section_refs = _extract_section_refs(source_text)
+    if not source_tokens and not source_section_refs:
+        return []
+
+    matches: list[tuple[int, str]] = []
+    for section in target_sections:
+        score = 0
+        target_tokens = _extract_trace_tokens(_section_text(section))
+        heading_ref = _extract_heading_ref(section.heading)
+        if heading_ref and heading_ref in source_section_refs:
+            score += 3
+        if target_tokens & source_tokens:
+            score += 2 * len(target_tokens & source_tokens)
+        if score > 0:
+            matches.append((score, section.section_id))
+
+    matches.sort(key=lambda item: (-item[0], item[1]))
+    ordered: list[str] = []
+    seen_ids: set[str] = set()
+    for _, section_id in matches:
+        if section_id not in seen_ids:
+            seen_ids.add(section_id)
+            ordered.append(section_id)
+    return ordered
+
+
+def _section_text(section: Section) -> str:
+    return "\n".join(part for part in (section.heading, section.content) if part)
+
+
+def _extract_trace_tokens(text: str) -> set[str]:
+    return {match.group(0) for match in _TRACE_TOKEN_RE.finditer(text)}
+
+
+def _extract_section_refs(text: str) -> set[str]:
+    refs = {match.group(1) for match in _SECTION_REF_RE.finditer(text)}
+    heading_ref = _extract_heading_ref(text.strip())
+    if heading_ref:
+        refs.add(heading_ref)
+    return refs
+
+
+def _extract_heading_ref(text: str) -> str | None:
+    match = _HEADING_REF_RE.match(text)
+    return match.group(1) if match else None
 
 
 class DocumentIndexer:
@@ -107,7 +228,9 @@ class DocumentIndexer:
         if self._embedding_store is not None:
             self._embedding_store.index_sections(doc_id, sections)
 
-        edges = extract_relations(doc_id, content)
+        edges = extract_section_relations(doc_id, sections)
+        if not edges:
+            edges = extract_relations(doc_id, content)
         self._safe_insert_edges(edges)
 
         return doc
@@ -120,6 +243,7 @@ class DocumentIndexer:
         data = parse_yaml(content)
         fm = data.get("metadata", {}) or {}
         fm.update({k: v for k, v in meta.items() if v})
+        sections: list[Section] = []
 
         doc = DocumentNode(
             doc_id=doc_id,
@@ -148,7 +272,9 @@ class DocumentIndexer:
             if self._embedding_store is not None:
                 self._embedding_store.index_sections(doc_id, sections)
 
-        edges = extract_relations(doc_id, content)
+        edges = extract_section_relations(doc_id, sections)
+        if not edges:
+            edges = extract_relations(doc_id, content)
         self._safe_insert_edges(edges)
 
         # ICD 参数
