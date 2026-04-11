@@ -14,6 +14,8 @@ DEFAULT_RAW_UPLOAD_DIR = Path("var/uploads")
 DEFAULT_EXPORT_DIR = Path("var/exports")
 DEFAULT_CHROMADB_PATH = Path("var/chroma")
 DEFAULT_SERVER_PORT = 8000
+DEFAULT_LLM_BASE_URL = "http://localhost:11434"
+DEFAULT_LLM_MODEL = "gemma4:26b"
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,8 +32,8 @@ class Settings:
     chromadb_path: Path = DEFAULT_CHROMADB_PATH
 
     # ---- LLM ----
-    llm_base_url: str = "http://localhost:11434"
-    llm_model: str = "ollama/gemma4:26b-it-a4b-q4_K_M"
+    llm_base_url: str = DEFAULT_LLM_BASE_URL
+    llm_model: str = DEFAULT_LLM_MODEL
 
     # ---- Embedding ----
     embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
@@ -56,7 +58,7 @@ def get_settings() -> Settings:
         export_dir=Path(export_dir) if export_dir else DEFAULT_EXPORT_DIR,
         graph_db_path=Path(graph_db) if graph_db else DEFAULT_GRAPH_DB_PATH,
         chromadb_path=Path(chroma_dir) if chroma_dir else DEFAULT_CHROMADB_PATH,
-        llm_model=llm_model or "ollama/gemma4:26b-it-a4b-q4_K_M",
-        llm_base_url=llm_url or "http://localhost:11434",
+        llm_model=llm_model or DEFAULT_LLM_MODEL,
+        llm_base_url=llm_url or DEFAULT_LLM_BASE_URL,
         server_port=int(server_port) if server_port else DEFAULT_SERVER_PORT,
     )

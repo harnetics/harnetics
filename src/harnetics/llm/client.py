@@ -6,8 +6,12 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 import httpx
+
+
+DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 
 
 class LocalLlmClient:
@@ -36,47 +40,60 @@ class HarneticsLLM:
 
     def __init__(
         self,
-        model: str = "ollama/gemma4:26b-it-a4b-q4_K_M",
+        model: str = "gemma4:26b",
         api_base: str | None = None,
         api_key: str | None = None,
     ) -> None:
-        self.model = model
-        self.api_base = api_base or _default_api_base(model)
+        self.model = _normalize_model(model, api_base)
+        self.api_base = _normalize_api_base(
+            self.model,
+            api_base or _default_api_base(self.model),
+        )
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
 
     def generate_draft(self, system_prompt: str, context: str, user_request: str) -> str:
         """调用 LLM 生成草稿 Markdown。"""
         import litellm  # 延迟导入，避免冷启动时加载
 
-        request_kwargs: dict[str, str] = {}
+        request_kwargs: dict[str, Any] = {}
         if self.api_base:
             request_kwargs["api_base"] = self.api_base
         if self.api_key:
             request_kwargs["api_key"] = self.api_key
 
-        response = litellm.completion(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"## 参考文档\n\n{context}\n\n## 任务\n\n{user_request}"},
-            ],
-            temperature=0.3,
-            max_tokens=8192,
-            top_p=0.9,
-            **request_kwargs,
-        )
+        try:
+            response = litellm.completion(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"## 参考文档\n\n{context}\n\n## 任务\n\n{user_request}"},
+                ],
+                temperature=0.3,
+                max_tokens=8192,
+                top_p=0.9,
+                timeout=60.0,
+                **request_kwargs,
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                "LLM generation failed for "
+                f"model={self.model} api_base={self.api_base or '<default>'}: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
         return response.choices[0].message.content  # type: ignore[union-attr]
 
     def check_availability(self) -> bool:
         """返回当前 LLM 是否可用或已完成最小配置。"""
         try:
-            if "ollama" in self.model:
-                base_url = (self.api_base or "http://localhost:11434").rstrip("/")
-                if base_url.endswith("/v1"):
-                    base_url = base_url[:-3]
-                # 仅做 TCP 连通性检查，避免 litellm 长阻塞
+            if _is_ollama_model(self.model):
+                base_url = _normalize_api_base(self.model, self.api_base) or DEFAULT_OLLAMA_BASE_URL
                 resp = httpx.get(f"{base_url}/api/tags", timeout=2.0)
-                return resp.status_code == 200
+                if resp.status_code != 200:
+                    return False
+                try:
+                    return _ollama_model_available(resp.json(), self.model)
+                except Exception:
+                    return False
             # 云端 / OpenAI-compatible: 这里不强依赖外网探活，凭证存在即可视为可调用。
             return bool(self.api_key)
         except Exception:
@@ -92,7 +109,50 @@ def _default_api_base(model: str) -> str | None:
     if openai_base:
         return openai_base.rstrip("/")
 
-    if "ollama" in model:
-        return "http://localhost:11434"
+    if _is_ollama_model(_normalize_model(model, None)):
+        return DEFAULT_OLLAMA_BASE_URL
     return None
+
+
+def _normalize_model(model: str, api_base: str | None) -> str:
+    normalized = model.strip()
+    if not normalized:
+        return normalized
+    if "/" in normalized:
+        return normalized
+    if _looks_like_ollama_base(api_base) or ":" in normalized:
+        return f"ollama/{normalized}"
+    return normalized
+
+
+def _normalize_api_base(model: str, api_base: str | None) -> str | None:
+    if not api_base:
+        return None
+    normalized = api_base.rstrip("/")
+    if _is_ollama_model(model) and normalized.endswith("/v1"):
+        normalized = normalized[:-3].rstrip("/")
+    return normalized
+
+
+def _is_ollama_model(model: str) -> bool:
+    return model.startswith("ollama/")
+
+
+def _looks_like_ollama_base(api_base: str | None) -> bool:
+    if not api_base:
+        return False
+    normalized = api_base.rstrip("/")
+    if normalized.endswith("/v1"):
+        normalized = normalized[:-3].rstrip("/")
+    return normalized.endswith(":11434") or ":11434/" in normalized
+
+
+def _ollama_model_available(payload: dict[str, Any], model: str) -> bool:
+    requested = model.removeprefix("ollama/")
+    names = [str(item.get("name", "")).strip() for item in payload.get("models", [])]
+    if not requested:
+        return bool(names)
+    if ":" in requested:
+        return any(name == requested or name.startswith(f"{requested}-") for name in names)
+    return any(name == requested or name.startswith(f"{requested}:") or name.startswith(f"{requested}-") for name in names)
 
