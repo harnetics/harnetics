@@ -1,6 +1,6 @@
-# [INPUT]: 依赖本地 HTTP 伪 provider、config.get_settings、llm.client 与 graph.embeddings
-# [OUTPUT]: 提供 env 路由回归测试，锁定 bare 模型名在 OpenAI-compatible 网关下的端到端可用性
-# [POS]: tests 目录中的环境配置契约测试，验证 .env + 自定义 base_url 能同时驱动 LLM 与 Embedding
+# [INPUT]: 依赖本地 HTTP 伪 provider、config.get_settings、engine.draft_generator、llm.client 与 graph.embeddings
+# [OUTPUT]: 提供 env 路由回归测试，锁定 bare 模型名在 OpenAI-compatible 网关下的端到端可用性与实际模型路由持久化
+# [POS]: tests 目录中的环境配置契约测试，验证 .env + 自定义 base_url 能同时驱动 LLM、Embedding 与草稿元数据
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from harnetics.config import get_settings
+from harnetics.engine.draft_generator import DraftGenerator
 from harnetics.graph.embeddings import EmbeddingStore
 from harnetics.llm.client import HarneticsLLM
 from harnetics.models.document import Section
@@ -136,3 +137,39 @@ def test_env_openai_compatible_gateway_supports_bare_models(tmp_path: Path, monk
         assert store._model_name == "openai/jina-embeddings-v5-text-small"
         assert hits
         assert hits[0]["section_id"] == "DOC-TEST-001-sec-1"
+
+
+def test_draft_generator_records_effective_llm_route(monkeypatch) -> None:
+    class FakeLLM:
+        model = "openai/claude-sonnet-4-6"
+
+        def generate_draft(self, system_prompt: str, context: str, user_request: str) -> str:
+            return "# fake draft\n\n内容由远端 provider 返回。"
+
+    class FakeConnection:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, tuple]] = []
+
+        def execute(self, sql: str, params: tuple):
+            self.calls.append((sql, params))
+            return None
+
+    fake_conn = FakeConnection()
+
+    @contextmanager
+    def fake_get_connection():
+        yield fake_conn
+
+    monkeypatch.setattr("harnetics.engine.draft_generator.store.get_connection", fake_get_connection)
+
+    draft = DraftGenerator(llm=FakeLLM()).generate(
+        {
+            "subject": "姿控推进接口变更",
+            "related_doc_ids": [],
+            "template_id": "",
+        }
+    )
+
+    assert draft.generated_by == "openai/claude-sonnet-4-6"
+    assert fake_conn.calls
+    assert fake_conn.calls[0][1][-1] == "openai/claude-sonnet-4-6"

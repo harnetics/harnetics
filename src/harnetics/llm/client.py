@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 os、litellm、httpx
-# [OUTPUT]: 对外提供 HarneticsLLM 与旧版 LocalLlmClient 后向/兼容；HarneticsLLM 支持 explainable availability status
+# [OUTPUT]: 对外提供 HarneticsLLM 与旧版 LocalLlmClient 后向/兼容；HarneticsLLM 支持 explainable availability status 与可控 LiteLLM debug
 # [POS]: llm 包的模型调用适配层，统一本地 Ollama 与 OpenAI-compatible 提供方接入
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -54,6 +54,8 @@ class HarneticsLLM:
     def generate_draft(self, system_prompt: str, context: str, user_request: str) -> str:
         """调用 LLM 生成草稿 Markdown。"""
         import litellm  # 延迟导入，避免冷启动时加载
+
+        _maybe_enable_litellm_debug(litellm)
 
         request_kwargs: dict[str, Any] = {}
         if self.api_base:
@@ -140,6 +142,23 @@ def _default_cloud_probe_base(model: str) -> str | None:
     if model.startswith("deepseek/"):
         return "https://api.deepseek.com/v1"
     return None
+
+
+def _maybe_enable_litellm_debug(litellm_module: Any) -> None:
+    if not _litellm_debug_requested():
+        return
+    if getattr(litellm_module, "_harnetics_debug_enabled", False):
+        return
+
+    turn_on_debug = getattr(litellm_module, "_turn_on_debug", None)
+    if callable(turn_on_debug):
+        turn_on_debug()
+        setattr(litellm_module, "_harnetics_debug_enabled", True)
+
+
+def _litellm_debug_requested() -> bool:
+    raw = os.environ.get("HARNETICS_LITELLM_DEBUG", "")
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _normalize_model(model: str, api_base: str | None) -> str:

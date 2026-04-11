@@ -1,4 +1,4 @@
-# [INPUT]: 依赖 chromadb、sentence-transformers、litellm 与 models.document.Section
+# [INPUT]: 依赖 chromadb、sentence-transformers、litellm、llm.client._maybe_enable_litellm_debug 与 models.document.Section
 # [OUTPUT]: 对外提供 EmbeddingStore 类（本地/云端 embedding 双模式）
 # [POS]: graph 包的向量检索层，负责章节级语义索引、相似性搜索与文档级聚合检索
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from harnetics.models.document import Section
+from harnetics.llm.client import _maybe_enable_litellm_debug
 
 _COLLECTION_NAME = "harnetics_sections"
 _OPENAI_EMBEDDING_PREFIX = "text-embedding-"
@@ -39,6 +40,8 @@ class _LitellmEmbeddingFunction:
 
     def __call__(self, input: list[str]) -> list[list[float]]:  # noqa: A002
         import litellm
+
+        _maybe_enable_litellm_debug(litellm)
         resp = litellm.embedding(
             model=self._model,
             input=input,
