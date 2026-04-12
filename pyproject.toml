@@ -14,12 +14,12 @@ dependencies = [
   "PyYAML>=6.0.2",
   "httpx>=0.28.1",
   "uvicorn>=0.35.0",
-  "litellm>=1.60.0",
   "chromadb>=0.6.0",
   "sentence-transformers>=3.4.0",
   "python-dotenv>=1.0.0",
   "typer>=0.15.0",
   "rich>=13.9.0",
+  "openai>=1.5.0",
 ]
 
 [dependency-groups]

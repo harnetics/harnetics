@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from harnetics.app import create_app
+from harnetics.api.app import create_api_app
 from harnetics.config import Settings, get_dotenv_path, get_settings
 
 
@@ -90,3 +91,28 @@ def test_get_settings_falls_back_to_project_root_dotenv(tmp_path: Path, monkeypa
     assert settings.llm_model == "claude-sonnet-4-6"
     assert settings.llm_base_url == "https://aihubmix.com/v1"
     assert settings.llm_api_key == "sk-root"
+
+
+def test_dashboard_stats_alias_reuses_cached_llm_status(monkeypatch) -> None:
+    app = create_api_app()
+    client = TestClient(app)
+    calls: list[str] = []
+
+    class FakeLLM:
+        def __init__(self, model: str, api_base: str, api_key: str | None) -> None:
+            self.model = model
+            self.api_base = api_base
+
+        def availability_status(self) -> tuple[bool, str]:
+            calls.append("availability")
+            return True, ""
+
+    monkeypatch.setattr("harnetics.llm.client.HarneticsLLM", FakeLLM)
+
+    status_res = client.get("/api/status")
+    stats_res = client.get("/api/dashboard/stats")
+
+    assert status_res.status_code == 200
+    assert stats_res.status_code == 200
+    assert status_res.json() == stats_res.json()
+    assert calls == ["availability"]

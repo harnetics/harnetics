@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import os
 import threading
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -88,7 +89,13 @@ def _fake_provider_server() -> tuple[str, ThreadingHTTPServer]:
 def test_env_openai_compatible_gateway_supports_bare_models(tmp_path: Path, monkeypatch) -> None:
     with _fake_provider_server() as (base_url, _server):
         monkeypatch.chdir(tmp_path)
-        (tmp_path / ".env").write_text(
+        for key in list(os.environ):
+            if key.startswith("HARNETICS_") or key.startswith("OPENAI_"):
+                monkeypatch.delenv(key, raising=False)
+
+        env_file = tmp_path / ".env"
+        monkeypatch.setenv("HARNETICS_ENV_FILE", str(env_file))
+        env_file.write_text(
             "\n".join(
                 [
                     "HARNETICS_LLM_MODEL=claude-sonnet-4-6",
@@ -173,3 +180,39 @@ def test_draft_generator_records_effective_llm_route(monkeypatch) -> None:
     assert draft.generated_by == "openai/claude-sonnet-4-6"
     assert fake_conn.calls
     assert fake_conn.calls[0][1][-1] == "openai/claude-sonnet-4-6"
+
+
+def test_draft_generator_falls_back_to_class_name_when_llm_model_is_not_string(monkeypatch) -> None:
+    class FakeLLM:
+        model = object()
+
+        def generate_draft(self, system_prompt: str, context: str, user_request: str) -> str:
+            return "# fake draft"
+
+    class FakeConnection:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, tuple]] = []
+
+        def execute(self, sql: str, params: tuple):
+            self.calls.append((sql, params))
+            return None
+
+    fake_conn = FakeConnection()
+
+    @contextmanager
+    def fake_get_connection():
+        yield fake_conn
+
+    monkeypatch.setattr("harnetics.engine.draft_generator.store.get_connection", fake_get_connection)
+
+    draft = DraftGenerator(llm=FakeLLM()).generate(
+        {
+            "subject": "姿控推进接口变更",
+            "related_doc_ids": [],
+            "template_id": "",
+        }
+    )
+
+    assert draft.generated_by == "FakeLLM"
+    assert fake_conn.calls
+    assert fake_conn.calls[0][1][-1] == "FakeLLM"

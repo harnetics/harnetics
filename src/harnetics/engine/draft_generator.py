@@ -28,7 +28,7 @@ class DraftGenerator:
 
     def generate(self, request: dict) -> AlignedDraft:
         draft_id = f"DRAFT-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6].upper()}"
-        generated_by = getattr(self._llm, "model", self._llm.__class__.__name__)
+        generated_by = _llm_identifier(self._llm)
         subject = request.get("subject", "")
         related_doc_ids: list[str] = request.get("related_doc_ids", [])
         template_id: str = request.get("template_id", "")
@@ -113,6 +113,13 @@ class DraftGenerator:
             status="completed",
             generated_by=generated_by,
         )
+
+
+def _llm_identifier(llm: object) -> str:
+    model = getattr(llm, "model", "")
+    if isinstance(model, str) and model.strip():
+        return model
+    return llm.__class__.__name__
 
 
 def _parse_citations(content: str) -> list[Citation]:

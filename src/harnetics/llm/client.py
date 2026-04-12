@@ -1,42 +1,55 @@
-# [INPUT]: 依赖 os、litellm、httpx
-# [OUTPUT]: 对外提供 HarneticsLLM 与旧版 LocalLlmClient 后向/兼容；HarneticsLLM 支持 explainable availability status 与可控 LiteLLM debug
-# [POS]: llm 包的模型调用适配层，统一本地 Ollama 与 OpenAI-compatible 提供方接入
+# [INPUT]: 依赖 os、httpx 与 openai SDK
+# [OUTPUT]: 对外提供 HarneticsLLM 与旧版 LocalLlmClient 后向/兼容；HarneticsLLM 支持 explainable availability status 与 OpenAI-compatible 原生调用
+# [POS]: llm 包的模型调用适配层，统一本地显式路径与 OpenAI-compatible 提供方接入
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from __future__ import annotations
 
 import os
-from typing import Any
+import re
 
 import httpx
+from openai import OpenAI
 
 
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
+_API_KEY_RE = re.compile(r"sk-[A-Za-z0-9_-]+")
 
 
 class LocalLlmClient:
-    """旧版客户端，保留后向兼容。"""
-    def __init__(self, base_url: str, model: str) -> None:
-        self.base_url = base_url.rstrip("/")
-        self.model = model
+    """旧版草稿服务兼容层，统一走 OpenAI-compatible 会话接口。"""
+
+    def __init__(self, base_url: str, model: str, api_key: str | None = None) -> None:
+        self.configured_model = model.strip()
+        self.requested_model = _request_model_name(self.configured_model)
+        self.model = _normalize_model(self.requested_model, base_url)
+        self.api_base = _normalize_api_base(self.model, base_url)
+        self.request_api_base = _request_api_base(self.model, self.api_base)
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
 
     def generate_markdown(self, *, prompt: str) -> str:
-        response = httpx.post(
-            f"{self.base_url}/chat/completions",
-            json={
-                "model": self.model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.1,
-            },
-            timeout=60,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        return payload["choices"][0]["message"]["content"]
+        try:
+            return _create_chat_completion(
+                request_model=self.requested_model,
+                request_api_base=self.request_api_base,
+                api_key=_request_api_key(self.api_key, self.model),
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=8192,
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                _format_generation_error(
+                    effective_model=self.model,
+                    effective_base_url=self.api_base,
+                    api_key=self.api_key,
+                    exc=exc,
+                )
+            ) from exc
 
 
 class HarneticsLLM:
-    """litellm 封装的主 LLM 客户端，用于草稿生成。"""
+    """主 LLM 客户端，用于草稿生成与影响分析 AI 判定。"""
 
     def __init__(
         self,
@@ -58,49 +71,47 @@ class HarneticsLLM:
             if resolved_api_key is None and settings.llm_api_key:
                 resolved_api_key = settings.llm_api_key
 
-        raw_model = (resolved_model or "").strip()
-        raw_api_base = resolved_api_base or _default_api_base(raw_model)
+        configured_model = (resolved_model or "").strip()
+        requested_model = _request_model_name(configured_model)
+        raw_api_base = resolved_api_base or _default_api_base(configured_model)
 
-        self.requested_model = raw_model
-        self.model = _normalize_model(raw_model, raw_api_base)
+        self.configured_model = configured_model
+        self.requested_model = requested_model
+        self.model = _normalize_model(requested_model, raw_api_base)
         self.api_base = _normalize_api_base(
             self.model,
             raw_api_base,
         )
+        self.request_api_base = _request_api_base(self.model, self.api_base)
         self.api_key = resolved_api_key or os.environ.get("OPENAI_API_KEY")
 
     def generate_draft(self, system_prompt: str, context: str, user_request: str) -> str:
-        """调用 LLM 生成草稿 Markdown。"""
-        import litellm  # 延迟导入，避免冷启动时加载
-
-        _maybe_enable_litellm_debug(litellm)
-
-        request_kwargs: dict[str, Any] = {}
-        if self.api_base:
-            request_kwargs["api_base"] = self.api_base
-        if self.api_key:
-            request_kwargs["api_key"] = self.api_key
-
+        """调用 OpenAI-compatible 会话接口生成草稿 Markdown。"""
+        if not _is_ollama_model(self.model) and not self.api_key:
+            raise RuntimeError(
+                f"LLM generation failed for model={self.model} api_base={self.api_base or '<default>'}: missing api key"
+            )
         try:
-            response = litellm.completion(
-                model=self.model,
+            return _create_chat_completion(
+                request_model=self.requested_model,
+                request_api_base=self.request_api_base,
+                api_key=_request_api_key(self.api_key, self.model),
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"## 参考文档\n\n{context}\n\n## 任务\n\n{user_request}"},
                 ],
                 temperature=0.3,
                 max_tokens=8192,
-                top_p=0.9,
-                timeout=60.0,
-                **request_kwargs,
             )
         except Exception as exc:
             raise RuntimeError(
-                "LLM generation failed for "
-                f"model={self.model} api_base={self.api_base or '<default>'}: "
-                f"{type(exc).__name__}: {exc}"
+                _format_generation_error(
+                    effective_model=self.model,
+                    effective_base_url=self.api_base,
+                    api_key=self.api_key,
+                    exc=exc,
+                )
             ) from exc
-        return response.choices[0].message.content  # type: ignore[union-attr]
 
     def check_availability(self) -> bool:
         """返回当前 LLM 是否可用或已完成最小配置。"""
@@ -149,8 +160,12 @@ def _default_api_base(model: str) -> str | None:
     if openai_base:
         return openai_base.rstrip("/")
 
-    if _is_ollama_model(_normalize_model(model, None)):
+    normalized_model = _normalize_model(model, None)
+    if _is_ollama_model(normalized_model):
         return DEFAULT_OLLAMA_BASE_URL
+    default_cloud = _default_cloud_probe_base(normalized_model)
+    if default_cloud:
+        return default_cloud
     return None
 
 
@@ -162,21 +177,82 @@ def _default_cloud_probe_base(model: str) -> str | None:
     return None
 
 
-def _maybe_enable_litellm_debug(litellm_module: Any) -> None:
-    if not _litellm_debug_requested():
-        return
-    if getattr(litellm_module, "_harnetics_debug_enabled", False):
-        return
+def _create_chat_completion(
+    *,
+    request_model: str,
+    request_api_base: str | None,
+    api_key: str,
+    messages: list[dict[str, str]],
+    temperature: float,
+    max_tokens: int,
+) -> str:
+    if not request_api_base:
+        raise RuntimeError("missing api_base")
 
-    turn_on_debug = getattr(litellm_module, "_turn_on_debug", None)
-    if callable(turn_on_debug):
-        turn_on_debug()
-        setattr(litellm_module, "_harnetics_debug_enabled", True)
+    client = OpenAI(
+        base_url=request_api_base,
+        api_key=api_key,
+        timeout=60.0,
+    )
+    response = client.chat.completions.create(
+        model=request_model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    content = response.choices[0].message.content
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    return str(content)
 
 
-def _litellm_debug_requested() -> bool:
-    raw = os.environ.get("HARNETICS_LITELLM_DEBUG", "")
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
+def _format_generation_error(
+    *,
+    effective_model: str,
+    effective_base_url: str | None,
+    api_key: str | None,
+    exc: Exception,
+) -> str:
+    return (
+        "LLM generation failed for "
+        f"model={effective_model} api_base={effective_base_url or '<default>'}: "
+        f"{type(exc).__name__}: {_sanitize_error_message(str(exc), api_key)}"
+    )
+
+
+def _sanitize_error_message(message: str, api_key: str | None) -> str:
+    sanitized = message
+    if api_key:
+        sanitized = sanitized.replace(api_key, "[REDACTED]")
+    return _API_KEY_RE.sub("[REDACTED]", sanitized)
+
+
+def _request_api_key(api_key: str | None, effective_model: str) -> str:
+    if api_key:
+        return api_key
+    if _is_ollama_model(effective_model):
+        return "ollama"
+    raise RuntimeError("missing api key")
+
+
+def _request_model_name(model: str) -> str:
+    normalized = model.strip()
+    if not normalized:
+        return normalized
+    if "/" in normalized:
+        return normalized.split("/", 1)[1]
+    return normalized
+
+
+def _request_api_base(model: str, api_base: str | None) -> str | None:
+    normalized = _normalize_api_base(model, api_base)
+    if not normalized:
+        return None
+    if _is_ollama_model(model) and not normalized.endswith("/v1"):
+        return f"{normalized}/v1"
+    return normalized
 
 
 def _normalize_model(model: str, api_base: str | None) -> str:

@@ -1,13 +1,11 @@
-# [INPUT]: 依赖 pytest、unittest.mock 与 harnetics.llm.client.HarneticsLLM
-# [OUTPUT]: 提供模型归一化、Ollama availability 判定与 LiteLLM debug 开关的回归测试
-# [POS]: tests 目录中的 LLM 配置契约测试，锁定本地 Ollama 裸模型名、模型存在性判断与可控 debug 行为
+# [INPUT]: 依赖 pytest、unittest.mock 与 harnetics.llm.client.HarneticsLLM/LocalLlmClient
+# [OUTPUT]: 提供模型归一化、Ollama availability 判定与 OpenAI-compatible 原生调用的回归测试
+# [POS]: tests 目录中的 LLM 配置契约测试，锁定本地 Ollama 裸模型名、原始模型透传、模型存在性判断与错误脱敏行为
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
-import sys
-from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from harnetics.llm.client import HarneticsLLM
+from harnetics.llm.client import HarneticsLLM, LocalLlmClient
 
 
 def test_ollama_model_name_is_normalized_from_bare_tag() -> None:
@@ -84,30 +82,74 @@ def test_default_constructor_uses_current_settings_for_remote_gateway(monkeypatc
     assert llm.api_key == "sk-harnetics"
 
 
-def test_generate_draft_enables_litellm_debug_once_when_requested(monkeypatch) -> None:
-    class FakeLiteLLM:
-        def __init__(self) -> None:
-            self.debug_calls = 0
-            self._harnetics_debug_enabled = False
-
-        def _turn_on_debug(self) -> None:
-            self.debug_calls += 1
-
-        def completion(self, **_: object):
-            return SimpleNamespace(
-                choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))]
-            )
-
-    fake_litellm = FakeLiteLLM()
-    monkeypatch.setenv("HARNETICS_LITELLM_DEBUG", "1")
-    monkeypatch.setitem(sys.modules, "litellm", fake_litellm)
-
+def test_generate_draft_uses_openai_client_with_raw_model_name() -> None:
     llm = HarneticsLLM(
-        model="openai/gpt-4.1-mini",
-        api_base="https://example.com/v1",
+        model="claude-sonnet-4-6-think",
+        api_base="https://aihubmix.com/v1",
         api_key="sk-test",
     )
 
-    assert llm.generate_draft("system", "", "request") == "ok"
-    assert llm.generate_draft("system", "", "request") == "ok"
-    assert fake_litellm.debug_calls == 1
+    with patch("harnetics.llm.client.OpenAI") as MockOpenAI:
+        MockOpenAI.return_value.chat.completions.create.return_value.choices = [
+            Mock(message=Mock(content="ok"))
+        ]
+
+        assert llm.generate_draft("system", "context", "request") == "ok"
+
+    MockOpenAI.assert_called_once_with(
+        base_url="https://aihubmix.com/v1",
+        api_key="sk-test",
+        timeout=60.0,
+    )
+    MockOpenAI.return_value.chat.completions.create.assert_called_once()
+    kwargs = MockOpenAI.return_value.chat.completions.create.call_args.kwargs
+    assert kwargs["model"] == "claude-sonnet-4-6-think"
+    assert kwargs["messages"][0]["role"] == "system"
+    assert "top_p" not in kwargs
+
+
+def test_generate_draft_error_masks_api_key() -> None:
+    llm = HarneticsLLM(
+        model="claude-sonnet-4-6",
+        api_base="https://aihubmix.com/v1",
+        api_key="sk-secret-123",
+    )
+
+    with patch("harnetics.llm.client.OpenAI") as MockOpenAI:
+        MockOpenAI.return_value.chat.completions.create.side_effect = RuntimeError(
+            "bad request for sk-secret-123"
+        )
+
+        with patch("builtins.print"):
+            try:
+                llm.generate_draft("system", "context", "request")
+            except RuntimeError as exc:
+                message = str(exc)
+            else:
+                raise AssertionError("expected RuntimeError")
+
+    assert "sk-secret-123" not in message
+    assert "[REDACTED]" in message
+    assert "openai/claude-sonnet-4-6" in message
+
+
+def test_local_client_uses_ollama_openai_compatible_endpoint() -> None:
+    client = LocalLlmClient(
+        base_url="http://localhost:11434",
+        model="gemma4:26b",
+    )
+
+    with patch("harnetics.llm.client.OpenAI") as MockOpenAI:
+        MockOpenAI.return_value.chat.completions.create.return_value.choices = [
+            Mock(message=Mock(content="ok"))
+        ]
+
+        assert client.generate_markdown(prompt="hello") == "ok"
+
+    MockOpenAI.assert_called_once_with(
+        base_url="http://localhost:11434/v1",
+        api_key="ollama",
+        timeout=60.0,
+    )
+    kwargs = MockOpenAI.return_value.chat.completions.create.call_args.kwargs
+    assert kwargs["model"] == "gemma4:26b"

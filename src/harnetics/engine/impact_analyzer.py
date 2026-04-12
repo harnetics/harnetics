@@ -162,6 +162,12 @@ class ImpactAnalyzer:
                 affected_sections = self._ai_find_affected_sections(
                     current_doc_id, upstream_sections,
                 )
+                if not affected_sections:
+                    affected_sections = self._heuristic_find_affected_sections(
+                        current_doc_id,
+                        upstream_doc_id,
+                        upstream_sections,
+                    )
             else:
                 affected_sections = self._heuristic_find_affected_sections(
                     current_doc_id, upstream_doc_id, upstream_sections,

@@ -1,12 +1,13 @@
-# [INPUT]: 依赖 chromadb、sentence-transformers、litellm、llm.client._maybe_enable_litellm_debug 与 models.document.Section
+# [INPUT]: 依赖 chromadb、sentence-transformers、openai SDK 与 models.document.Section
 # [OUTPUT]: 对外提供 EmbeddingStore 类（本地/云端 embedding 双模式）
-# [POS]: graph 包的向量检索层，负责章节级语义索引、相似性搜索与文档级聚合检索
+# [POS]: graph 包的向量检索层，负责章节级语义索引、相似性搜索与文档级聚合检索，并统一 OpenAI-compatible embedding 调用
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from __future__ import annotations
 
+from openai import OpenAI
+
 from harnetics.models.document import Section
-from harnetics.llm.client import _maybe_enable_litellm_debug
 
 _COLLECTION_NAME = "harnetics_sections"
 _OPENAI_EMBEDDING_PREFIX = "text-embedding-"
@@ -23,11 +24,11 @@ _LOCAL_MODEL_HINTS = (
 
 
 # ================================================================
-# 云端 embedding function — 包装 litellm.embedding()
+# 云端 embedding function — 包装 OpenAI-compatible embeddings.create()
 # ================================================================
 
-class _LitellmEmbeddingFunction:
-    """ChromaDB 自定义 EmbeddingFunction，路由到 litellm.embedding()。"""
+class _OpenAICompatibleEmbeddingFunction:
+    """ChromaDB 自定义 EmbeddingFunction，路由到 OpenAI-compatible embeddings.create()。"""
 
     def __init__(self, model: str, api_key: str = "", base_url: str = "") -> None:
         self._model = _normalize_embedding_model(
@@ -35,20 +36,21 @@ class _LitellmEmbeddingFunction:
             api_key=api_key,
             base_url=base_url,
         )
-        self._api_key = api_key or None
-        self._base_url = base_url or None
+        self._request_model = _request_embedding_model(self._model)
+        self._api_key = _request_embedding_api_key(api_key or None, self._model)
+        self._base_url = _request_embedding_api_base(self._model, base_url or None)
 
     def __call__(self, input: list[str]) -> list[list[float]]:  # noqa: A002
-        import litellm
-
-        _maybe_enable_litellm_debug(litellm)
-        resp = litellm.embedding(
-            model=self._model,
-            input=input,
+        client = OpenAI(
             api_key=self._api_key,
-            api_base=self._base_url,
+            base_url=self._base_url,
+            timeout=60.0,
         )
-        return [item["embedding"] for item in resp.data]
+        resp = client.embeddings.create(
+            model=self._request_model,
+            input=input,
+        )
+        return [list(item.embedding) for item in resp.data]
 
     def embed_documents(self, input: list[str]) -> list[list[float]]:  # noqa: A002
         return self(input)
@@ -58,11 +60,11 @@ class _LitellmEmbeddingFunction:
 
     @staticmethod
     def name() -> str:
-        return "litellm"
+        return "openai-compatible"
 
     @staticmethod
-    def build_from_config(config: dict) -> "_LitellmEmbeddingFunction":
-        return _LitellmEmbeddingFunction(
+    def build_from_config(config: dict) -> "_OpenAICompatibleEmbeddingFunction":
+        return _OpenAICompatibleEmbeddingFunction(
             model=str(config.get("model", "")),
             base_url=str(config.get("base_url", "")),
         )
@@ -78,7 +80,7 @@ class _LitellmEmbeddingFunction:
 
 
 def _normalize_embedding_model(model_name: str, api_key: str = "", base_url: str = "") -> str:
-    """将 bare 远程 embedding 模型名归一化为 litellm provider/model 形式。"""
+    """将 bare 远程 embedding 模型名归一化为可诊断的 provider/model 形式。"""
     normalized = model_name.strip()
     if not normalized or "/" in normalized:
         return normalized
@@ -87,6 +89,32 @@ def _normalize_embedding_model(model_name: str, api_key: str = "", base_url: str
     if (api_key or base_url) and not _looks_like_local_model(normalized):
         return f"openai/{normalized}"
     return normalized
+
+
+def _request_embedding_model(model_name: str) -> str:
+    normalized = model_name.strip()
+    if "/" in normalized:
+        return normalized.split("/", 1)[1]
+    return normalized
+
+
+def _request_embedding_api_base(model_name: str, base_url: str | None) -> str:
+    normalized = (base_url or "").rstrip("/")
+    if normalized:
+        if model_name.startswith("ollama/") and not normalized.endswith("/v1"):
+            return f"{normalized}/v1"
+        return normalized
+    if model_name.startswith("ollama/"):
+        return "http://localhost:11434/v1"
+    return "https://api.openai.com/v1"
+
+
+def _request_embedding_api_key(api_key: str | None, model_name: str) -> str:
+    if api_key:
+        return api_key
+    if model_name.startswith("ollama/"):
+        return "ollama"
+    raise RuntimeError("missing embedding api key")
 
 
 def _looks_like_local_model(model_name: str) -> bool:
@@ -105,7 +133,7 @@ def _uses_remote_embeddings(model_name: str, api_key: str = "", base_url: str = 
 
 
 class EmbeddingStore:
-    """ChromaDB 向量存储，承载章节级语义检索。支持本地 sentence-transformers 与云端 litellm embedding。"""
+    """ChromaDB 向量存储，承载章节级语义检索。支持本地 sentence-transformers 与云端 OpenAI-compatible embedding。"""
 
     def __init__(
         self,
@@ -135,7 +163,7 @@ class EmbeddingStore:
     @staticmethod
     def _build_ef(model_name: str, api_key: str = "", base_url: str = ""):
         if _uses_remote_embeddings(model_name, api_key=api_key, base_url=base_url):
-            return _LitellmEmbeddingFunction(model=model_name, api_key=api_key, base_url=base_url)
+            return _OpenAICompatibleEmbeddingFunction(model=model_name, api_key=api_key, base_url=base_url)
         from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
         return SentenceTransformerEmbeddingFunction(model_name=model_name)
 

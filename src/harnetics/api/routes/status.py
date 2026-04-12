@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+from time import monotonic
+
 from fastapi import APIRouter, Request
 
 from harnetics.config import get_dotenv_path
@@ -13,6 +15,8 @@ from harnetics.graph import store
 from harnetics.graph.query import get_graph
 
 router = APIRouter(prefix="/api", tags=["status"])
+
+_LLM_STATUS_CACHE_TTL_SECONDS = 5.0
 
 
 @router.get("/status")
@@ -36,21 +40,7 @@ def system_status(request: Request) -> dict:
     settings = request.app.state.settings
     dotenv_path = get_dotenv_path()
 
-    # ---- LLM 可用性 ----
-    llm_ok = False
-    llm_error = ""
-    llm_client = None
-    try:
-        from harnetics.llm.client import HarneticsLLM
-
-        llm_client = HarneticsLLM(
-            model=settings.llm_model,
-            api_base=settings.llm_base_url,
-            api_key=settings.llm_api_key or None,
-        )
-        llm_ok, llm_error = llm_client.availability_status()
-    except Exception as exc:
-        llm_error = f"{type(exc).__name__}: {exc}"
+    llm_status = _get_llm_status(request)
 
     # ---- Embedding 可用性 ----
     emb_store = getattr(request.app.state, "embedding_store", None)
@@ -67,12 +57,12 @@ def system_status(request: Request) -> dict:
         "icd_parameters": icd_count,
         "impact_reports": impact_count,
         "stale_references": len(stale),
-        "llm_available": llm_ok,
+        "llm_available": llm_status["available"],
         "llm_model": settings.llm_model,
         "llm_base_url": settings.llm_base_url,
-        "llm_effective_model": llm_client.model if llm_client else "",
-        "llm_effective_base_url": llm_client.api_base if llm_client and llm_client.api_base else "",
-        "llm_error": llm_error,
+        "llm_effective_model": llm_status["effective_model"],
+        "llm_effective_base_url": llm_status["effective_base_url"],
+        "llm_error": llm_status["error"],
         "embedding_available": embedding_available,
         "embedding_model": settings.embedding_model,
         "embedding_base_url": settings.embedding_base_url,
@@ -83,3 +73,47 @@ def system_status(request: Request) -> dict:
         "eval_blocked": eval_blocked,
         "config_env_file": str(dotenv_path) if dotenv_path is not None else "",
     }
+
+
+def _get_llm_status(request: Request) -> dict[str, str | bool]:
+    settings = request.app.state.settings
+    cache_key = (
+        settings.llm_model,
+        settings.llm_base_url,
+        bool(settings.llm_api_key),
+    )
+    now = monotonic()
+    cached = getattr(request.app.state, "_llm_status_cache", None)
+    if cached and cached.get("key") == cache_key and cached.get("expires_at", 0.0) > now:
+        return cached["value"]
+
+    value = {
+        "available": False,
+        "error": "",
+        "effective_model": "",
+        "effective_base_url": "",
+    }
+    try:
+        from harnetics.llm.client import HarneticsLLM
+
+        llm_client = HarneticsLLM(
+            model=settings.llm_model,
+            api_base=settings.llm_base_url,
+            api_key=settings.llm_api_key or None,
+        )
+        available, error = llm_client.availability_status()
+        value = {
+            "available": available,
+            "error": error,
+            "effective_model": llm_client.model,
+            "effective_base_url": llm_client.api_base or "",
+        }
+    except Exception as exc:
+        value["error"] = f"{type(exc).__name__}: {exc}"
+
+    request.app.state._llm_status_cache = {
+        "key": cache_key,
+        "expires_at": now + _LLM_STATUS_CACHE_TTL_SECONDS,
+        "value": value,
+    }
+    return value
