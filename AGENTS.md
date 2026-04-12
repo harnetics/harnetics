@@ -49,8 +49,11 @@ README.md - 项目运行入口，提供安装、启动、冒烟与文档导航
 - SQLite (backend, 已有) — 前端无本地持久化 (002-react-frontend-replacement)
 - Python 3.13 (backend) + TypeScript 5.7 (existing frontend untouched) + FastAPI, httpx, openai SDK, python-dotenv, pytest (005-openai-compatible-llm-client)
 - SQLite (graph DB) + ChromaDB + sentence-transformers + OpenAI-compatible embeddings (005-openai-compatible-llm-client)
+- Python 3.13 (backend) + TypeScript 5.7 (frontend) + FastAPI, React 18, Vite 6, shadcn/ui, react-markdown + remark-gfm (新增) (006-draft-workbench-enhancement)
+- SQLite (var/harnetics-graph.db) (006-draft-workbench-enhancement)
 
 ## Recent Changes
 - 001-aerospace-doc-alignment: Added Python 3.11+ + FastAPI (web framework), Jinja2 (templates), HTMX (frontend interactivity), litellm (LLM client), chromadb (vector store), sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (embeddings), PyYAML (parsing), typer+rich (CLI), uvicorn (ASGI server), python-multipart (file upload)
 - 002-react-frontend-replacement: Replaced Jinja2/HTMX frontend with React 18 SPA. Added frontend/ directory with TypeScript, Vite, shadcn/ui, Tailwind v4. Removed web_router from api/app.py, added SPA fallback. Added GET /api/graph/edges, GET /api/impact (list), and GET /api/dashboard/stats while保留 /api/status 兼容别名。
 - 005-openai-compatible-llm-client: Replaced remote LiteLLM completion/embedding routing with OpenAI-compatible SDK calls, kept explicit Ollama fallback, and hardened status/env-routing diagnostics.
+- 006-draft-workbench-enhancement: Markdown rendering (react-markdown+remark-gfm), auto-evaluation with Pass/Warning/Blocker mapping, citation quote backfill from graph store, export download, draft history list page with eval_summary, @tailwindcss/typography plugin.

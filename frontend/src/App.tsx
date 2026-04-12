@@ -6,6 +6,7 @@ import Documents from './pages/Documents';
 import DocumentDetail from './pages/DocumentDetail';
 import DraftNew from './pages/DraftNew';
 import DraftShow from './pages/DraftShow';
+import DraftHistory from './pages/DraftHistory';
 import Impact from './pages/Impact';
 import ImpactReport from './pages/ImpactReport';
 import Graph from './pages/Graph';
@@ -23,6 +24,7 @@ function App() {
             <Route path="/documents/:id" element={<DocumentDetail />} />
             <Route path="/draft" element={<DraftNew />} />
             <Route path="/draft/:id" element={<DraftShow />} />
+            <Route path="/drafts" element={<DraftHistory />} />
             <Route path="/impact" element={<Impact />} />
             <Route path="/impact/:id" element={<ImpactReport />} />
             <Route path="/graph" element={<Graph />} />

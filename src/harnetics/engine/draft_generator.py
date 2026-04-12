@@ -1,6 +1,6 @@
-# [INPUT]: 依赖 llm.client, llm.prompts, graph.store, graph.embeddings, models.draft
+# [INPUT]: 依赖 llm.client, llm.prompts, graph.store, graph.embeddings, models.draft, evaluators
 # [OUTPUT]: 对外提供 DraftGenerator
-# [POS]: engine 包的草稿生成核心，检索→组装→生成→解析引注→冲突检测
+# [POS]: engine 包的草稿生成核心，检索→组装→生成→解析引注→回填引文→自动评估→冲突检测→持久化
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from harnetics.graph import store
 from harnetics.llm.client import HarneticsLLM
 from harnetics.llm.prompts import DRAFT_SYSTEM_PROMPT, build_context
 from harnetics.models.draft import AlignedDraft, Citation, Conflict, DraftRequest
+from harnetics.evaluators import build_default_bus
 
 # [📎 DOC-XXX-XXX §section_id]
 _CITATION_RE = re.compile(r"\[📎\s*(DOC-[A-Z]{3}-\d{3})\s*§([\w.-]+)\]")
@@ -99,8 +100,9 @@ class DraftGenerator:
         )
         content_md = self._llm.generate_draft(DRAFT_SYSTEM_PROMPT, context, subject)
 
-        # ---- 解析引注 ----
+        # ---- 解析引注 + 回填章节内容 ----
         citations = _parse_citations(content_md)
+        _backfill_citation_quotes(citations)
 
         # ---- 冲突检测 ----
         from harnetics.engine.conflict_detector import ConflictDetector
@@ -112,6 +114,39 @@ class DraftGenerator:
             len(citations),
             len(conflicts),
         )
+
+        # ---- 自动评估 ----
+        draft_dict = {
+            "draft_id": draft_id,
+            "content_md": content_md,
+            "citations": [
+                {"source_doc_id": c.source_doc_id, "source_section_id": c.source_section_id,
+                 "quote": c.quote, "confidence": c.confidence}
+                for c in citations
+            ],
+            "conflicts": [
+                {"doc_a_id": c.doc_a_id, "doc_b_id": c.doc_b_id,
+                 "description": c.description, "severity": c.severity}
+                for c in conflicts
+            ],
+            "request": request,
+        }
+        bus = build_default_bus()
+        eval_results = bus.run_all(draft_dict)
+        has_blocking = bus.has_blocking_failures(eval_results)
+        eval_status = "blocked" if has_blocking else "eval_pass"
+
+        eval_results_payload = [
+            {
+                "evaluator_id": r.evaluator_id,
+                "name": r.name,
+                "status": r.status.value,
+                "level": _map_eval_level(r),
+                "detail": r.detail,
+                "locations": r.locations,
+            }
+            for r in eval_results
+        ]
 
         # ---- 持久化 ----
         request_json = json.dumps(request, ensure_ascii=False)
@@ -125,6 +160,7 @@ class DraftGenerator:
              "description": c.description, "severity": c.severity}
             for c in conflicts
         ], ensure_ascii=False)
+        eval_results_json = json.dumps(eval_results_payload, ensure_ascii=False)
 
         try:
             with store.get_connection() as conn:
@@ -134,7 +170,7 @@ class DraftGenerator:
                         eval_results_json, status, generated_by)
                        VALUES (?,?,?,?,?,?,?,?)""",
                     (draft_id, request_json, content_md, citations_json, conflicts_json,
-                     "[]", "completed", generated_by),
+                     eval_results_json, eval_status, generated_by),
                 )
         except Exception as exc:
             logger.error(
@@ -153,7 +189,8 @@ class DraftGenerator:
             content_md=content_md,
             citations=citations,
             conflicts=conflicts,
-            status="completed",
+            eval_results_json=eval_results_json,
+            status=eval_status,
             generated_by=generated_by,
         )
 
@@ -163,6 +200,16 @@ def _llm_identifier(llm: object) -> str:
     if isinstance(model, str) and model.strip():
         return model
     return llm.__class__.__name__
+
+
+def _map_eval_level(result) -> str:
+    """将 EvalResult 的 (status, level) 映射为前端展示标签。"""
+    from harnetics.evaluators.base import EvalStatus, EvalLevel
+    if result.status in (EvalStatus.PASS, EvalStatus.SKIP):
+        return "Pass"
+    if result.level == EvalLevel.BLOCK:
+        return "Blocker"
+    return "Warning"
 
 
 def _parse_citations(content: str) -> list[Citation]:
@@ -180,3 +227,20 @@ def _parse_citations(content: str) -> list[Citation]:
                 confidence=1.0,
             ))
     return citations
+
+
+def _backfill_citation_quotes(citations: list[Citation]) -> None:
+    """从 graph store 查询章节内容，回填 quote 字段（heading + 前 200 字符）。"""
+    for cit in citations:
+        try:
+            sections = store.get_sections(cit.source_doc_id)
+            matched = [s for s in sections if s.section_id == cit.source_section_id]
+            if matched:
+                sec = matched[0]
+                heading = sec.heading or ""
+                body = (sec.content or "")[:200]
+                cit.quote = f"{heading}\n{body}".strip() if heading else body.strip()
+            else:
+                cit.quote = "原始内容不可用"
+        except Exception:
+            cit.quote = "原始内容不可用"

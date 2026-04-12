@@ -109,25 +109,53 @@ def generate_draft(req: DraftGenerateRequest, request: Request) -> dict:
             }
             for c in draft.conflicts
         ],
+        "eval_results": json.loads(draft.eval_results_json or "[]"),
+        "generated_by": getattr(draft, "generated_by", "") or "",
+        "created_at": getattr(draft, "created_at", "") or "",
     }
 
 
 @router.get("")
 def list_drafts() -> list[dict]:
-    """列出所有草稿（摘要字段）。"""
+    """列出所有草稿（摘要字段 + subject + eval_summary）。"""
     with store.get_connection() as conn:
         rows = conn.execute(
-            "SELECT draft_id, status, generated_by, created_at FROM drafts ORDER BY created_at DESC"
+            "SELECT draft_id, status, generated_by, created_at, request_json, eval_results_json FROM drafts ORDER BY created_at DESC"
         ).fetchall()
-    return [
-        {
+    result = []
+    for r in rows:
+        # 提取 subject
+        subject = ""
+        try:
+            req = json.loads(r["request_json"] or "{}")
+            subject = req.get("subject", "")
+        except (json.JSONDecodeError, TypeError):
+            pass
+        # 统计 eval_summary
+        eval_summary = None
+        try:
+            evals = json.loads(r["eval_results_json"] or "[]")
+            if evals:
+                eval_summary = {"pass": 0, "warn": 0, "block": 0}
+                for ev in evals:
+                    lv = ev.get("level", "")
+                    if lv == "Pass":
+                        eval_summary["pass"] += 1
+                    elif lv == "Warning":
+                        eval_summary["warn"] += 1
+                    elif lv == "Blocker":
+                        eval_summary["block"] += 1
+        except (json.JSONDecodeError, TypeError):
+            pass
+        result.append({
             "draft_id": r["draft_id"],
             "status": r["status"],
             "generated_by": r["generated_by"],
             "created_at": r["created_at"],
-        }
-        for r in rows
-    ]
+            "subject": subject,
+            "eval_summary": eval_summary,
+        })
+    return result
 
 
 @router.get("/{draft_id}")

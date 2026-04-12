@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import MarkdownRenderer from '@/components/MarkdownRenderer'
 
 const evalIcon: Record<string, React.ReactNode> = {
   Pass: <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />,
@@ -59,18 +60,42 @@ export default function DraftShow() {
   const warnCount = results.filter((r) => r.level === 'Warning').length
   const blockCount = results.filter((r) => r.level === 'Blocker').length
 
+  const statusVariant: Record<string, 'success' | 'warning' | 'destructive' | 'secondary'> = {
+    eval_pass: 'success',
+    blocked: 'destructive',
+    completed: 'secondary',
+  }
+
+  async function handleExport() {
+    if (!draft) return
+    try {
+      const res = await fetch(`/api/draft/${encodeURIComponent(draft.draft_id)}/export`)
+      if (!res.ok) return
+      const text = await res.text()
+      const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${draft.draft_id}.md`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch { /* 静默降级 */ }
+  }
+
   return (
     <div className="container mx-auto max-w-screen-xl px-4 py-6 space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold">草稿工作台</h1>
-            <Badge variant="success">{draft.status}</Badge>
+            <Badge variant={statusVariant[draft.status] ?? 'secondary'}>{draft.status}</Badge>
             <code className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{draft.draft_id}</code>
           </div>
           <p className="text-sm text-muted-foreground">{draft.generated_by} · {draft.created_at}</p>
         </div>
-        <Button variant="outline" size="sm" className="gap-2 shrink-0">
+        <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleExport}>
           <Download className="h-4 w-4" />导出草稿
         </Button>
       </div>
@@ -82,7 +107,9 @@ export default function DraftShow() {
               <CardTitle className="text-sm text-muted-foreground font-semibold uppercase tracking-wide">草稿内容（只读预览）</CardTitle>
             </CardHeader>
             <CardContent>
-              <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap text-foreground max-h-[65vh] overflow-y-auto p-3 bg-muted/40 rounded-lg">{draft.content_md}</pre>
+              <div className="max-h-[65vh] overflow-y-auto p-3 bg-muted/40 rounded-lg">
+                <MarkdownRenderer content={draft.content_md} />
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -170,7 +197,11 @@ export default function DraftShow() {
                 {draft.citations.map((c, i) => (
                   <div key={i} className="text-xs space-y-0.5">
                     <p className="font-medium">{c.source_doc_id} / {c.source_section_id}</p>
-                    <p className="text-muted-foreground italic">"{c.quote}"</p>
+                    {c.quote ? (
+                      <p className="text-muted-foreground whitespace-pre-line">{c.quote}</p>
+                    ) : (
+                      <p className="text-muted-foreground italic">原始内容不可用</p>
+                    )}
                     <p className="text-muted-foreground">置信度: {(c.confidence * 100).toFixed(0)}%</p>
                     {i < draft.citations.length - 1 && <Separator className="mt-2" />}
                   </div>

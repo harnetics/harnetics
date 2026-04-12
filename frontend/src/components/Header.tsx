@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, FileEdit, GitMerge, Share2, Palette } from 'lucide-react'
+import { LayoutDashboard, BookOpen, FileEdit, History, GitMerge, Share2, Palette } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { to: '/', label: '仪表盘', icon: LayoutDashboard },
   { to: '/documents', label: '文档库', icon: BookOpen },
   { to: '/draft', label: '草稿台', icon: FileEdit },
+  { to: '/drafts', label: '历史草稿', icon: History },
   { to: '/impact', label: '变更影响', icon: GitMerge },
   { to: '/graph', label: '图谱', icon: Share2 },
 ]

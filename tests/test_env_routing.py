@@ -169,6 +169,9 @@ def test_draft_generator_records_effective_llm_route(monkeypatch) -> None:
 
     monkeypatch.setattr("harnetics.engine.draft_generator.store.get_connection", fake_get_connection)
 
+    from harnetics.evaluators.base import EvaluatorBus
+    monkeypatch.setattr("harnetics.engine.draft_generator.build_default_bus", lambda: EvaluatorBus())
+
     draft = DraftGenerator(llm=FakeLLM()).generate(
         {
             "subject": "姿控推进接口变更",
@@ -204,6 +207,9 @@ def test_draft_generator_falls_back_to_class_name_when_llm_model_is_not_string(m
         yield fake_conn
 
     monkeypatch.setattr("harnetics.engine.draft_generator.store.get_connection", fake_get_connection)
+
+    from harnetics.evaluators.base import EvaluatorBus
+    monkeypatch.setattr("harnetics.engine.draft_generator.build_default_bus", lambda: EvaluatorBus())
 
     draft = DraftGenerator(llm=FakeLLM()).generate(
         {

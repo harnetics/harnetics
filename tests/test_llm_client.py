@@ -99,7 +99,7 @@ def test_generate_draft_uses_openai_client_with_raw_model_name() -> None:
     MockOpenAI.assert_called_once_with(
         base_url="https://aihubmix.com/v1",
         api_key="sk-test",
-        timeout=60.0,
+        timeout=600.0,
     )
     MockOpenAI.return_value.chat.completions.create.assert_called_once()
     kwargs = MockOpenAI.return_value.chat.completions.create.call_args.kwargs
@@ -149,7 +149,7 @@ def test_local_client_uses_ollama_openai_compatible_endpoint() -> None:
     MockOpenAI.assert_called_once_with(
         base_url="http://localhost:11434/v1",
         api_key="ollama",
-        timeout=60.0,
+        timeout=600.0,
     )
     kwargs = MockOpenAI.return_value.chat.completions.create.call_args.kwargs
     assert kwargs["model"] == "gemma4:26b"

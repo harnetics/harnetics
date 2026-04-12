@@ -169,7 +169,7 @@ def test_draft_generation_with_mock_llm(client):
     assert res.status_code == 200, res.text
     data = res.json()
     assert "draft_id" in data
-    assert data["status"] in ("completed", "pending")
+    assert data["status"] in ("completed", "pending", "eval_pass", "blocked")
 
     draft_id = data["draft_id"]
 
@@ -306,6 +306,9 @@ def test_draft_route_uses_app_settings_for_llm(client):
             content_md="# test",
             citations=[],
             conflicts=[],
+            eval_results_json="[]",
+            generated_by="gemma4:26b",
+            created_at="",
         )
 
         res = client.post(

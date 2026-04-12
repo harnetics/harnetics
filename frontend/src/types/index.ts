@@ -73,6 +73,12 @@ export interface DraftSummary {
   status: string
   generated_by: string
   created_at: string
+  subject: string
+  eval_summary: {
+    pass: number
+    warn: number
+    block: number
+  } | null
 }
 
 export interface Citation {
