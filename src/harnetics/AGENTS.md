@@ -4,7 +4,7 @@
 成员清单
 __init__.py: 包级入口，导出最小公共 API。
 app.py: 旧版 FastAPI/Jinja2 入口，保留 legacy repository 工作流与兼容性冒烟测试。
-config.py: 运行时设置对象——隔离 legacy repository DB 与 graph DB，并统一上传、LLM、ChromaDB 与端口参数。
+config.py: 运行时设置对象——隔离 legacy repository DB 与 graph DB，并统一上传、LLM、ChromaDB、端口参数与 `.env` 解析路径（显式文件 > cwd > 仓库根）。
 importer.py: 受控 Markdown/YAML 导入服务，负责解析、校验与入库。
 retrieval.py: 候选检索规划器，按主题、部门、类型与层级对来源排序。
 validation.py: 草稿校验器，产出阻断与警告级问题。
