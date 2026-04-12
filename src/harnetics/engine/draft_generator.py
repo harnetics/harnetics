@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import uuid
 from datetime import datetime, timezone
@@ -17,6 +18,7 @@ from harnetics.models.draft import AlignedDraft, Citation, Conflict, DraftReques
 
 # [📎 DOC-XXX-XXX §section_id]
 _CITATION_RE = re.compile(r"\[📎\s*(DOC-[A-Z]{3}-\d{3})\s*§([\w.-]+)\]")
+logger = logging.getLogger("uvicorn.error")
 
 
 class DraftGenerator:
@@ -32,13 +34,27 @@ class DraftGenerator:
         subject = request.get("subject", "")
         related_doc_ids: list[str] = request.get("related_doc_ids", [])
         template_id: str = request.get("template_id", "")
+        logger.info(
+            "draft.generator.start draft_id=%s subject=%r related_doc_count=%d template_id=%s generated_by=%s",
+            draft_id,
+            subject,
+            len(related_doc_ids),
+            template_id or "<none>",
+            generated_by,
+        )
 
         # ---- 检索相关章节 ----
         sections: list[dict] = []
         if self._emb and subject:
             try:
                 sections = self._emb.search_similar(subject, top_k=12)
-            except Exception:
+            except Exception as exc:
+                logger.warning(
+                    "draft.generator.embedding_search_failed draft_id=%s error_type=%s error=%s",
+                    draft_id,
+                    type(exc).__name__,
+                    exc,
+                )
                 pass
         # 如果没有 embedding，fallback 到直接取指定文档的章节
         if not sections and related_doc_ids:
@@ -73,6 +89,14 @@ class DraftGenerator:
 
         # ---- 调用 LLM ----
         context = build_context(sections, icd_params, template_content)
+        logger.info(
+            "draft.generator.context draft_id=%s sections=%d icd_params=%d template_chars=%d context_chars=%d",
+            draft_id,
+            len(sections),
+            len(icd_params),
+            len(template_content),
+            len(context),
+        )
         content_md = self._llm.generate_draft(DRAFT_SYSTEM_PROMPT, context, subject)
 
         # ---- 解析引注 ----
@@ -81,6 +105,13 @@ class DraftGenerator:
         # ---- 冲突检测 ----
         from harnetics.engine.conflict_detector import ConflictDetector
         conflicts = ConflictDetector().detect(related_doc_ids, icd_params)
+        logger.info(
+            "draft.generator.result draft_id=%s content_chars=%d citations=%d conflicts=%d",
+            draft_id,
+            len(content_md),
+            len(citations),
+            len(conflicts),
+        )
 
         # ---- 持久化 ----
         request_json = json.dumps(request, ensure_ascii=False)
@@ -95,15 +126,27 @@ class DraftGenerator:
             for c in conflicts
         ], ensure_ascii=False)
 
-        with store.get_connection() as conn:
-            conn.execute(
-                """INSERT OR REPLACE INTO drafts
-                   (draft_id, request_json, content_md, citations_json, conflicts_json,
-                    eval_results_json, status, generated_by)
-                   VALUES (?,?,?,?,?,?,?,?)""",
-                (draft_id, request_json, content_md, citations_json, conflicts_json,
-                 "[]", "completed", generated_by),
+        try:
+            with store.get_connection() as conn:
+                conn.execute(
+                    """INSERT OR REPLACE INTO drafts
+                       (draft_id, request_json, content_md, citations_json, conflicts_json,
+                        eval_results_json, status, generated_by)
+                       VALUES (?,?,?,?,?,?,?,?)""",
+                    (draft_id, request_json, content_md, citations_json, conflicts_json,
+                     "[]", "completed", generated_by),
+                )
+        except Exception as exc:
+            logger.error(
+                "draft.generator.persist_failed draft_id=%s generated_by=%s error_type=%s error=%s",
+                draft_id,
+                generated_by,
+                type(exc).__name__,
+                exc,
             )
+            raise
+
+        logger.info("draft.generator.persisted draft_id=%s generated_by=%s", draft_id, generated_by)
 
         return AlignedDraft(
             draft_id=draft_id,

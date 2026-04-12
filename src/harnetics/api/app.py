@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -20,6 +21,15 @@ from harnetics.api.routes.draft import router as draft_router
 from harnetics.api.routes.impact import router as impact_router
 from harnetics.api.routes.graph import router as graph_router
 from harnetics.api.routes.status import router as status_router
+
+
+def _configure_harnetics_logging() -> None:
+    app_logger = logging.getLogger("harnetics")
+    uvicorn_logger = logging.getLogger("uvicorn.error")
+    if uvicorn_logger.handlers:
+        app_logger.handlers = uvicorn_logger.handlers
+        app_logger.propagate = False
+    app_logger.setLevel(logging.INFO)
 
 
 @asynccontextmanager
@@ -49,6 +59,7 @@ async def _lifespan(app: FastAPI):
 
 def create_api_app() -> FastAPI:
     settings = get_settings()
+    _configure_harnetics_logging()
     app = FastAPI(title="Harnetics", lifespan=_lifespan)
 
     app.state.settings = settings

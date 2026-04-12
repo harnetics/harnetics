@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import logging
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import PlainTextResponse
@@ -17,6 +18,7 @@ from harnetics.graph import store
 from harnetics.llm.client import HarneticsLLM
 
 router = APIRouter(prefix="/api/draft", tags=["draft"])
+logger = logging.getLogger("uvicorn.error")
 
 
 # ---- 请求体 --------------------------------------------------------
@@ -43,14 +45,47 @@ def generate_draft(req: DraftGenerateRequest, request: Request) -> dict:
     }
     try:
         settings = request.app.state.settings
+        logger.info(
+            "draft.generate.start subject=%r related_doc_count=%d template_id=%s source_report_id=%s llm_model=%s llm_base=%s has_api_key=%s",
+            req.subject,
+            len(req.related_doc_ids),
+            req.template_id or "<none>",
+            req.source_report_id or "<none>",
+            settings.llm_model,
+            settings.llm_base_url or "<default>",
+            bool(settings.llm_api_key),
+        )
         llm = HarneticsLLM(
             model=settings.llm_model,
             api_base=settings.llm_base_url,
             api_key=settings.llm_api_key or None,
         )
+        logger.info(
+            "draft.generate.route configured_model=%s effective_model=%s configured_base=%s effective_base=%s",
+            settings.llm_model,
+            llm.model,
+            settings.llm_base_url or "<default>",
+            llm.api_base or "<default>",
+        )
         draft = DraftGenerator(llm=llm).generate(request_dict)
     except Exception as exc:
+        logger.exception(
+            "draft.generate.failed subject=%r related_doc_count=%d template_id=%s source_report_id=%s",
+            req.subject,
+            len(req.related_doc_ids),
+            req.template_id or "<none>",
+            req.source_report_id or "<none>",
+        )
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    logger.info(
+        "draft.generate.success draft_id=%s status=%s generated_by=%s citations=%d conflicts=%d",
+        draft.draft_id,
+        draft.status,
+        getattr(draft, "generated_by", "") or "<unknown>",
+        len(draft.citations),
+        len(draft.conflicts),
+    )
 
     return {
         "draft_id": draft.draft_id,

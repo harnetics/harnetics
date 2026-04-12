@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 
@@ -14,6 +15,7 @@ from openai import OpenAI
 
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 _API_KEY_RE = re.compile(r"sk-[A-Za-z0-9_-]+")
+logger = logging.getLogger("uvicorn.error")
 
 
 class LocalLlmClient:
@@ -88,6 +90,12 @@ class HarneticsLLM:
     def generate_draft(self, system_prompt: str, context: str, user_request: str) -> str:
         """调用 OpenAI-compatible 会话接口生成草稿 Markdown。"""
         if not _is_ollama_model(self.model) and not self.api_key:
+            logger.warning(
+                "llm.generate.missing_api_key effective_model=%s api_base=%s configured_model=%s",
+                self.model,
+                self.api_base or "<default>",
+                self.configured_model or "<empty>",
+            )
             raise RuntimeError(
                 f"LLM generation failed for model={self.model} api_base={self.api_base or '<default>'}: missing api key"
             )
@@ -189,18 +197,44 @@ def _create_chat_completion(
     if not request_api_base:
         raise RuntimeError("missing api_base")
 
+    logger.info(
+        "llm.chat.start model=%s api_base=%s messages=%d max_tokens=%d temperature=%.2f",
+        request_model,
+        request_api_base,
+        len(messages),
+        max_tokens,
+        temperature,
+    )
+
     client = OpenAI(
         base_url=request_api_base,
         api_key=api_key,
-        timeout=60.0,
+        timeout=600.0,
     )
-    response = client.chat.completions.create(
-        model=request_model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    try:
+        response = client.chat.completions.create(
+            model=request_model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+    except Exception as exc:
+        logger.error(
+            "llm.chat.failed model=%s api_base=%s error_type=%s error=%s",
+            request_model,
+            request_api_base,
+            type(exc).__name__,
+            _sanitize_error_message(str(exc), api_key),
+        )
+        raise
+
     content = response.choices[0].message.content
+    logger.info(
+        "llm.chat.success model=%s finish_reason=%s content_chars=%d",
+        request_model,
+        getattr(response.choices[0], "finish_reason", ""),
+        len(content or ""),
+    )
     if content is None:
         return ""
     if isinstance(content, str):
