@@ -7,10 +7,13 @@ cat > .env <<'EOF'
 HARNETICS_LLM_MODEL=claude-sonnet-4-6-think
 HARNETICS_LLM_BASE_URL=https://aihubmix.com/v1
 HARNETICS_LLM_API_KEY=sk-your-key
+HARNETICS_EMBEDDING_MODEL=jina-embeddings-v5-text-small
+HARNETICS_EMBEDDING_BASE_URL=https://aihubmix.com/v1
+HARNETICS_EMBEDDING_API_KEY=sk-your-key
 EOF
 ```
 
-预期：服务直接使用原始模型名 `claude-sonnet-4-6-think` 调用远端网关，不需要 `openai/` 前缀。
+预期：服务直接使用原始模型名 `claude-sonnet-4-6-think` 与 `jina-embeddings-v5-text-small` 调用远端网关，不需要 `openai/` 前缀。
 
 ## 2. 启动服务并检查状态
 
@@ -23,6 +26,7 @@ curl http://localhost:8000/api/status
 - `llm_model` 为 `claude-sonnet-4-6-think`
 - `llm_effective_model` 为 `openai/claude-sonnet-4-6-think`
 - `llm_effective_base_url` 为 `https://aihubmix.com/v1`
+- `embedding_base_url` 为 `https://aihubmix.com/v1`
 - `config_env_file` 指向当前命中的 `.env`
 
 ## 3. 验证草稿生成
@@ -43,9 +47,17 @@ curl -X POST http://localhost:8000/api/impact/analyze \
   -d '{"doc_id":"DOC-SYS-001","old_version":"v1.0","new_version":"v2.0"}'
 ```
 
-预期：若命中 AI 判定路径，其 LLM 使用与草稿生成相同的 effective route。
+预期：若命中 AI 判定路径，其 LLM 使用与草稿生成相同的 effective route；若命中 ai_vector 路径，其 embedding 也复用同一网关语义。
 
-## 5. 验证本地显式 fallback
+## 5. 运行 targeted regression
+
+```bash
+.venv/bin/python -m pytest tests/test_llm_client.py tests/test_graph_store.py tests/test_env_routing.py tests/test_app.py tests/test_e2e_mvp_scenario.py -q
+```
+
+预期：目标回归全部通过。
+
+## 6. 验证本地显式 fallback
 
 ```bash
 cat > .env <<'EOF'

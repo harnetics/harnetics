@@ -2,15 +2,15 @@
 > L2 | 父级: ../AGENTS.md
 
 成员清单
-AGENTS.md: 当前特性的局部地图，定义 OpenAI-compatible LLM 调用收敛的文档边界。
-spec.md: 需求规格，定义远端 LLM 调用切换到 OpenAI-compatible 语义后的用户故事、范围与成功标准。
+AGENTS.md: 当前特性的局部地图，定义 OpenAI-compatible AI 路由收敛的文档边界。
+spec.md: 需求规格，定义远端 completion/embedding 调用切换到 OpenAI-compatible 语义后的用户故事、范围与成功标准。
 checklists/requirements.md: 规格质量检查单，验证需求完整、清晰、可测。
 plan.md: 实施计划，给出技术决策、代码改动面与验证边界。
 research.md: 关键技术决策与方案取舍记录。
 data-model.md: 当前特性的运行时路由、诊断快照与错误上下文数据模型。
-quickstart.md: 本地验证远端网关/本地 fallback 的操作步骤。
+quickstart.md: 本地验证远端网关、本地 fallback 与 targeted pytest 的操作步骤。
 tasks.md: 依赖顺序明确的实现任务列表。
-contracts/api-contracts.md: 草稿、影响分析与状态端点在 OpenAI-compatible 路由下的行为契约。
+contracts/api-contracts.md: 草稿、影响分析、embedding 与状态端点在 OpenAI-compatible 路由下的行为契约。
 
 目录树
 - checklists/requirements.md：需求质量检查单

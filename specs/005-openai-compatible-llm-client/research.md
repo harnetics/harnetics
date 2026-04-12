@@ -40,12 +40,12 @@
 - 只读 `cwd/.env`：对子目录启动和热重载进程不稳定。
 - 只读仓库根 `.env`：会破坏显式临时环境文件和测试目录覆盖场景。
 
-## Decision 5: 当前特性不扩大到 embedding 主路径改造
+## Decision 5: 当远端向量路径已依赖同一网关时，同步把 embedding 改到 OpenAI-compatible SDK
 
-**Decision**: 本特性只收敛 LLM completion/judgement 调用链；embedding 路由保持现状。
+**Decision**: completion 主路径先收敛到 OpenAI-compatible SDK；当用户明确给出 embedding 调用示例并要求同一语义时，远端 embedding 也同步改为 OpenAI-compatible `embeddings.create()`，本地 sentence-transformers 保持不动。
 
-**Rationale**: 用户请求明确针对“AI 调用逻辑”与 OpenAI-compatible 会话接口。把 embedding 一起重构会扩大测试面和风险，且不是当前阻塞点。
+**Rationale**: 一旦用户要求 embedding 路径也采用同一网关语义，继续保留 LiteLLM embedding 会重新引入两套 provider/model 规则，影响分析的 ai_vector 路径也会继续分叉。把 completion 与 embedding 一起收敛，才能真正结束“看起来都走云端，实际协议不一致”的问题。
 
 **Alternatives considered**:
-- 同时改造 embedding：范围更“完整”，但会把当前特性扩成两类协议迁移。
-- 顺手删除 litellm：如果 embedding 仍依赖它，会制造新的非目标破坏。
+- 保留 LiteLLM embedding：completion 与 embedding 会继续各说各话，fake provider 与真实网关都要维护两套兼容面。
+- 先保留 LiteLLM 兼容残片：短期看更保守，但会把已完成迁移伪装成“还可能回去”，继续污染配置与文档。

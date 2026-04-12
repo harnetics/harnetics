@@ -13,8 +13,8 @@
 
 **Purpose**: 为 OpenAI-compatible 客户端切换准备依赖与操作说明。
 
-- [ ] T001 Add OpenAI SDK dependency and refresh lockfile in pyproject.toml and uv.lock
-- [ ] T002 Update OpenAI-compatible operator examples in .env.example and README.md
+- [X] T001 Add OpenAI SDK dependency and refresh lockfile in pyproject.toml and uv.lock
+- [X] T002 Update OpenAI-compatible operator examples in .env.example and README.md
 
 ---
 
@@ -22,8 +22,8 @@
 
 **Purpose**: 收敛配置解析与统一 LLM 路由决策，阻断隐式回退分叉。
 
-- [ ] T003 Refine .env source resolution and shared AI route selection helpers in src/harnetics/config.py and src/harnetics/llm/client.py
-- [ ] T004 Align legacy compatibility path with the shared LLM route semantics in src/harnetics/llm/client.py and src/harnetics/app.py
+- [X] T003 Refine .env source resolution and shared AI route selection helpers in src/harnetics/config.py, src/harnetics/llm/client.py, and src/harnetics/graph/embeddings.py
+- [X] T004 Align legacy compatibility path with the shared LLM route semantics in src/harnetics/llm/client.py and src/harnetics/app.py
 
 **Checkpoint**: 所有 LLM 入口在进入用户故事前共用同一套配置解析与路由判定。
 
@@ -35,9 +35,9 @@
 
 **Independent Test**: 仅配置网关地址、API key 和原始模型名后，`POST /api/draft/generate` 可以成功完成，并在状态端点体现远端 effective route。
 
-- [ ] T005 [US1] Implement OpenAI-compatible remote chat completion path in src/harnetics/llm/client.py
-- [ ] T006 [US1] Persist requested/effective model metadata for generated drafts in src/harnetics/engine/draft_generator.py and src/harnetics/api/routes/draft.py
-- [ ] T007 [US1] Add regression coverage for remote draft generation and raw-model pass-through in tests/test_llm_client.py and tests/test_env_routing.py
+- [X] T005 [US1] Implement OpenAI-compatible remote chat completion path in src/harnetics/llm/client.py
+- [X] T006 [US1] Persist requested/effective model metadata for generated drafts in src/harnetics/engine/draft_generator.py and src/harnetics/api/routes/draft.py
+- [X] T007 [US1] Add regression coverage for remote draft generation and raw-model pass-through in tests/test_llm_client.py and tests/test_env_routing.py
 
 **Checkpoint**: 仅完成本阶段后，远端草稿生成已可单独演示。
 
@@ -49,9 +49,9 @@
 
 **Independent Test**: 在同一组网关配置下分别触发草稿生成和影响分析，两者都使用相同 effective model/base；远端失败时都返回不含密钥的诊断错误。
 
-- [ ] T008 [US2] Reuse the OpenAI-compatible client in impact-analysis AI judging and sanitize failure paths in src/harnetics/engine/impact_analyzer.py and src/harnetics/api/routes/impact.py
-- [ ] T009 [US2] Normalize draft and impact API error surfaces around effective route diagnostics in src/harnetics/api/routes/draft.py and src/harnetics/llm/client.py
-- [ ] T010 [US2] Extend workflow regressions for shared route behavior in tests/test_e2e_mvp_scenario.py and tests/test_app.py
+- [X] T008 [US2] Reuse the OpenAI-compatible client in impact-analysis AI judging and align remote embedding routing in src/harnetics/engine/impact_analyzer.py, src/harnetics/api/routes/impact.py, and src/harnetics/graph/embeddings.py
+- [X] T009 [US2] Normalize draft and impact API error surfaces around effective route diagnostics in src/harnetics/api/routes/draft.py and src/harnetics/llm/client.py
+- [X] T010 [US2] Extend workflow regressions for shared route behavior in tests/test_e2e_mvp_scenario.py and tests/test_app.py
 
 **Checkpoint**: 仅完成本阶段后，草稿生成与影响分析对同一远端配置表现一致。
 
@@ -63,8 +63,8 @@
 
 **Independent Test**: 服务启动后访问 `/api/status`，可直接读到配置模型名、effective route 和配置文件来源，且从仓库子目录启动时仍正确。
 
-- [ ] T011 [US3] Expose and normalize runtime AI route diagnostics in src/harnetics/api/routes/status.py and src/harnetics/config.py
-- [ ] T012 [US3] Update runtime-diagnostics regression coverage in tests/test_app.py and tests/test_e2e_mvp_scenario.py
+- [X] T011 [US3] Expose and normalize runtime AI route diagnostics in src/harnetics/api/routes/status.py and src/harnetics/config.py
+- [X] T012 [US3] Update runtime-diagnostics regression coverage in tests/test_app.py and tests/test_e2e_mvp_scenario.py
 
 **Checkpoint**: 仅完成本阶段后，工程师不依赖 shell 探针也能定位服务进程实际路由。
 
@@ -74,8 +74,8 @@
 
 **Purpose**: 文档、特性闭环状态与验证收尾。
 
-- [ ] T013 Update feature docs and maps in specs/005-openai-compatible-llm-client/AGENTS.md, specs/AGENTS.md, src/harnetics/AGENTS.md, src/harnetics/api/AGENTS.md, tests/AGENTS.md, and docs/daily/2026-04-12.md
-- [ ] T014 Run targeted validation from specs/005-openai-compatible-llm-client/quickstart.md and record completion in specs/005-openai-compatible-llm-client/tasks.md
+- [X] T013 Update feature docs and maps in AGENTS, README, `.env.example`, and docs/daily/2026-04-12.md to match the final OpenAI-compatible completion/embedding implementation
+- [X] T014 Run targeted validation from specs/005-openai-compatible-llm-client/quickstart.md and record completion in specs/005-openai-compatible-llm-client/tasks.md
 
 ---
 
@@ -121,3 +121,7 @@
 - Every completed task must be marked `[X]` in this file.
 - Do not silently reintroduce local fallback for remote configuration errors.
 - Error text may include effective model/base but must not expose API keys.
+
+## Validation Record
+
+- 2026-04-12: Ran `.venv/bin/python -m pytest tests/test_llm_client.py tests/test_graph_store.py tests/test_env_routing.py tests/test_app.py tests/test_e2e_mvp_scenario.py -q` → `42 passed, 16 warnings in 17.91s`

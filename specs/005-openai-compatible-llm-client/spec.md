@@ -2,8 +2,8 @@
 
 **Feature Branch**: `005-openai-compatible-llm-client`  
 **Created**: 2026-04-12  
-**Status**: Draft  
-**Input**: User description: "先分批commit 现有根仓子仓的变更，然后请你直接跑完 speckit 的闭环（从 specify-implement），记得采用 sub-agent 模式。调用 AI 逻辑直接改成采用 OpenAI-compatible 格式，并支持 aihubmix 这类 `/v1/chat/completions` 网关与原始模型名。"
+**Status**: Implemented  
+**Input**: User description: "先分批commit 现有根仓子仓的变更，然后请你直接跑完 speckit 的闭环（从 specify-implement），记得采用 sub-agent 模式。调用 AI 逻辑直接改成采用 OpenAI-compatible 格式，并支持 aihubmix 这类 `/v1/chat/completions` 网关与原始模型名；后续补充 embedding 调用示例，要求向量路径也对齐该语义。"
 
 ## User Scenarios & Testing
 
@@ -24,16 +24,17 @@
 
 ### User Story 2 - AI 辅助分析复用同一远端调用语义 (Priority: P1)
 
-变更影响分析中的 AI 判定与草稿生成复用同一套远端 LLM 调用规则。用户不希望草稿生成走远端，而影响分析仍然悄悄退回本地模型或另一套不一致的调用协议。
+变更影响分析中的 AI 判定、向量粗筛与草稿生成复用同一套远端 AI 调用规则。用户不希望草稿生成走远端，而影响分析仍然悄悄退回本地模型、另一套 embedding 协议或另一套不一致的调用语义。
 
 **Why this priority**: 如果同一产品中的两条 AI 工作流使用不同调用语义，故障会变成“部分页面正常、部分页面仍走本地”的隐性分叉，维护成本很高，也很难向用户解释。
 
-**Independent Test**: 在同一组远端配置下，分别触发一次草稿生成和一次影响分析，验证两者都成功使用同一 effective model/base，并且错误信息保持一致的诊断粒度。
+**Independent Test**: 在同一组远端配置下，分别触发一次草稿生成和一次影响分析，验证 completion 与 embedding 都成功使用同源 OpenAI-compatible 配置，并且错误信息保持一致的诊断粒度。
 
 **Acceptance Scenarios**:
 
 1. **Given** 系统已配置 OpenAI-compatible 网关和原始模型名, **When** 用户发起影响分析并触发 AI 判定, **Then** 影响分析复用与草稿生成一致的远端调用语义。
 2. **Given** 网关拒绝当前模型或凭证无效, **When** 用户触发草稿生成或影响分析, **Then** 系统返回包含 effective model 与 effective base 的可诊断错误，而不会误报为本地模型异常。
+3. **Given** 系统为向量检索配置了远端 embedding 模型 `jina-embeddings-v5-text-small`, **When** 用户触发依赖向量检索的影响分析或搜索路径, **Then** 系统直接按 OpenAI-compatible embeddings 接口发送该原始模型名，而不是要求 provider 前缀或继续走 LiteLLM 特有语义。
 
 ---
 
@@ -64,30 +65,33 @@
 - **FR-001**: 系统 MUST 支持以 OpenAI-compatible 语义直接调用远端 LLM 网关，并使用原始模型名而非 provider 前缀字符串。
 - **FR-002**: 草稿生成 MUST 复用同一套 OpenAI-compatible 远端调用语义，并允许仅通过配置切换标准模型与推理增强模型。
 - **FR-003**: 影响分析中的 AI 判定 MUST 与草稿生成复用相同的远端调用规则，不得出现一条工作流走远端、另一条工作流悄悄回退到本地默认模型的分叉。
+- **FR-003**: 影响分析中的 AI 判定与其依赖的远端 embedding 调用 MUST 与草稿生成复用同源 OpenAI-compatible 配置，不得出现一条工作流走远端、另一条工作流悄悄回退到本地默认模型或旧协议的分叉。
 - **FR-004**: 系统 MUST 继续支持显式本地模型配置，以保持离线或本地联调场景的可用性。
 - **FR-005**: 状态接口 MUST 返回运行时实际生效的模型名、基地址和配置来源，以支持排查误路由问题。
 - **FR-006**: 远端调用失败时，系统 MUST 返回可诊断错误，至少包含 effective model 与 effective base，但不得泄漏 API key。
 - **FR-007**: 系统 MUST 支持通过环境配置切换不同的 OpenAI-compatible 模型名，包括普通模型与推理增强模型，而无需改代码。
 - **FR-008**: 示例配置与运行文档 MUST 明确说明如何配置 OpenAI-compatible 网关、原始模型名和本地 fallback。
+- **FR-009**: 当系统配置远端 embedding 模型时，MUST 通过 OpenAI-compatible `embeddings` 接口发送原始 embedding 模型名，并保留 embedding base 的可观测性。
 
 ### Key Entities
 
 - **AI Route Config**: 描述服务进程当前使用的模型名、基地址、认证信息来源与本地/远端模式。
 - **Effective AI Route Snapshot**: 状态接口暴露的运行时路由快照，用于诊断服务进程实际采用的模型与配置来源。
 - **LLM Invocation Result**: 统一描述草稿生成与影响分析 AI 判定的成功结果或可诊断错误。
+- **Embedding Route Snapshot**: 描述向量检索路径当前使用的 embedding 模型名、base_url 与本地/远端模式。
 
 ## Success Criteria
 
 ### Measurable Outcomes
 
-- **SC-001**: 在配置 OpenAI-compatible 网关后，草稿生成与影响分析两条 AI 工作流都能在单次演示中成功完成，且状态接口显示相同的 effective route。
+- **SC-001**: 在配置 OpenAI-compatible 网关后，草稿生成与影响分析两条 AI 工作流都能在单次演示中成功完成，且 completion/embedding 使用一致的远端配置语义，状态接口显示相同的 effective route 视图。
 - **SC-002**: 工程师将模型从标准模型切换到推理增强模型时，仅修改配置即可生效，切换过程不需要代码变更。
 - **SC-003**: 当远端模型名或凭证错误时，工程师可在 5 分钟内仅通过状态接口和错误响应定位实际生效的模型与基地址。
 - **SC-004**: 未启用远端网关的本地联调场景继续可用，不因新远端调用语义而被破坏。
 
 ## Assumptions
 
-- 当前特性只收敛 LLM 调用链；embedding 生成路径保持现有行为，除非实现中顺带复用相同的通用配置助手且不扩大风险。
+- 当前特性收敛远端 AI 主路径：completion 直接走 OpenAI-compatible 会话接口，embedding 在配置远端模型时同步走 OpenAI-compatible embeddings 接口；本地 sentence-transformers 与显式 Ollama 路径继续保留。
 - 目标网关遵循标准 OpenAI-compatible 会话接口，并接受原始模型名作为 `model` 字段。
 - 现有草稿生成、影响分析和状态接口仍然是本特性的主要验收入口。
 - 远端网关的认证方式继续采用单个 API key，不额外引入多步鉴权流程。

@@ -8,8 +8,8 @@
 
 - 后端：Python 3.11+、FastAPI、SQLite、ChromaDB
 - 前端：React 18、TypeScript 5.7、Vite 6、Tailwind CSS v4、shadcn/ui
-- LLM：LiteLLM 统一接入，本地默认 Ollama，也支持 OpenAI-compatible 云端模型
-- Embeddings：sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+- LLM：OpenAI-compatible 会话客户端 + 显式本地 Ollama 兼容路径
+- Embeddings：sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 + OpenAI-compatible embeddings
 
 ## 核心功能
 
@@ -39,9 +39,9 @@ cd ..
 
 ## 配置 LLM
 
-### 方案 A：本地 Ollama（默认）
+### 方案 A：本地 Ollama（显式 fallback）
 
-适合离线开发和本地联调。当前默认模型就是 Ollama。
+适合离线开发和本地联调。当前云端调用链已经按 OpenAI-compatible 语义收敛；如果你要强制使用本地模型，请显式配置本地地址和模型名。
 
 PowerShell:
 
@@ -69,43 +69,47 @@ curl http://localhost:11434/api/tags
 
 说明：
 
-- `HARNETICS_LLM_MODEL` 可以直接写 `gemma4:26b`；后端会按 Ollama provider 自动归一化，不必手工补 `ollama/`
+- `HARNETICS_LLM_MODEL` 可以直接写 `gemma4:26b`；系统会保留该原始模型名用于请求体，并在诊断层显示 `ollama/gemma4:26b`
 - `/api/status` / `/api/dashboard/stats` 会检查目标模型是否真的存在，而不只是 Ollama 服务是否存活
 
 ### 方案 B：云端 OpenAI / OpenAI-compatible
 
-适合直接调用云端模型，或接公司内网网关 / LiteLLM Proxy / vLLM / 其他 OpenAI-compatible 端点。
+适合直接调用云端模型，或接公司内网网关 / LiteLLM Proxy / vLLM / 其他 OpenAI-compatible 端点。远端请求体直接使用原始模型名，不再依赖 provider 前缀。
 
 PowerShell:
 
 ```powershell
-$env:HARNETICS_LLM_MODEL = "openai/gpt-4o-mini"
+$env:HARNETICS_LLM_MODEL = "claude-sonnet-4-6-think"
 $env:OPENAI_API_KEY = "<your-api-key>"
-$env:HARNETICS_LLM_BASE_URL = "https://api.openai.com/v1"
+$env:HARNETICS_LLM_BASE_URL = "https://aihubmix.com/v1"
 ```
 
 Bash:
 
 ```bash
-export HARNETICS_LLM_MODEL="openai/gpt-4o-mini"
+export HARNETICS_LLM_MODEL="claude-sonnet-4-6-think"
 export OPENAI_API_KEY="<your-api-key>"
-export HARNETICS_LLM_BASE_URL="https://api.openai.com/v1"
+export HARNETICS_LLM_BASE_URL="https://aihubmix.com/v1"
+export HARNETICS_EMBEDDING_MODEL="jina-embeddings-v5-text-small"
+export HARNETICS_EMBEDDING_API_KEY="$OPENAI_API_KEY"
+export HARNETICS_EMBEDDING_BASE_URL="$HARNETICS_LLM_BASE_URL"
 ```
 
 如果你接的是自建或第三方 OpenAI-compatible 网关，把 `HARNETICS_LLM_BASE_URL` 换成对应的 `/v1` 根地址即可，例如：
 
 ```bash
-export HARNETICS_LLM_MODEL="openai/your-model-name"
+export HARNETICS_LLM_MODEL="your-model-name"
 export OPENAI_API_KEY="dummy-or-real-key"
 export HARNETICS_LLM_BASE_URL="http://your-gateway:8000/v1"
 ```
 
 说明：
 
-- 草稿生成走 LiteLLM；`HARNETICS_LLM_MODEL` 决定 provider/model。
-- `HARNETICS_LLM_BASE_URL` 用来覆盖 provider 的 API base；对本地 OpenAI-compatible 网关也生效。
+- 草稿生成与影响分析 AI 判定都走 OpenAI-compatible 会话接口；`HARNETICS_LLM_MODEL` 直接作为请求体中的 `model`。
+- 如果启用云端向量检索，`HARNETICS_EMBEDDING_MODEL` 也直接写原始 embedding 模型名；系统通过 OpenAI-compatible `embeddings` 接口请求远端网关。
+- `HARNETICS_LLM_BASE_URL` 用来覆盖会话接口的 API base；对第三方 OpenAI-compatible 网关和本地兼容网关都生效。
 - 官方 OpenAI 也可直接使用 `OPENAI_BASE_URL`；当前项目优先推荐统一配置 `HARNETICS_LLM_BASE_URL`。
-- 仪表盘中的 `llm_available`：Ollama 会主动探测；云端 / OpenAI-compatible 目前按密钥是否已配置判断。
+- `/api/status` / `/api/dashboard/stats` 会同时返回 `llm_model`、`llm_effective_model`、`llm_effective_base_url`、`embedding_base_url` 与 `config_env_file`，用于确认服务进程实际生效的路由。
 
 ## 初始化数据
 
