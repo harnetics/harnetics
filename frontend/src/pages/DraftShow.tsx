@@ -100,21 +100,21 @@ export default function DraftShow() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-3">
-          <Card>
-            <CardHeader className="pb-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
+        <div className="lg:col-span-2 flex flex-col">
+          <Card className="flex-1 flex flex-col min-h-0">
+            <CardHeader className="pb-2 shrink-0">
               <CardTitle className="text-sm text-muted-foreground font-semibold uppercase tracking-wide">草稿内容（只读预览）</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="max-h-[65vh] overflow-y-auto p-3 bg-muted/40 rounded-lg">
+            <CardContent className="flex-1 min-h-0 pb-4">
+              <div className="h-full min-h-[40vh] max-h-[65vh] overflow-y-auto p-3 bg-muted/40 rounded-lg">
                 <MarkdownRenderer content={draft.content_md} />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -181,8 +181,8 @@ export default function DraftShow() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2 cursor-pointer select-none" onClick={() => setCitExpanded((v) => !v)}>
+          <Card className="flex-1 flex flex-col min-h-0">
+            <CardHeader className="pb-2 cursor-pointer select-none shrink-0" onClick={() => setCitExpanded((v) => !v)}>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <BookOpen className="h-4 w-4 text-primary" />
@@ -193,19 +193,21 @@ export default function DraftShow() {
               </div>
             </CardHeader>
             {citExpanded && (
-              <CardContent className="space-y-3 pt-0">
-                {draft.citations.map((c, i) => (
-                  <div key={i} className="text-xs space-y-0.5">
-                    <p className="font-medium">{c.source_doc_id} / {c.source_section_id}</p>
-                    {c.quote ? (
-                      <p className="text-muted-foreground whitespace-pre-line">{c.quote}</p>
-                    ) : (
-                      <p className="text-muted-foreground italic">原始内容不可用</p>
-                    )}
-                    <p className="text-muted-foreground">置信度: {(c.confidence * 100).toFixed(0)}%</p>
-                    {i < draft.citations.length - 1 && <Separator className="mt-2" />}
-                  </div>
-                ))}
+              <CardContent className="flex-1 min-h-[30vh] max-h-[30vh] overflow-y-auto pt-0">
+                <div className="space-y-3">
+                  {draft.citations.map((c, i) => (
+                    <div key={i} className="space-y-1">
+                      <p className="text-xs font-semibold">{c.source_doc_id} / {c.source_section_id}</p>
+                      {c.quote ? (
+                        <MarkdownRenderer content={c.quote} compact />
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">原始内容不可用</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">置信度: {(c.confidence * 100).toFixed(0)}%</p>
+                      {i < draft.citations.length - 1 && <Separator className="mt-2" />}
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             )}
           </Card>
