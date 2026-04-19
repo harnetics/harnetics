@@ -15,15 +15,15 @@ COPY pyproject.toml ./
 RUN uv pip install --system --no-cache-dir -e ".[dev]" 2>/dev/null || \
     uv pip install --system --no-cache-dir \
         "fastapi>=0.116.0" \
-        "jinja2>=3.1.4" \
-        "python-multipart>=0.0.12" \
+        "python-multipart>=0.0.26" \
         "python-frontmatter>=1.1.0" \
         "PyYAML>=6.0.2" \
         "httpx>=0.28.1" \
         "uvicorn>=0.35.0" \
-        "litellm>=1.60.0" \
+        "openai>=1.5.0" \
         "chromadb>=0.6.0" \
         "sentence-transformers>=3.4.0" \
+        "python-dotenv>=1.0.0" \
         "typer>=0.15.0" \
         "rich>=13.9.0"
 

@@ -15,8 +15,8 @@ DEFAULT_RAW_UPLOAD_DIR = Path("var/uploads")
 DEFAULT_EXPORT_DIR = Path("var/exports")
 DEFAULT_CHROMADB_PATH = Path("var/chroma")
 DEFAULT_SERVER_PORT = 8000
-DEFAULT_LLM_BASE_URL = "https://aihubmix.com/v1"
-DEFAULT_LLM_MODEL = "claude-sonnet-4-6"
+DEFAULT_LLM_BASE_URL = ""  # 空字符串 → SDK 使用 api.openai.com/v1；本地 Ollama 设为 http://localhost:11434
+DEFAULT_LLM_MODEL = "gpt-4o-mini"
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 

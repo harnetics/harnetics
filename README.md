@@ -3,11 +3,12 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Node.js 20+](https://img.shields.io/badge/node-20+-green.svg)](https://nodejs.org/)
-[![CI](https://github.com/anthropic-sam/harnetics/actions/workflows/ci.yml/badge.svg)](https://github.com/anthropic-sam/harnetics/actions/workflows/ci.yml)
 
 **Aerospace document alignment workbench** — cross-department traceability, draft generation, and change impact analysis powered by document graph and LLM.
 
-> 商业航天工程师每天花 40–60% 的时间在文档编写和评审上。最耗时的不是"写"，而是"对齐"——确保一份文档与多部门、多层级的其他文档一致。Harnetics 通过文档图谱 + LLM 将这个过程从 2–3 天压缩到半天。
+> 中文文档：[README_zh.md](README_zh.md)
+
+> Commercial aerospace engineers spend 40–60% of their time daily on document writing and review. The most time-consuming aspect is not “writing” but “aligning” – ensuring that a single document is consistent with other documents across multiple departments and hierarchical levels. Harnetics has compressed this process from 2–3 days to half a day using a document graph + LLM.
 
 ## Features
 
@@ -155,14 +156,16 @@ The `docker-compose.yml` includes an optional Ollama service with GPU passthroug
 ```
 harnetics/
 ├── src/harnetics/         # Python backend
-│   ├── api/               #   FastAPI routes + SPA hosting
-│   ├── cli/               #   typer CLI (init/ingest/serve)
-│   ├── engine/            #   Draft generation + impact analysis
-│   ├── evaluators/        #   Quality gate evaluators
-│   ├── graph/             #   SQLite store + ChromaDB embeddings
-│   ├── llm/               #   OpenAI-compatible LLM client
-│   ├── models/            #   Domain dataclasses
-│   └── parsers/           #   Markdown/YAML/ICD parsers
+│   ├── api/               #   FastAPI app factory + routes + SPA hosting
+│   │   └── routes/        #     documents / draft / impact / graph / status / evaluate
+│   ├── cli/               #   typer CLI (init / ingest / serve)
+│   ├── engine/            #   Draft generation, conflict detection, impact analysis
+│   ├── evaluators/        #   Quality gate evaluators (EA/EB/ED)
+│   ├── graph/             #   SQLite store, DDL, queries + ChromaDB vector index
+│   ├── llm/               #   OpenAI-compatible client, route normalisation, diagnostics
+│   ├── models/            #   Domain dataclasses (document / icd / draft / impact)
+│   ├── parsers/           #   Markdown / YAML / ICD parsers
+│   └── config.py          #   Settings + .env loader
 ├── frontend/              # React 18 SPA
 │   └── src/
 │       ├── pages/         #   Route pages
@@ -172,8 +175,8 @@ harnetics/
 ├── fixtures/              # Sample aerospace documents
 ├── tests/                 # pytest test suite
 ├── docs/                  # Design docs, specs, references
-├── specs/                 # Feature specification archives
-└── var/                   # Runtime data (SQLite, ChromaDB)
+├── specs/                 # Feature specification archives (Spec Kit)
+└── var/                   # Runtime data (SQLite, ChromaDB) — gitignored
 ```
 
 ## Documentation
