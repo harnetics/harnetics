@@ -1,5 +1,3 @@
-
-
 # ================================================================
 # 云端默认配置 — 仅 harnetics 服务，LLM/Embedding 通过设置页面配置
 # 本地模型请使用: docker compose -f docker-compose-local.yml up -d
