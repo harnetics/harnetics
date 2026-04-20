@@ -1,5 +1,3 @@
-version: "3.9"
-
 # ================================================================
 # 本地模型配置 — harnetics + Ollama
 # 启动: docker compose -f docker-compose-local.yml up -d
@@ -8,6 +6,8 @@ version: "3.9"
 
 services:
   harnetics:
+    image: sam291/harnetics:latest
+    container_name: harnetics
     build:
       context: .
       dockerfile: Dockerfile

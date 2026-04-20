@@ -7,7 +7,7 @@
 
 services:
   harnetics:
-    image: sam291/harnetics:v0.1.2
+    image: sam291/harnetics:latest
     container_name: harnetics
     build:
       context: .
