@@ -17,7 +17,7 @@ services:
       - ./var:/app/var
       - ./fixtures:/app/fixtures
     environment:
-      - HARNETICS_GRAPH_DB_PATH=/app/var/harnetics.db
+      - HARNETICS_GRAPH_DB_PATH=/app/var/harnetics-graph.db
       - HARNETICS_CHROMA_DIR=/app/var/chroma
       - HARNETICS_LLM_MODEL=ollama/qwen3.5:9b
       - HARNETICS_LLM_BASE_URL=http://ollama:11434
