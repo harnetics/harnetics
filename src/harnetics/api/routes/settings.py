@@ -1,12 +1,14 @@
-# [INPUT]: 依赖 FastAPI、config.RuntimeSettingsManager
+# [INPUT]: 依赖 FastAPI、config.RuntimeSettingsManager、config.write_dotenv_values
 # [OUTPUT]: 对外提供 settings_router (GET/PUT /api/settings)
-# [POS]: api/routes 的设置域 REST 端点，被 api/app.py 注册；运行时配置的读写入口
+# [POS]: api/routes 的设置域 REST 端点，被 api/app.py 注册；PUT 写操作经 write_dotenv_values 回写到 .env，.env 是单一真相源
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
+
+from harnetics.config import write_dotenv_values
 
 router = APIRouter(prefix="/api")
 
@@ -46,4 +48,5 @@ def update_settings(request: Request, payload: SettingsPayload):
     mgr = request.app.state.runtime_settings
     changes = {k: v for k, v in payload.model_dump().items() if v is not None}
     updated = mgr.update(changes)
+    write_dotenv_values(changes)
     return _masked_snapshot(updated)

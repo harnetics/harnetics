@@ -1,6 +1,6 @@
 # [INPUT]: 依赖 os、pathlib、dotenv、threading
-# [OUTPUT]: 提供 Settings 数据对象、RuntimeSettingsManager 运行时覆盖层、默认路径常量、get_settings() 工厂
-# [POS]: harnetics 的运行时配置中心，支持 .env 加载 + API 层运行时覆盖（内存态）
+# [OUTPUT]: 提供 Settings 数据对象、RuntimeSettingsManager 运行时覆盖层、write_dotenv_values() 回写函数、默认路径常量、get_settings() 工厂
+# [POS]: harnetics 的运行时配置中心，.env 文件是单一真相源，API 层写操作经 write_dotenv_values 回写，进程内经 RuntimeSettingsManager 即时可见
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 import os
@@ -115,6 +115,29 @@ _MUTABLE_KEYS = frozenset({
     "llm_model", "llm_base_url", "llm_api_key",
     "embedding_model", "embedding_base_url", "embedding_api_key",
 })
+
+# Settings 字段名 → .env 键名映射（用于回写）
+_MUTABLE_KEY_TO_ENV: dict[str, str] = {
+    "llm_model":           "HARNETICS_LLM_MODEL",
+    "llm_base_url":        "HARNETICS_LLM_BASE_URL",
+    "llm_api_key":         "HARNETICS_LLM_API_KEY",
+    "embedding_model":     "HARNETICS_EMBEDDING_MODEL",
+    "embedding_base_url":  "HARNETICS_EMBEDDING_BASE_URL",
+    "embedding_api_key":   "HARNETICS_EMBEDDING_API_KEY",
+}
+
+
+def write_dotenv_values(changes: dict[str, str]) -> None:
+    """将可变配置字段回写到 .env 文件，消除 DB vs 文件的双真相源。"""
+    from dotenv import set_key
+    dotenv_path = get_dotenv_path()
+    if dotenv_path is None:
+        dotenv_path = _PROJECT_ROOT / ".env"
+        dotenv_path.touch()
+    for settings_key, value in changes.items():
+        env_key = _MUTABLE_KEY_TO_ENV.get(settings_key)
+        if env_key:
+            set_key(str(dotenv_path), env_key, value)
 
 
 class RuntimeSettingsManager:

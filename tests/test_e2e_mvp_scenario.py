@@ -341,13 +341,17 @@ def test_draft_route_uses_app_settings_for_llm(client):
 
     from harnetics.config import Settings
 
-    client.app.state.settings = Settings(
+    from harnetics.config import RuntimeSettingsManager
+
+    test_settings = Settings(
         graph_db_path=client.app.state.settings.graph_db_path,
         chromadb_path=client.app.state.settings.chromadb_path,
         llm_model="gemma4:26b",
         llm_base_url="http://localhost:11434",
         llm_api_key="sk-test",
     )
+    client.app.state.settings = test_settings
+    client.app.state.runtime_settings = RuntimeSettingsManager(test_settings)
 
     with patch("harnetics.api.routes.draft.HarneticsLLM") as MockLLM, patch(
         "harnetics.api.routes.draft.DraftGenerator"

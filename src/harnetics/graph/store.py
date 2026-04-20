@@ -115,10 +115,6 @@ def _get_table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
     return {row[1] for row in rows}
 
 
-# ================================================================
-# CRUD — 文档
-# ================================================================
-
 def insert_document(doc: "DocumentNode") -> None:
     with get_connection() as conn:
         conn.execute(
