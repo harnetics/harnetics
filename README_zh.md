@@ -9,6 +9,8 @@
 
 航天工程师每天花 40–60% 的时间在文档编写和评审上。最耗时的不是"写"，而是"对齐"——确保一份文档与多部门、多层级的其他文档保持一致。Harnetics 通过文档图谱 + LLM 将这个过程从 2–3 天压缩到半天。
 
+![alt text](docs/image/home.png)
+
 > English documentation: [README.md](README.md)
 
 ## 为什么是 Harnetics
@@ -21,7 +23,9 @@
 
 ## 3 分钟体验
 
-无需配置 Python 或 Node，只需 Docker：
+![alt text](docs/image/map.png)
+
+无需配置 Python 或 Node，只需 Docker（[安装方式](https://www.docker.com/products/docker-desktop)）：
 
 ```bash
 git clone https://github.com/Huangshan16/harnetics.git
@@ -56,7 +60,7 @@ docker compose up -d
 
 ## Demo 结果预览
 
-哪怕不看截图，系统输出也应该足够具体。
+![alt text](docs/image/draft.png)
 
 **草稿生成示例**
 
@@ -112,9 +116,9 @@ cd frontend && npm install && cd ..
 **方案 A：本地 Ollama**（离线，无需 API Key）
 
 ```bash
-export HARNETICS_LLM_MODEL="gemma3:12b"
+export HARNETICS_LLM_MODEL="qwen3.5:4b"
 export HARNETICS_LLM_BASE_URL="http://localhost:11434"
-ollama pull gemma3:12b && ollama serve
+ollama pull qwen3.5:4b && ollama serve
 ```
 
 **方案 B：云端 OpenAI-compatible**（任意服务商）
@@ -211,13 +215,11 @@ docker compose up -d
 
 无预配置 LLM — 打开浏览器中的**设置**页面输入 API Key 和模型名。
 
-> 公有镜像: `ghcr.io/huangshan16/harnetics:latest`（占位 — 尚未发布）
-
 ### 本地模型部署（Ollama）
 
 ```bash
 docker compose -f docker-compose-local.yml up -d
-docker exec ollama ollama pull qwen3:8b
+docker exec ollama ollama pull qwen3.5:4b
 docker exec ollama ollama pull nomic-embed-text
 # → http://localhost:8000 — 已预配置使用本地 Ollama
 ```
@@ -281,8 +283,6 @@ harnetics/
 
 ## Roadmap
 
-下面的 roadmap 直接基于 MVP 文档抽取：先把“文档对齐”这一条主链打通，再扩展输入格式、治理能力和规模化部署，而不是一开始就把系统做成大而全。
-
 | 阶段 | 重点 | 计划内容 |
 |------|------|----------|
 | **当前（MVP）** | 核心对齐闭环 | Markdown/YAML 入库、文档图谱、带引注草稿生成、变更影响分析、Evaluator 质量门、React 工作台 |
@@ -293,7 +293,7 @@ harnetics/
 
 ## Contributing: 从哪里开始
 
-- **文档解析器** 很适合作为第一类贡献点，尤其是 Markdown、YAML、ICD，以及后续 Word/PDF/Excel 接入。
+- **文档解析器** 很适合作为第一类贡献点，尤其是 Word/PDF/Excel 接入。
 - **Evaluator** 是天然可扩展层，欢迎补充版本新鲜度、参数一致性和审查策略相关规则。
 - **graph/query API** 属于语义边界，涉及查询契约或追溯逻辑的变更请先讨论再动手。
 - **frontend / fixtures / docs** 也都欢迎贡献，尤其适合做体验优化、demo 强化和领域语料完善。

@@ -7,6 +7,8 @@
 
 **Aerospace document alignment workbench** — cross-department traceability, draft generation, and change impact analysis powered by document graph and LLM.
 
+![alt text](docs/image/home.png)
+
 > 中文文档：[README_zh.md](README_zh.md)
 
 ## Why Harnetics
@@ -19,7 +21,9 @@ Commercial aerospace engineers pay an alignment tax every day: 40–60% of their
 
 ## 3-Minute Experience
 
-No Python or Node setup required — just Docker:
+![alt text](docs/image/map.png)
+
+No Python or Node setup required — just Docker ([install](https://www.docker.com/products/docker-desktop)):
 
 ```bash
 git clone https://github.com/Huangshan16/harnetics.git
@@ -54,7 +58,7 @@ Ingest documents
 
 ## Demo Snapshot
 
-Even without screenshots, the expected output is concrete.
+![alt text](docs/image/draft.png)
 
 **Generated draft excerpt**
 
@@ -110,9 +114,9 @@ cd frontend && npm install && cd ..
 **Option A: Local Ollama** (offline, no API key)
 
 ```bash
-export HARNETICS_LLM_MODEL="gemma3:12b"
+export HARNETICS_LLM_MODEL="qwen3.5:4b"
 export HARNETICS_LLM_BASE_URL="http://localhost:11434"
-ollama pull gemma3:12b && ollama serve
+ollama pull qwen3.5:4b && ollama serve
 ```
 
 **Option B: Cloud OpenAI-compatible** (any provider)
@@ -223,13 +227,11 @@ docker compose up -d
 
 No LLM pre-configured — open the **Settings** page in the browser to enter your API key and model.
 
-> Public image: `ghcr.io/huangshan16/harnetics:latest` *(placeholder — not yet published)*
-
 ### Local model deployment (Ollama)
 
 ```bash
 docker compose -f docker-compose-local.yml up -d
-docker exec ollama ollama pull qwen3:8b
+docker exec ollama ollama pull qwen3.5:4b
 docker exec ollama ollama pull nomic-embed-text
 # → http://localhost:8000 — pre-configured to use local Ollama
 ```
@@ -293,8 +295,6 @@ harnetics/
 
 ## Roadmap
 
-The roadmap below is derived from the MVP definition: solve one concrete pain first, then expand document coverage and governance without breaking the core alignment loop.
-
 | Horizon | Focus | Planned work |
 |---------|-------|--------------|
 | **Now (MVP)** | Core alignment loop | Markdown/YAML ingest, document graph, citation-backed draft generation, impact analysis, evaluator gates, React workbench |
@@ -305,7 +305,7 @@ The roadmap below is derived from the MVP definition: solve one concrete pain fi
 
 ## Contributing: Where to Start
 
-- **Document parsers** are a good first contribution area if you want to improve Markdown, YAML, ICD, or future Word/PDF/Excel ingest paths.
+- **Document parsers** are a good first contribution area, especially Word/PDF/Excel ingest.
 - **Evaluators** are intentionally modular and welcome expansion, especially around citation freshness, parameter consistency, and review policy.
 - **Graph/query API changes** should be discussed before implementation because they affect traceability semantics and downstream UI behavior.
 - **Frontend, fixtures, and docs** are all open for contribution if you want to improve usability, demo quality, or domain realism.
