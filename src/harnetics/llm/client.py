@@ -37,7 +37,7 @@ class LocalLlmClient:
                 api_key=_request_api_key(self.api_key, self.model),
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
-                max_tokens=8192,
+                max_tokens=8192,  # LocalLlmClient 兼容层，固定值
             )
         except Exception as exc:
             raise RuntimeError(
@@ -87,6 +87,13 @@ class HarneticsLLM:
         self.request_api_base = _request_api_base(self.model, self.api_base)
         self.api_key = resolved_api_key or os.environ.get("OPENAI_API_KEY")
 
+    def _max_tokens(self) -> int:
+        try:
+            from harnetics.config import get_settings
+            return get_settings().llm_max_tokens
+        except Exception:
+            return 16384
+
     def generate_draft(self, system_prompt: str, context: str, user_request: str) -> str:
         """调用 OpenAI-compatible 会话接口生成草稿 Markdown。"""
         if not _is_ollama_model(self.model) and not self.api_key:
@@ -109,7 +116,7 @@ class HarneticsLLM:
                     {"role": "user", "content": f"## 参考文档\n\n{context}\n\n## 任务\n\n{user_request}"},
                 ],
                 temperature=0.3,
-                max_tokens=8192,
+                max_tokens=self._max_tokens(),
             )
         except Exception as exc:
             raise RuntimeError(

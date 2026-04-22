@@ -18,6 +18,7 @@ DEFAULT_CHROMADB_PATH = Path("var/chroma")
 DEFAULT_SERVER_PORT = 8000
 DEFAULT_LLM_BASE_URL = ""  # 空字符串 → SDK 使用 api.openai.com/v1；本地 Ollama 设为 http://localhost:11434
 DEFAULT_LLM_MODEL = "gpt-4o-mini"
+DEFAULT_LLM_MAX_TOKENS = 16384
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -36,6 +37,7 @@ class Settings:
     # ---- LLM ----
     llm_base_url: str = DEFAULT_LLM_BASE_URL
     llm_model: str = DEFAULT_LLM_MODEL
+    llm_max_tokens: int = DEFAULT_LLM_MAX_TOKENS
 
     # ---- Embedding ----
     embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
@@ -87,6 +89,7 @@ def get_settings() -> Settings:
     llm_model = _get("HARNETICS_LLM_MODEL")
     llm_url = _get("HARNETICS_LLM_BASE_URL")
     llm_api_key = _get("HARNETICS_LLM_API_KEY", "") or ""
+    llm_max_tokens_raw = _get("HARNETICS_LLM_MAX_TOKENS")
     embedding_model = _get("HARNETICS_EMBEDDING_MODEL")
     embedding_api_key = _get("HARNETICS_EMBEDDING_API_KEY", "") or ""
     embedding_base_url = _get("HARNETICS_EMBEDDING_BASE_URL", "") or ""
@@ -99,6 +102,7 @@ def get_settings() -> Settings:
         llm_model=llm_model or DEFAULT_LLM_MODEL,
         llm_base_url=llm_url or DEFAULT_LLM_BASE_URL,
         llm_api_key=llm_api_key,
+        llm_max_tokens=int(llm_max_tokens_raw) if llm_max_tokens_raw else DEFAULT_LLM_MAX_TOKENS,
         embedding_model=embedding_model or "paraphrase-multilingual-MiniLM-L12-v2",
         embedding_api_key=embedding_api_key,
         embedding_base_url=embedding_base_url,

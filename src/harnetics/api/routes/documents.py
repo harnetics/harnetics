@@ -96,6 +96,32 @@ def list_documents(
     }
 
 
+@router.post("/documents/reindex")
+def reindex_embeddings(request: Request):
+    """将 SQLite 中所有已存储的章节重新写入 ChromaDB 向量索引。
+    用于 embedding 模型换用后或 var/chroma 清空后的重建。"""
+    embedding_store = getattr(request.app.state, "embedding_store", None)
+    if embedding_store is None:
+        raise HTTPException(503, "embedding store unavailable — check embedding config")
+
+    all_docs = store.get_documents()
+    indexed_docs = 0
+    indexed_sections = 0
+    for doc in all_docs:
+        sections = store.get_sections(doc.doc_id)
+        if not sections:
+            continue
+        embedding_store.index_sections(doc.doc_id, sections)
+        indexed_docs += 1
+        indexed_sections += len(sections)
+
+    return {
+        "status": "ok",
+        "indexed_documents": indexed_docs,
+        "indexed_sections": indexed_sections,
+    }
+
+
 @router.get("/documents/search")
 def search_documents(q: str, request: Request, top_k: int = 10):
     """语义检索优先，向量不可用时自动降级到关键词匹配。"""
