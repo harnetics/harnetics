@@ -1,7 +1,7 @@
 <!--
 [INPUT]: 依赖根目录模块边界、fixtures/ 样本文档库与本地规划工作区约束
 [OUTPUT]: 对外提供当前系统结构、数据流与演进方向说明
-[POS]: docs/ 下的公开架构总图，被 README.md、README_zh.md 与 AGENTS.md 引用
+[POS]: docs/ 下的公开架构总图，被 README.md、README_EN.md、README_zh.md 与 AGENTS.md 引用
 [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 -->
 
@@ -14,7 +14,7 @@
 - `fixtures/`：机器相原始语料，提供受控需求、设计、模板与测试样本。
 - `src/harnetics/`：运行时主干，包含图谱存储、文档索引、草稿引擎、影响分析与 API 层。
 - `frontend/`：React 18 SPA，基于 shadcn/ui + Tailwind v4 构建。
-- `README.md` / `README_zh.md`：仓库首页入口，负责第一屏叙事、最短体验路径和导航。
+- `README.md` / `README_EN.md` / `README_zh.md`：仓库首页入口与兼容跳转层，负责第一屏叙事、最短体验路径和导航。
 - `docs/`：文档根层承载公开架构、协作与发布说明；`bank/`、`daily/` 等子目录继续沉淀本地记忆与规划材料。
 - `specs/`：本地 Spec Kit 工作区，保存顺序特性的闭环工件，不进入公开发布物。
 

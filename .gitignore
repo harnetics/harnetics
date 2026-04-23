@@ -53,7 +53,9 @@ var/
 # ================================================================
 .superpowers/
 .agents/
+.hermes/
 .specify/
 docs/bank
 docs/daily
 specs/
+generated/

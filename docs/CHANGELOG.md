@@ -35,4 +35,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frontend: React 18 / TypeScript 5.7 / Vite 6 / Tailwind CSS v4 / shadcn/ui
 - Local-first design: all data stays on the user's machine; `.env` is the single source of truth for runtime configuration
 
-[0.1.0]: https://github.com/Huangshan16/harnetics/releases/tag/v0.1.0
+[0.1.0]: https://github.com/harnetics/harnetics/releases/tag/v0.1.0

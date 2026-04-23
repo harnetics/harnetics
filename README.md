@@ -4,113 +4,115 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Node.js 20+](https://img.shields.io/badge/node-20+-green.svg)](https://nodejs.org/)
 
-**Aerospace document alignment workbench** — cross-department traceability, draft generation, and change impact analysis powered by document graph and LLM.
+**商业航天文档对齐工作台** —— 基于文档图谱与大语言模型（LLM），实现跨部门可追溯性、对齐草稿生成与变更影响分析。
 
-> 中文文档：[README_zh.md](README_zh.md)
+航天工程师每天花 40–60% 的时间在文档编写和评审上。最耗时的不是"写"，而是"对齐"——确保一份文档与多部门、多层级的其他文档保持一致。Harnetics 通过文档图谱 + LLM 将这个过程从 2–3 天压缩到半天。
+
+> English documentation: [README_EN.md](README_EN.md)
 
 ![alt text](docs/image/home.png)
 
-## Why Harnetics
+## 为什么是 Harnetics
 
-Commercial aerospace engineers pay an alignment tax every day: 40–60% of their working time disappears into hunting upstream documents, checking ICD parameters, and verifying version consistency before they can write a single usable draft.
+商业航天工程团队每天都在为“对齐税”付费：大量时间并不是花在写文档本身，而是花在找上游文档、核对 ICD 参数、确认版本是否一致，以及判断某次改动会波及哪些下游文档。
 
-- **What is Harnetics?** A local-first document alignment workbench for engineering teams that need traceable drafts, citation-backed review, and downstream impact analysis.
-- **What concrete pain does it solve?** It compresses cross-department document preparation from 2–3 days to half a day by turning scattered requirements, ICDs, design docs, and test plans into one executable graph workflow.
-- **Why is it different from generic RAG or a document assistant?** It is not just “chat over files.” Harnetics builds explicit document relations, checks citation integrity, highlights conflicts, and answers the engineering question that normal RAG ignores: “if this upstream document changes, what else must be updated?”
+- **Harnetics 是什么？** 一个面向工程文档对齐的本地优先工作台，把文档导入、关系构图、草稿生成、引注校验和影响分析串成一条可执行闭环。
+- **它解决什么具体痛点？** 它把跨部门文档准备从 2–3 天压缩到半天，尤其针对“需求、ICD、设计、测试大纲必须一起对齐”的真实工程场景。
+- **为什么它和普通 RAG / 文档助手不一样？** 它不是“对文件聊天”。Harnetics 会构建显式文档关系、校验引注真实性、标记参数冲突，并回答普通 RAG 不会回答的问题：上游文档一变，哪些下游文档和章节必须重审？
 
-## 3-Minute Experience
+## 3 分钟体验
 
 ![alt text](docs/image/map.png)
 
-No Python or Node setup required — just Docker ([install](https://www.docker.com/products/docker-desktop)):
+无需配置 Python 或 Node，只需 Docker（[安装方式](https://www.docker.com/products/docker-desktop)）：
 
 ```bash
-git clone https://github.com/Huangshan16/harnetics.git
+git clone https://github.com/harnetics/harnetics.git
 cd harnetics
 docker compose up -d
 ```
 
-Open `http://localhost:8000`, then:
+打开 `http://localhost:8000`，然后：
 
-1. Go to **Settings** → enter your LLM API key and model (e.g. `gpt-4o-mini`).
-2. Go to **Documents** → click **Upload** and import a few files from the `fixtures/` folder.
-3. Go to **Draft workbench** → generate a draft for `TQ-12 liquid oxygen methane engine ground hot-fire test outline`.
-4. Or open **Impact analysis** → inspect how an ICD parameter change propagates into downstream documents.
+1. 进入**设置**页面，填入云端 LLM API Key 和模型名（如 `gpt-4o-mini`）。
+2. 进入**文档库** → 点击**上传文档**，从 `fixtures/` 目录导入几个样本文件。
+3. 进入**草稿工作台**，为 `TQ-12 液氧甲烷发动机地面热试车测试大纲` 生成一份对齐草稿。
+4. 或者打开**变更影响**，查看 ICD 参数变化如何传导到下游文档。
 
-## Core Loop
+## 核心闭环
 
-This is the product you should remember:
+先记住这一条主链，而不是记所有模块名：
 
 ```text
-Ingest documents
-  → Build document graph
-    → Generate aligned draft
-      → Evaluate citations and conflicts
-        → Analyze change impact
+导入文档
+  → 构建文档图谱
+    → 生成对齐草稿
+      → 评估引注与冲突
+        → 分析变更影响
 ```
 
-- **Ingest documents**: parse Markdown/YAML and extract sections, metadata, and ICD parameters.
-- **Build document graph**: persist traceability edges between requirements, ICDs, design docs, templates, and tests.
-- **Generate aligned draft**: use graph-backed retrieval to assemble an LLM prompt that cites real sources.
-- **Evaluate citations**: run EA/EB/ED evaluators to catch missing sources, stale references, and inconsistent parameters.
-- **Analyze change impact**: traverse downstream dependencies and localize which documents and sections need review.
+- **导入文档**：解析 Markdown/YAML，抽取章节、元数据和 ICD 参数。
+- **构建文档图谱**：把需求、ICD、设计、模板和测试文档之间的依赖关系显式存起来。
+- **生成对齐草稿**：基于图谱检索拼出 LLM 上下文，输出带真实引注的草稿。
+- **评估引注与冲突**：运行 EA/EB/ED 质量门，检查缺失来源、陈旧引用和参数不一致。
+- **分析变更影响**：沿下游关系传播，定位哪些文档、哪些章节需要重审。
 
-## Demo Snapshot
+## Demo 结果预览
 
 ![alt text](docs/image/draft.png)
 
-**Generated draft excerpt**
+**草稿生成示例**
 
 ```markdown
-## 3.1 Rated thrust performance test
-Verify ground thrust >= 650 kN and mixture ratio 3.5:1 under rated conditions. [📎 DOC-SYS-001 §3.2] [📎 DOC-ICD-001 ICD-PRP-001]
+### 3.1 额定推力性能试验
+验证发动机在额定工况下的地面推力 >= 650 kN，混合比维持 3.5:1。 [📎 DOC-SYS-001 §3.2] [📎 DOC-ICD-001 ICD-PRP-001]
 
-> ⚠ Conflict: DOC-TST-003 still cites 600 kN from an outdated ICD version.
+> ⚠ 冲突：DOC-TST-003 仍引用旧版 ICD 中的 600 kN 推力值。
 ```
 
-**Impact report excerpt**
+**影响分析示例**
 
 ```text
-Changed parameter: ICD-PRP-001 Ground thrust 600 kN -> 650 kN
-Impacted documents:
-- DOC-DES-001  | Critical | §3.1 Thrust design point
-- DOC-TST-001  | Critical | §3.1 Rated thrust test
-- DOC-TST-003  | Critical | §2.1 Test parameters
-- DOC-OVR-001  | Major    | §4.2 Propulsion metrics
+变更参数：ICD-PRP-001 地面推力 600 kN -> 650 kN
+受影响文档：
+- DOC-DES-001  | Critical | §3.1 推力设计点
+- DOC-TST-001  | Critical | §3.1 额定推力试验
+- DOC-TST-003  | Critical | §2.1 试验参数
+- DOC-OVR-001  | Major    | §4.2 动力指标
 ```
 
-## Capability Snapshot
+## 能力概览
 
-| Module | Description |
-|--------|-------------|
-| **Document Library** | Upload and browse Markdown/YAML documents with automatic section parsing and ICD parameter extraction |
-| **Draft Generation** | LLM-powered alignment draft with citation backfill, conflict detection, and evaluator quality gates |
-| **Impact Analysis** | BFS-based downstream change propagation with dual mode (AI vector + heuristic) |
-| **Document Graph** | Visualize reference/derivation/constraint relationships across documents |
-| **Dashboard** | Overview of document count, drafts, stale references, LLM status |
+| 模块 | 说明 |
+|------|------|
+| **文档库** | 上传并浏览 Markdown/YAML 文档，自动解析章节与 ICD 参数 |
+| **草稿生成** | LLM 驱动的对齐草稿，含引注回填、冲突检测与质量门评估 |
+| **影响分析** | BFS 下游变更传播，双模式（AI 向量检索 + 启发式分析） |
+| **文档图谱** | 可视化文档间引用、派生、约束关系 |
+| **仪表盘** | 文档数量、草稿状态、陈旧引用、LLM 状态概览 |
 
-## Run Locally
+## 本地运行
 
-### Prerequisites
+### 环境要求
 
-| Tool | Version | Install |
-|------|---------|---------|
+| 工具 | 版本 | 安装方式 |
+|------|------|---------|
 | Python | ≥ 3.12 | [python.org](https://www.python.org/downloads/) |
-| uv | latest | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| uv | 最新版 | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | Node.js | ≥ 20 | [nodejs.org](https://nodejs.org/) |
 
-### Install
+### 安装
 
 ```bash
-git clone https://github.com/Huangshan16/harnetics.git
+git clone https://github.com/harnetics/harnetics.git
 cd harnetics
 uv sync --dev
 cd frontend && npm install && cd ..
 ```
 
-### Configure LLM
+### 配置 LLM
 
-**Option A: Local Ollama** (offline, no API key)
+**方案 A：本地 Ollama**（离线，无需 API Key）
 
 ```bash
 export HARNETICS_LLM_MODEL="qwen3.5:4b"
@@ -118,37 +120,37 @@ export HARNETICS_LLM_BASE_URL="http://localhost:11434"
 ollama pull qwen3.5:4b && ollama serve
 ```
 
-**Option B: Cloud OpenAI-compatible** (any provider)
+**方案 B：云端 OpenAI-compatible**（任意服务商）
 
 ```bash
 export HARNETICS_LLM_MODEL="gpt-4o"
 export OPENAI_API_KEY="sk-..."
-# Optional: custom base URL for third-party gateways
+# 可选：自定义第三方网关地址
 # export HARNETICS_LLM_BASE_URL="https://your-gateway/v1"
 ```
 
-See [.env.example](.env.example) for all configuration options.
+完整配置项见 [.env.example](.env.example)。
 
-### Initialize & Run
+### 初始化并启动
 
 ```bash
-# Seed the graph database with sample aerospace documents
+# 导入样本航天文档，初始化图谱数据库
 uv run python -m harnetics.cli.main init --reset
 uv run python -m harnetics.cli.main ingest fixtures/
 
-# Start the server
+# 启动服务器
 uv run python -m harnetics.cli.main serve --reload
 ```
 
-Open `http://localhost:8000` — you should see the dashboard with sample documents loaded.
+打开 `http://localhost:8000`，即可看到加载了样本文档的仪表盘。
 
-For frontend hot-reload during development:
+前端热更新开发模式：
 
 ```bash
 cd frontend && npm run dev    # → http://localhost:5173
 ```
 
-### Smoke Test
+### 冒烟测试
 
 ```bash
 curl http://localhost:8000/health
@@ -156,168 +158,163 @@ curl http://localhost:8000/api/dashboard/stats
 curl http://localhost:8000/api/documents
 ```
 
-## Architecture
+## 系统架构
 
 ```
-Ingest (Markdown/YAML)
-  → Parse & Graph Index (SQLite + ChromaDB)
-    → LLM Draft Generation (OpenAI-compatible)
-      → Evaluator Quality Gates (EA/EB/ED)
-        → Impact Analysis (BFS + vector search)
+文档入库 (Markdown/YAML)
+  → 解析 & 图谱索引 (SQLite + ChromaDB)
+    → LLM 草稿生成 (OpenAI-compatible)
+      → 质量门评估 (EA/EB/ED)
+        → 影响分析 (BFS + 向量检索)
           → API / React SPA
 ```
 
-- **Backend**: Python 3.12+ · FastAPI · SQLite · ChromaDB · OpenAI SDK
-- **Frontend**: React 18 · TypeScript 5.7 · Vite 6 · Tailwind CSS v4 · shadcn/ui
-- **LLM**: OpenAI-compatible routing with explicit Ollama fallback
-- **Design**: Local-first — all data stays on your machine by default
+- **后端**：Python 3.12+ · FastAPI · SQLite · ChromaDB · OpenAI SDK
+- **前端**：React 18 · TypeScript 5.7 · Vite 6 · Tailwind CSS v4 · shadcn/ui
+- **LLM**：OpenAI-compatible 路由，显式支持本地 Ollama 回退
+- **设计理念**：本地优先——所有数据默认留存在本机
 
-## API Routes
+## API 路由
 
-| Route | Description |
-|-------|-------------|
-| `GET /health` | Health check |
-| `GET /api/dashboard/stats` | Dashboard statistics |
-| `GET /api/documents` | List all documents |
-| `GET /api/documents/{doc_id}` | Document detail with sections |
-| `POST /api/draft/generate` | Generate alignment draft |
-| `GET /api/draft/{draft_id}` | View draft with citations |
-| `POST /api/impact/analyze` | Trigger impact analysis |
-| `GET /api/impact` | List impact reports |
-| `GET /api/impact/{report_id}` | Impact report detail |
-| `GET /api/graph/edges` | Raw graph edges |
-| `GET /api/status` | LLM/embedding configuration status |
-| `GET /api/settings` | Current runtime settings (keys masked) |
-| `PUT /api/settings` | Update runtime LLM/embedding config |
-| `POST /api/documents/upload` | Upload and ingest document |
-
-## UI Routes
-
-| Path | Page |
+| 路由 | 说明 |
 |------|------|
-| `/` | Dashboard |
-| `/documents` | Document catalog |
-| `/documents/{doc_id}` | Document detail |
-| `/draft` | Draft workbench |
-| `/draft/{draft_id}` | Draft viewer |
-| `/impact` | Impact analysis |
-| `/impact/{report_id}` | Impact report |
-| `/graph` | Document graph visualization |
-| `/settings` | Runtime configuration |
+| `GET /health` | 健康检查 |
+| `GET /api/dashboard/stats` | 仪表盘统计数据 |
+| `GET /api/documents` | 文档列表 |
+| `GET /api/documents/{doc_id}` | 文档详情（含章节） |
+| `POST /api/draft/generate` | 生成对齐草稿 |
+| `GET /api/draft/{draft_id}` | 查看草稿与引注 |
+| `POST /api/impact/analyze` | 触发影响分析 |
+| `GET /api/impact` | 影响分析报告列表 |
+| `GET /api/impact/{report_id}` | 影响分析报告详情 |
+| `GET /api/graph/edges` | 原始图谱边数据 |
+| `GET /api/status` | LLM/Embedding 配置状态 |
+| `GET /api/settings` | 当前运行时配置（Key 脱敏） |
+| `PUT /api/settings` | 更新运行时 LLM/Embedding 配置 |
+| `POST /api/documents/upload` | 上传并导入文档 |
 
-## Testing
+## 测试
 
 ```bash
-# Backend
+# 后端测试
 uv run pytest tests/ -q
 
-# Frontend build
+# 前端构建验证
 cd frontend && npm run build
 ```
 
 ## Docker
 
-### Cloud deployment (recommended)
+### 云端部署（推荐）
 
 ```bash
 docker compose up -d
 # → http://localhost:8000
 ```
 
-No LLM pre-configured — open the **Settings** page in the browser to enter your API key and model.
+无预配置 LLM — 打开浏览器中的**设置**页面输入 API Key 和模型名。
 
-### Local model deployment (Ollama)
+### 本地模型部署（Ollama）
 
 ```bash
 docker compose -f docker-compose-local.yml up -d
 docker exec ollama ollama pull qwen3.5:4b
 docker exec ollama ollama pull nomic-embed-text
-# → http://localhost:8000 — pre-configured to use local Ollama
+# → http://localhost:8000 — 已预配置使用本地 Ollama
 ```
 
-### Qwen3.5 local model reference
+### Qwen3.5 本地模型参考
 
-| Model | Params | 4-bit VRAM | Ollama name | Suitable for |
-|-------|--------|------------|-------------|--------------|
-| Qwen3.5 0.8B | 0.8B | 2–4 GB | `qwen3.5:0.8b` | Thin & light laptop, CPU-only |
-| Qwen3.5 2B | 2B | 4–6 GB | `qwen3.5:2b` | Regular laptop |
-| Qwen3.5 4B | 4B | 6–8 GB | `qwen3.5:4b` | Entry-level GPU / Apple Silicon base |
-| Qwen3.5 9B *(latest)* | 9B | 10–14 GB | `qwen3.5:9b` | RTX 3060/4060, 24 GB Mac |
-| Qwen3.5 27B | 27B | 22–28 GB | `qwen3.5:27b` | 24 GB+ VRAM / 48–64 GB Mac |
-| Qwen3.5 35B-A3B *(MoE)* | 35B | 24–32 GB | `qwen3.5:35b` | 32 GB+ high-VRAM card |
-| Qwen3.5 122B-A10B *(MoE)* | 122B | 90–120 GB | `qwen3.5:122b` | Multi-GPU workstation / server |
+| 模型 | 参数量 | 本地硬件显存建议 | Ollama 名称 | 适合机器 |
+|------|--------|----------------|-------------|----------|
+| Qwen3.5 0.8B | 0.8B | 2–4 GB | `qwen3.5:0.8b` | 轻薄本、CPU |
+| Qwen3.5 2B | 2B | 4–6 GB | `qwen3.5:2b` | 普通笔记本 |
+| Qwen3.5 4B | 4B | 6–8 GB | `qwen3.5:4b` | 入门独显 / Apple Silicon 入门机 |
+| Qwen3.5 9B *(latest)* | 9B | 10–14 GB | `qwen3.5:9b` | RTX 3060/4060、24GB Mac |
+| Qwen3.5 27B | 27B | 22–28 GB | `qwen3.5:27b` | 24GB+ 显存 / 48–64GB Mac |
+| Qwen3.5 35B-A3B *(MoE)* | 35B | 24–32 GB | `qwen3.5:35b` | 32GB+ 高显存卡 |
+| Qwen3.5 122B-A10B *(MoE)* | 122B | 90–120 GB | `qwen3.5:122b` | 多卡工作站 / 服务器 |
 
-## Project Structure
+## 项目结构
 
 ```
 harnetics/
-├── docs/                  # Public project docs + selected local notes
-│   ├── ARCHITECTURE.md    # Public architecture overview
-│   ├── CHANGELOG.md       # Release history
-│   ├── CODE_OF_CONDUCT.md # Community standards
-│   └── CONTRIBUTING.md    # Contribution workflow
-├── src/harnetics/         # Python backend
-│   ├── api/               #   FastAPI app factory + routes + SPA hosting
+├── docs/                  # 公开项目文档 + 部分本地说明
+│   ├── ARCHITECTURE.md    # 对外公开的架构总览
+│   ├── CHANGELOG.md       # 版本历史
+│   ├── CODE_OF_CONDUCT.md # 社区行为准则
+│   └── CONTRIBUTING.md    # 贡献流程说明
+├── src/harnetics/         # Python 后端
+│   ├── api/               #   FastAPI 应用工厂 + 路由 + SPA 托管
 │   │   └── routes/        #     documents / draft / impact / graph / status / evaluate
-│   ├── cli/               #   typer CLI (init / ingest / serve)
-│   ├── engine/            #   Draft generation, conflict detection, impact analysis
-│   ├── evaluators/        #   Quality gate evaluators (EA/EB/ED)
-│   ├── graph/             #   SQLite store, DDL, queries + ChromaDB vector index
-│   ├── llm/               #   OpenAI-compatible client, route normalisation, diagnostics
-│   ├── models/            #   Domain dataclasses (document / icd / draft / impact)
-│   ├── parsers/           #   Markdown / YAML / ICD parsers
-│   └── config.py          #   Settings + .env loader
+│   ├── cli/               #   typer CLI（init / ingest / serve）
+│   ├── engine/            #   草稿生成、冲突检测、影响分析核心引擎
+│   ├── evaluators/        #   质量门评估器（EA/EB/ED）
+│   ├── graph/             #   SQLite 图谱存储 + ChromaDB 向量索引
+│   ├── llm/               #   OpenAI-compatible 客户端、路由归一化、诊断
+│   ├── models/            #   领域 dataclass（document / icd / draft / impact）
+│   ├── parsers/           #   Markdown / YAML / ICD 解析器
+│   └── config.py          #   Settings + .env 加载器
 ├── frontend/              # React 18 SPA
 │   └── src/
-│       ├── pages/         #   Route pages
-│       ├── components/    #   Shared UI components
-│       ├── lib/           #   API client + utilities
-│       └── types/         #   TypeScript domain types
-├── fixtures/              # Sample aerospace documents
-├── tests/                 # pytest test suite
-├── AGENTS.md              # Repository map and engineering protocol
-├── README.md              # English public README
-├── README_zh.md           # Chinese public README
-└── var/                   # Runtime data (SQLite, ChromaDB) — gitignored
+│       ├── pages/         #   路由页面
+│       ├── components/    #   共享 UI 组件
+│       ├── lib/           #   API 客户端 + 工具函数
+│       └── types/         #   TypeScript 领域类型
+├── fixtures/              # 航天领域样本文档
+├── tests/                 # pytest 测试套件
+├── AGENTS.md              # 仓库总地图与工程协议
+├── README.md              # 中文优先公开 README
+├── README_EN.md           # 英文公开 README
+├── README_zh.md           # 中文兼容跳转说明
+└── var/                   # 运行时数据（SQLite、ChromaDB）— 已 gitignore
 ```
 
-## Documentation
+## 文档导航
 
-| Document | Description |
-|----------|-------------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System structure, data flow, module boundaries |
-| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | How to contribute |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Release history |
-| [docs/CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md) | Community standards |
-| [README_zh.md](README_zh.md) | Chinese public README |
-| [.env.example](.env.example) | Environment variable reference |
+| 文档 | 说明 |
+|------|------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 系统结构、数据流、模块边界 |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | 贡献指南 |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | 版本发布历史 |
+| [docs/CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md) | 社区行为准则 |
+| [README.md](README.md) | 中文优先公开 README |
+| [README_EN.md](README_EN.md) | 英文公开 README |
+| [README_zh.md](README_zh.md) | 中文兼容跳转说明 |
+| [.env.example](.env.example) | 环境变量配置参考 |
 
-## Roadmap
+## 路线图
 
-| Horizon | Focus | Planned work |
-|---------|-------|--------------|
-| **Now (MVP)** | Core alignment loop | Markdown/YAML ingest, document graph, citation-backed draft generation, impact analysis, evaluator gates, React workbench |
-| **Next (P1)** | Broader document ingestion | Add Word, PDF, and Excel parsers; strengthen ICD table extraction; add file watcher-based re-indexing |
-| **Next (P1)** | Human governance | Add review queue, AI edge confirmation workflow, stale-reference remediation, stronger conflict surfacing |
-| **Later (P2)** | Scale and collaboration | Move from SQLite-only assumptions toward PostgreSQL-ready scale, add richer audit/history views, team review workflows, and real-time collaboration endpoints |
-| **Later (P2)** | Domain depth | Extend support for CAD metadata ingestion, more reuse-aware knowledge retrieval, and stronger cross-department traceability analytics |
+| 阶段 | 重点 | 计划内容 |
+|------|------|----------|
+| **当前（MVP）** | 核心对齐闭环 | Markdown/YAML 入库、文档图谱、带引注草稿生成、变更影响分析、Evaluator 质量门、React 工作台 |
+| **下一阶段（P1）** | 扩展文档接入 | 增加 Word、PDF、Excel 解析器；强化 ICD 表格抽取；加入基于文件监听的自动重索引 |
+| **下一阶段（P1）** | 人类治理增强 | 增加审核队列、AI 边人工确认流程、陈旧引用修复提示、冲突显式标记 |
+| **后续阶段（P2）** | 规模化与协作 | 从 SQLite 主路径演进到 PostgreSQL-ready 架构，引入更完整的审计/历史视图、团队评审流和实时协作端点 |
+| **后续阶段（P2）** | 领域深度 | 扩展 CAD 元数据接入、强化历史知识复用检索、增强跨部门追溯分析能力 |
 
-## Contributing: Where to Start
+## 贡献：从哪里开始
 
-- **Document parsers** are a good first contribution area, especially Word/PDF/Excel ingest.
-- **Evaluators** are intentionally modular and welcome expansion, especially around citation freshness, parameter consistency, and review policy.
-- **Graph/query API changes** should be discussed before implementation because they affect traceability semantics and downstream UI behavior.
-- **Frontend, fixtures, and docs** are all open for contribution if you want to improve usability, demo quality, or domain realism.
+- **文档解析器** 很适合作为第一类贡献点，尤其是 Word/PDF/Excel 接入。
+- **Evaluator** 是天然可扩展层，欢迎补充版本新鲜度、参数一致性和审查策略相关规则。
+- **graph/query API** 属于语义边界，涉及查询契约或追溯逻辑的变更请先讨论再动手。
+- **frontend / fixtures / docs** 也都欢迎贡献，尤其适合做体验优化、demo 强化和领域语料完善。
 
-## Contributing
+## 社区
 
-We welcome contributions! Please read [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines on:
+- 💬 [Discussions](https://github.com/harnetics/harnetics/discussions) —— 交流问题、产品方向与路线图
+- 🐛 [Issues](https://github.com/harnetics/harnetics/issues) —— 提交 Bug 与功能建议
+- 📖 [贡献指南](docs/CONTRIBUTING.md) —— 查看贡献流程与开发约定
 
-- Setting up your development environment
-- Branch naming and commit conventions
-- Pull request process
-- Coding standards
+## 贡献
 
-## License
+欢迎贡献！请阅读 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) 了解：
 
-This project is licensed under the Apache License 2.0 — see [LICENSE](LICENSE) for details.
+- 开发环境搭建
+- 分支命名与 commit 规范
+- Pull Request 流程
+- 编码规范
+
+## 许可证
+
+本项目采用 Apache License 2.0 授权——详见 [LICENSE](LICENSE)。

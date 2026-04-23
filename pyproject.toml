@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "harnetics"
 version = "0.1.0"
-description = "Aerospace document alignment workbench — cross-department traceability, draft generation, and change impact analysis powered by document graph and LLM."
+description = "商业航天文档对齐工作台——基于文档图谱与大语言模型（LLM），实现跨部门追溯、草稿生成与变更影响分析。"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.12"
@@ -39,12 +39,13 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Huangshan16/harnetics"
-Documentation = "https://github.com/Huangshan16/harnetics#readme"
-ChineseDocs = "https://github.com/Huangshan16/harnetics/blob/main/README_zh.md"
-Repository = "https://github.com/Huangshan16/harnetics"
-Issues = "https://github.com/Huangshan16/harnetics/issues"
-Changelog = "https://github.com/Huangshan16/harnetics/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/harnetics/harnetics"
+Documentation = "https://github.com/harnetics/harnetics#readme"
+ChineseDocs = "https://github.com/harnetics/harnetics/blob/main/README.md"
+EnglishDocs = "https://github.com/harnetics/harnetics/blob/main/README_EN.md"
+Repository = "https://github.com/harnetics/harnetics"
+Issues = "https://github.com/harnetics/harnetics/issues"
+Changelog = "https://github.com/harnetics/harnetics/blob/main/docs/CHANGELOG.md"
 
 [dependency-groups]
 dev = [

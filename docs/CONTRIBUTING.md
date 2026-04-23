@@ -26,7 +26,7 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
    ```
 3. **Add upstream** remote:
    ```bash
-   git remote add upstream https://github.com/Huangshan16/harnetics.git
+   git remote add upstream https://github.com/harnetics/harnetics.git
    ```
 
 ## Development Setup
@@ -174,7 +174,7 @@ When you add, remove, or move files, update the relevant AGENTS.md files. See [A
 
 ## Reporting Bugs
 
-Use the [Bug Report](https://github.com/Huangshan16/harnetics/issues/new?template=bug_report.yml) issue template. Include:
+Use the [Bug Report](https://github.com/harnetics/harnetics/issues/new?template=bug_report.yml) issue template. Include:
 
 - Steps to reproduce
 - Expected vs actual behavior
@@ -183,7 +183,7 @@ Use the [Bug Report](https://github.com/Huangshan16/harnetics/issues/new?templat
 
 ## Questions?
 
-Open a [Discussion](https://github.com/Huangshan16/harnetics/discussions) or reach out via Issues.
+Open a [Discussion](https://github.com/harnetics/harnetics/discussions) or reach out via Issues.
 
 ---
 
