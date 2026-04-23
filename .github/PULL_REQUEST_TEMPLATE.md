@@ -1,45 +1,45 @@
-## Description
+## 变更说明
 
-<!-- What does this PR do? Why is it needed? -->
+<!-- 这个 PR 做了什么？为什么需要这次修改？ -->
 
-## Related Issue
+## 关联 Issue
 
-<!-- Link to the issue this PR addresses. Use "Closes #123" to auto-close. -->
+<!-- 关联该 PR 对应的 Issue。使用 "Closes #123" 可在合并后自动关闭。 -->
 
-## Type of Change
+## 变更类型
 
-- [ ] Bug fix (non-breaking change that fixes an issue)
-- [ ] New feature (non-breaking change that adds functionality)
-- [ ] Breaking change (fix or feature that changes existing behavior)
-- [ ] Documentation update
-- [ ] Refactoring (no functional change)
-- [ ] CI/CD or tooling change
+- [ ] Bug 修复（不破坏兼容性的问题修复）
+- [ ] 新功能（不破坏兼容性的功能新增）
+- [ ] Breaking change（会改变既有行为）
+- [ ] 文档更新
+- [ ] 重构（不改变功能行为）
+- [ ] CI/CD 或工具链调整
 
-## Changes Made
+## 具体改动
 
-<!-- Describe the specific changes in this PR. -->
+<!-- 描述本次 PR 的具体改动内容。 -->
 
 -
 -
 -
 
-## How to Test
+## 如何验证
 
-<!-- Steps for the reviewer to verify the changes. -->
+<!-- 提供 reviewer 验证改动的步骤。 -->
 
 1.
 2.
 3.
 
-## Checklist
+## 自检清单
 
-- [ ] My code follows the project's coding standards
-- [ ] I have added/updated tests for my changes
-- [ ] All existing tests pass (`uv run pytest -q`)
-- [ ] Frontend builds successfully (`cd frontend && npm run build`)
-- [ ] I have updated relevant AGENTS.md files (if I added/removed/moved files)
-- [ ] I have updated documentation as needed
+- [ ] 我的代码遵循了项目既有编码规范
+- [ ] 我已为改动补充或更新了测试
+- [ ] 所有现有测试通过（`uv run pytest -q`）
+- [ ] 前端可以成功构建（`cd frontend && npm run build`）
+- [ ] 如果我新增 / 删除 / 移动了文件，已同步更新相关 AGENTS.md
+- [ ] 我已按需更新相关文档
 
-## Screenshots
+## 截图 / 补充信息
 
-<!-- If applicable, add screenshots to illustrate UI changes. -->
+<!-- 如适用，请附上截图帮助说明 UI 变化。 -->

@@ -1,45 +1,45 @@
-# Security Policy
+# 安全策略
 
-## Supported Versions
+## 支持版本
 
-| Version | Supported |
-|---------|-----------|
-| 0.1.x   | ✅ Current |
+| 版本 | 支持状态 |
+|------|----------|
+| 0.1.x | ✅ 当前维护版本 |
 
-## Reporting a Vulnerability
+## 如何报告漏洞
 
-**Please do NOT report security vulnerabilities through public GitHub issues.**
+**请不要通过公开 GitHub Issue 报告安全漏洞。**
 
-Instead, please report them via email to **sam@harnetics.dev**.
+请直接发送邮件到 **sam@harnetics.dev**。
 
-You should receive a response within 48 hours. If for some reason you do not, please follow up to ensure we received your original message.
+我们通常会在 48 小时内回复。如果你没有收到回复，请再次跟进，确保邮件已成功送达。
 
-Please include the following information (as much as you can provide):
+请尽量提供以下信息：
 
-- Type of vulnerability (e.g., buffer overflow, SQL injection, cross-site scripting)
-- Full paths of source file(s) related to the vulnerability
-- Location of the affected source code (tag/branch/commit or direct URL)
-- Any special configuration required to reproduce the issue
-- Step-by-step instructions to reproduce the issue
-- Proof-of-concept or exploit code (if possible)
-- Impact of the issue, including how an attacker might exploit it
+- 漏洞类型（如缓冲区溢出、SQL 注入、XSS 等）
+- 与漏洞相关的源文件完整路径
+- 受影响代码的位置（tag / branch / commit 或直接 URL）
+- 复现问题所需的特殊配置
+- 逐步复现说明
+- PoC 或利用代码（如果可以提供）
+- 漏洞影响范围，以及攻击者可能如何利用它
 
-## Security Design
+## 当前安全边界
 
-Harnetics is designed as a **local-first** application:
+Harnetics 采用 **local-first（本地优先）** 设计：
 
-- **No cloud data upload by default** — all document processing happens locally
-- **No multi-tenant boundaries** — single-user deployment model
-- **No authentication layer in MVP** — intended for local/trusted network use
-- **LLM integration is opt-in** — works offline with local models (e.g., Ollama)
+- **默认不上传云端数据** —— 文档处理默认在本地完成
+- **没有多租户边界** —— 当前以单用户部署模型为主
+- **MVP 阶段没有认证层** —— 默认用于本地或可信网络环境
+- **LLM 集成为可选项** —— 使用本地模型（如 Ollama）时可完全离线运行
 
-## Disclosure Policy
+## 漏洞披露流程
 
-- We will acknowledge receipt of your vulnerability report within 48 hours
-- We will provide an estimated timeline for a fix within 7 days
-- We will notify you when the vulnerability is fixed
-- We will credit you in the release notes (unless you prefer anonymity)
+- 我们会在 48 小时内确认收到漏洞报告
+- 我们会在 7 天内给出修复计划或预估时间
+- 漏洞修复完成后会通知你
+- 如果你愿意公开署名，我们会在 release note 中致谢；如需匿名也完全可以
 
-## Preferred Languages
+## 报告语言
 
-We accept vulnerability reports in English or Chinese (中文).
+我们接受 **中文** 与 **English** 的漏洞报告。

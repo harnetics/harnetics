@@ -1,52 +1,53 @@
-# Contributing to Harnetics
+# 贡献指南
 
-Thank you for your interest in contributing to Harnetics! This document provides guidelines and instructions for contributing.
+感谢你关注 Harnetics！本文档说明如何为项目提交改进、修复问题与参与协作。
 
-## Table of Contents
+## 目录
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [Making Changes](#making-changes)
-- [Pull Request Process](#pull-request-process)
-- [Coding Standards](#coding-standards)
-- [Reporting Bugs](#reporting-bugs)
+- [行为准则](#行为准则)
+- [快速开始](#快速开始)
+- [开发环境](#开发环境)
+- [如何修改](#如何修改)
+- [Pull Request 流程](#pull-request-流程)
+- [编码规范](#编码规范)
+- [问题反馈](#问题反馈)
+- [如何讨论](#如何讨论)
 
-## Code of Conduct
+## 行为准则
 
-This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+本项目遵循 [Contributor Covenant 行为准则](CODE_OF_CONDUCT.md)。参与本项目即表示你同意遵守该准则。
 
-## Getting Started
+## 快速开始
 
-1. **Fork** the repository on GitHub
-2. **Clone** your fork locally:
+1. 在 GitHub 上 **Fork** 本仓库
+2. 将你的 Fork **克隆**到本地：
    ```bash
    git clone https://github.com/<your-username>/harnetics.git
    cd harnetics
    ```
-3. **Add upstream** remote:
+3. 添加官方仓库为 **upstream**：
    ```bash
    git remote add upstream https://github.com/harnetics/harnetics.git
    ```
 
-## Development Setup
+## 开发环境
 
-### Prerequisites
+### 前置要求
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Python | ≥ 3.12 | Backend runtime |
-| uv | latest | Python package manager |
-| Node.js | ≥ 20 | Frontend build |
-| npm | latest | Frontend package manager |
+| 工具 | 版本 | 用途 |
+|------|------|------|
+| Python | ≥ 3.12 | 后端运行时 |
+| uv | 最新版 | Python 包管理器 |
+| Node.js | ≥ 20 | 前端构建 |
+| npm | 最新版 | 前端包管理器 |
 
-### Backend
+### 后端依赖
 
 ```bash
 uv sync --dev
 ```
 
-### Frontend
+### 前端依赖
 
 ```bash
 cd frontend
@@ -54,36 +55,36 @@ npm install
 cd ..
 ```
 
-### Running the App
+### 运行应用
 
 ```bash
-# Start backend (serves both API and SPA)
+# 启动后端（同时托管 API 与 SPA）
 uv run uvicorn harnetics:create_app --factory --reload --port 8000
 
-# Start frontend dev server (separate terminal, for hot reload)
+# 启动前端开发服务器（另开一个终端，用于热更新）
 cd frontend && npm run dev
 ```
 
-### Running Tests
+### 运行测试
 
 ```bash
-# Backend tests
+# 后端测试
 uv run pytest -q
 
-# Frontend build check
+# 前端构建检查
 cd frontend && npm run build
 ```
 
-### Backend-Only vs Frontend-Only Development
+### 仅后端 / 仅前端开发
 
-- **Backend only**: Skip `npm install`. The API works standalone at `http://localhost:8000/api/`.
-- **Frontend only**: Run `npm run dev` in `frontend/`. The Vite dev server proxies API calls to the backend — make sure the backend is running on port 8000.
+- **仅后端**：可以跳过 `npm install`。API 可直接通过 `http://localhost:8000/api/` 访问。
+- **仅前端**：在 `frontend/` 下运行 `npm run dev`。Vite 会代理 API 请求到后端，请确保后端运行在 8000 端口。
 
-## Making Changes
+## 如何修改
 
-### Branch Naming
+### 分支命名
 
-Create a feature branch from `main`:
+从 `main` 创建功能分支：
 
 ```bash
 git checkout main
@@ -91,100 +92,101 @@ git pull upstream main
 git checkout -b <type>/<short-description>
 ```
 
-Branch types:
-- `feat/` — New feature or enhancement
-- `fix/` — Bug fix
-- `docs/` — Documentation only
-- `refactor/` — Code refactoring (no behavior change)
-- `test/` — Adding or updating tests
-- `ci/` — CI/CD changes
+分支类型建议：
+- `feat/` —— 新功能或增强
+- `fix/` —— Bug 修复
+- `docs/` —— 文档变更
+- `refactor/` —— 重构（不改变行为）
+- `test/` —— 新增或修改测试
+- `ci/` —— CI/CD 相关修改
 
-Examples: `feat/yaml-icd-parser`, `fix/impact-analysis-cache`, `docs/api-reference`
+示例：`feat/yaml-icd-parser`、`fix/impact-analysis-cache`、`docs/api-reference`
 
-### Commit Messages
+### Commit 信息
 
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
+请遵循 [Conventional Commits](https://www.conventionalcommits.org/)：
 
-```
+```text
 <type>(<scope>): <short summary>
 
 <optional body>
 ```
 
-Types: `feat`, `fix`, `docs`, `refactor`, `test`, `ci`, `chore`
+可用类型：`feat`、`fix`、`docs`、`refactor`、`test`、`ci`、`chore`
 
-Examples:
-```
+示例：
+```text
 feat(engine): add batch LLM judgement for impact analysis
 fix(graph): prevent duplicate edges on re-import
 docs(readme): add architecture diagram
 ```
 
-## Pull Request Process
+## Pull Request 流程
 
-1. **Update your branch** with the latest `main`:
+1. **同步最新 `main`**：
    ```bash
    git fetch upstream
    git rebase upstream/main
    ```
-2. **Ensure all tests pass**:
+2. **确保测试通过**：
    ```bash
    uv run pytest -q
    cd frontend && npm run build
    ```
-3. **Create the PR** against `main` branch
-4. **Fill out the PR template** — describe what, why, and how to test
-5. **Wait for CI** — all checks must pass before review
-6. **Address review feedback** — push additional commits, then squash on merge
+3. **创建 PR** 到 `main`
+4. **填写 PR 模板**，说明改了什么、为什么改、如何验证
+5. **等待 CI** 完成，所有检查通过后再进入评审
+6. **处理评审反馈**，必要时继续 push，最终在合并时 squash
 
-### What Makes a Good PR
+### 什么样的 PR 更容易被接受
 
-- **Small and focused** — one logical change per PR
-- **Tests included** — if you change behavior, add/update tests
-- **Documentation updated** — if you add features, update relevant docs
-- **AGENTS.md synced** — if you add/remove/move files, update the nearest AGENTS.md
+- **小而聚焦**：一个 PR 只做一类逻辑变更
+- **测试齐全**：如果行为发生变化，应补充或更新测试
+- **文档同步**：新增功能或修改使用方式时，请同步更新相关文档
+- **AGENTS.md 同步**：如果新增 / 删除 / 移动文件，请同步更新最近的 AGENTS.md
 
-## Coding Standards
+## 编码规范
 
-### Python (Backend)
+### Python（后端）
 
-- **Style**: Follow existing code conventions; no excessive abstraction
-- **Functions**: Keep under 20 lines; extract only when genuinely reused
-- **Files**: Keep under 800 lines
-- **Directories**: Max 8 files per directory level
-- **Comments**: Chinese + ASCII block style (matches existing codebase)
-- **Types**: Use Python type hints for function signatures
-- **Tests**: pytest; place tests in `tests/` mirroring `src/` structure
+- **风格**：遵循现有代码风格，避免过度抽象
+- **函数**：尽量控制在 20 行以内；仅在真正复用时再提取
+- **文件**：尽量控制在 800 行以内
+- **目录**：单层目录尽量不超过 8 个文件
+- **注释**：使用中文 + ASCII 风格分块注释，与现有代码库保持一致
+- **类型**：函数签名尽量补齐 Python 类型标注
+- **测试**：使用 pytest；测试文件放在 `tests/` 下，并尽量镜像 `src/` 结构
 
-### TypeScript (Frontend)
+### TypeScript（前端）
 
-- **Components**: shadcn/ui + Tailwind CSS v4 (design system first)
-- **Style**: No custom CSS — everything through Tailwind utilities
-- **State**: React hooks; no global state library unless justified
-- **Types**: Strict TypeScript; no `any` escape hatches
+- **组件**：优先使用 shadcn/ui + Tailwind CSS v4
+- **样式**：不新增自定义 CSS，统一通过 Tailwind utility 完成
+- **状态管理**：优先 React hooks；除非有充分理由，不引入全局状态库
+- **类型**：保持严格 TypeScript，避免使用 `any` 逃逸
 
-### Documentation Protocol (GEB)
+### 分形文档协议（GEB）
 
-This project follows a fractal documentation protocol:
-- **L1** (`/AGENTS.md`): Project-level directory map
-- **L2** (`/{module}/AGENTS.md`): Module member list and interfaces
-- **L3** (file headers): `[INPUT]/[OUTPUT]/[POS]/[PROTOCOL]` contracts
+本项目使用分形文档协议：
+- **L1**（`/AGENTS.md`）：项目级目录地图
+- **L2**（`/{module}/AGENTS.md`）：模块级成员与接口说明
+- **L3**（文件头注释）：`[INPUT] / [OUTPUT] / [POS] / [PROTOCOL]` 契约
 
-When you add, remove, or move files, update the relevant AGENTS.md files. See [AGENTS.md](../AGENTS.md) for details.
+当你新增、删除或移动文件时，请同步更新对应的 AGENTS.md。详情见 [AGENTS.md](../AGENTS.md)。
 
-## Reporting Bugs
+## 问题反馈
 
-Use the [Bug Report](https://github.com/harnetics/harnetics/issues/new?template=bug_report.yml) issue template. Include:
+请使用 [Bug Report](https://github.com/harnetics/harnetics/issues/new?template=bug_report.yml) 模板，并尽量提供：
 
-- Steps to reproduce
-- Expected vs actual behavior
-- Environment (OS, Python version, Node version)
-- Relevant logs or screenshots
+- 复现步骤
+- 预期行为与实际行为
+- 环境信息（OS、Python 版本、Node 版本）
+- 相关日志或截图
 
-## Questions?
+## 如何讨论
 
-Open a [Discussion](https://github.com/harnetics/harnetics/discussions) or reach out via Issues.
+- 功能方向、产品想法、使用疑问：优先去 [Discussions](https://github.com/harnetics/harnetics/discussions)
+- 明确缺陷或功能请求：请提交到 [Issues](https://github.com/harnetics/harnetics/issues)
 
 ---
 
-Thank you for helping make aerospace document alignment better! 🚀
+感谢你一起把航天文档对齐这件事做得更好。🚀
