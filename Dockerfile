@@ -9,6 +9,8 @@ COPY frontend/ ./
 RUN npm run build
 
 
+FROM ghcr.io/astral-sh/uv:0.8.17@sha256:e4644cb5bd56fdc2c5ea3ee0525d9d21eed1603bccd6a21f887a938be7e85be1 AS uv-binary
+
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -21,10 +23,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# ---- uv 二进制（本地预下载缓存，避免每次构建重复拉取）----
-# 首次使用请执行：
-#   mkdir -p .docker && curl -L https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-musl.tar.gz | tar -xz -C .docker --strip-components=1
-COPY .docker/uv /usr/local/bin/uv
+# ---- uv 二进制：从官方镜像复制，避免依赖仓库外的本地缓存文件 ----
+COPY --from=uv-binary /uv /usr/local/bin/uv
 
 # ---- 安装项目依赖：先复制元数据与源码，再直接安装项目包 ----
 COPY pyproject.toml README.md ./
