@@ -10,7 +10,7 @@ readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.12"
 authors = [
-  { name = "Sam", email = "sam@harnetics.dev" },
+  { name = "Sam", email = "huangshan226@foxmail.com" },
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
