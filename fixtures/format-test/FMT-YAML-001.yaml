@@ -1,0 +1,34 @@
+doc_id: FMT-YAML-001
+title: 推进系统接口控制参数（YAML 格式样本）
+doc_type: ICD
+department: 动力系统部
+system_level: 分系统层
+version: "1.0"
+status: Draft
+
+sections:
+  - heading: 推力控制指令接口
+    content: |
+      总线类型：MIL-STD-1553B
+      帧率：50 Hz
+      指令字长：16 bit
+      参数范围：0x0000（关机）– 0xFFFF（全推力）
+
+  - heading: 发动机状态遥测
+    content: |
+      采样率：100 Hz
+      参数：推力实测值、燃烧室压力、出口温度、阀门状态
+
+parameters:
+  - name: THRUST_CMD
+    unit: "%"
+    range: "0–100"
+    source: FCC
+    target: ECU
+    bus: MIL-STD-1553B
+  - name: THRUST_ACTUAL
+    unit: kN
+    range: "0–80"
+    source: ECU
+    target: FCC
+    bus: MIL-STD-1553B

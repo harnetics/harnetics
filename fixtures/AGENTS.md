@@ -12,6 +12,7 @@ quality/: 质量计划与 FMEA 样本，提供风险与治理视角。
 templates/: 文档模板样本，提供生成草稿的结构骨架。
 test_plans/: 测试大纲样本，提供生成与影响分析的目标文档形态。
 samples/: 所有样本文件的扁平副本（10 份，无子目录），供用户一键批量导入 或 `harnetics ingest fixtures/samples/`。
+format-test/: 所有支持格式的最小化样本（.md/.yaml/.csv/.docx/.xlsx/.pdf），用于验证各格式解析器效果。
 
 法则
 - 这里存的是样本语料，不是产品说明文档。
