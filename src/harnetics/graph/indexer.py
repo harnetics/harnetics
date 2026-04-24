@@ -350,7 +350,11 @@ class DocumentIndexer:
         content_hash: str, meta: dict,
     ) -> DocumentNode:
         data = parse_yaml(content)
+        # 元数据优先读 metadata 子键，若无则从根层级读取
         fm = data.get("metadata", {}) or {}
+        if not fm:
+            fm = {k: v for k, v in data.items()
+                  if isinstance(v, (str, int, float)) and k not in ("doc_id",)}
         fm.update({k: v for k, v in meta.items() if v})
         sections: list[Section] = []
 
@@ -361,22 +365,35 @@ class DocumentIndexer:
             department=fm.get("department", ""),
             system_level=fm.get("system_level", ""),
             engineering_phase=fm.get("engineering_phase", ""),
-            version=fm.get("version", "v1.0"),
-            status=fm.get("status", "draft"),
+            version=str(fm.get("version", "v1.0")),
+            status=str(fm.get("status", "draft")),
             content_hash=content_hash,
             file_path=str(path),
         )
         store.insert_document(doc)
 
-        # YAML 文档也拆 section（description 等文本块）
-        desc = fm.get("description", "")
-        if desc:
-            sec = Section(
+        # 1) 优先使用 YAML 内的 sections 列表（heading + content 结构）
+        raw_sections = data.get("sections") or []
+        if isinstance(raw_sections, list) and raw_sections:
+            for idx, item in enumerate(raw_sections):
+                if not isinstance(item, dict):
+                    continue
+                heading = str(item.get("heading") or item.get("title") or f"section-{idx}")
+                body = str(item.get("content") or item.get("body") or "")
+                sections.append(Section(
+                    section_id=f"{doc_id}-sec-{idx}", doc_id=doc_id,
+                    heading=heading, content=body.strip(),
+                    level=1, order_index=idx,
+                ))
+        # 2) 回退：description 字段
+        elif desc := fm.get("description", ""):
+            sections.append(Section(
                 section_id=f"{doc_id}-sec-0", doc_id=doc_id,
                 heading="description", content=str(desc).strip(),
                 level=1, order_index=0,
-            )
-            sections = [sec]
+            ))
+
+        if sections:
             store.insert_sections(sections)
             if self._embedding_store is not None:
                 self._embedding_store.index_sections(doc_id, sections)
