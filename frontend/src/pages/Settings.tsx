@@ -113,7 +113,6 @@ export default function Settings() {
       <div className="rounded-xl border bg-card p-6 space-y-6">
         {renderFields('Embedding 配置', EMBEDDING_FIELDS)}
       </div>
-      <p className="text-xs text-muted-foreground">配置仅保存在内存中，服务重启后将恢复为环境变量或 .env 默认值。</p>
     </div>
   )
 }
