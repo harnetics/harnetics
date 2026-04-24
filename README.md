@@ -110,41 +110,65 @@ uv sync --dev
 cd frontend && npm install && cd ..
 ```
 
-### 配置 LLM
+### 配置 LLM 与 Embedding
+
+推荐使用 `.env` 文件统一管理配置，服务启动时自动加载：
+
+```bash
+cp .env.example .env
+# 用任意编辑器打开 .env，取消注释并填写对应方案的变量
+```
 
 **方案 A：本地 Ollama**（离线，无需 API Key）
 
 ```bash
-export HARNETICS_LLM_MODEL="qwen3.5:4b"
-export HARNETICS_LLM_BASE_URL="http://localhost:11434"
-ollama pull qwen3.5:4b && ollama serve
+# .env 中填写：
+HARNETICS_LLM_MODEL=qwen3.5:4b
+HARNETICS_LLM_BASE_URL=http://localhost:11434
+# HARNETICS_LLM_API_KEY 留空
+
+# Embedding 同样走本地（默认已内置 sentence-transformers，无需额外配置）
+# 若也想用 Ollama 做 embedding：
+# HARNETICS_EMBEDDING_MODEL=nomic-embed-text
+# HARNETICS_EMBEDDING_BASE_URL=http://localhost:11434
+```
+
+在本机安装并启动 Ollama（[ollama.com](https://ollama.com)），然后拉取模型：
+
+```bash
+ollama pull qwen3.5:4b
 ```
 
 **方案 B：云端 OpenAI-compatible**（任意服务商）
 
 ```bash
-export HARNETICS_LLM_MODEL="gpt-4o"
-export OPENAI_API_KEY="sk-..."
-# 可选：自定义第三方网关地址
-# export HARNETICS_LLM_BASE_URL="https://your-gateway/v1"
+# .env 中填写：
+HARNETICS_LLM_MODEL=gpt-4o-mini
+HARNETICS_LLM_BASE_URL=https://api.openai.com/v1
+HARNETICS_LLM_API_KEY=sk-...
+
+# 可选：同时配置云端 Embedding（留空则用本地 sentence-transformers）
+# HARNETICS_EMBEDDING_MODEL=text-embedding-3-small
+# HARNETICS_EMBEDDING_BASE_URL=https://api.openai.com/v1
+# HARNETICS_EMBEDDING_API_KEY=sk-...
 ```
 
-完整配置项见 [.env.example](.env.example)。
+> **提示**：也可以在启动服务后，进入 Web UI 的**设置**页面实时填写并保存 LLM / Embedding 配置，无需重启服务。完整配置项见 [.env.example](.env.example)。
 
 ### 初始化并启动
 
 ```bash
 # 导入样本航天文档，初始化图谱数据库
 uv run python -m harnetics.cli.main init --reset
-uv run python -m harnetics.cli.main ingest fixtures/
+uv run python -m harnetics.cli.main ingest fixtures/samples/
 
-# 启动服务器
-uv run python -m harnetics.cli.main serve --reload
+# 启动服务（自动打开浏览器，Ctrl+C 退出）
+uv run python -m harnetics.cli.main serve
 ```
 
-打开 `http://localhost:8000`，即可看到加载了样本文档的仪表盘。
+浏览器将自动打开 `http://localhost:8000`，即可看到加载了样本文档的仪表盘。
 
-前端热更新开发模式：
+前端热更新开发模式（开发时使用，不自动打开浏览器）：
 
 ```bash
 cd frontend && npm run dev    # → http://localhost:5173
@@ -212,7 +236,7 @@ docker compose up -d
 # → http://localhost:8000
 ```
 
-无预配置 LLM — 打开浏览器中的**设置**页面输入 API Key 和模型名。
+服务启动后默认无 LLM 配置 — 打开浏览器中的**设置**页面，填入 `HARNETICS_LLM_API_KEY`、模型名（如 `gpt-4o-mini`）和 API 地址，保存后即生效。也可以在 `docker compose up` 前创建 `.env` 文件（参考 [.env.example](.env.example)）预置配置。
 
 ### 本地模型部署（Ollama）
 
