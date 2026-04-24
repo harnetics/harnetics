@@ -1,14 +1,14 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 fetchDocuments/uploadDocument，依赖 @/types 的 Document
+ * [INPUT]: 依赖 @/lib/api 的 fetchDocuments/uploadDocument/deleteDocument，依赖 @/types 的 Document
  * [OUTPUT]: 对外提供 Documents 页面组件
- * [POS]: pages 的文档库列表页，US1 核心入口
+ * [POS]: pages 的文档库列表页，US1 核心入口，支持上传与按行删除
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, Search } from 'lucide-react'
-import { fetchDocuments, uploadDocument } from '@/lib/api'
+import { Upload, Search, Trash2 } from 'lucide-react'
+import { fetchDocuments, uploadDocument, deleteDocument } from '@/lib/api'
 import type { Document } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,6 +37,7 @@ export default function Documents() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadDocs = useCallback(() => {
@@ -75,6 +76,20 @@ export default function Documents() {
     setUploading(false)
     loadDocs()
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleDelete = async (e: React.MouseEvent, doc: Document) => {
+    e.stopPropagation()
+    if (!window.confirm(`确认删除文档 "${doc.title}"？此操作不可撤销。`)) return
+    setDeletingId(doc.doc_id)
+    try {
+      await deleteDocument(doc.doc_id)
+      loadDocs()
+    } catch (err) {
+      alert(`删除失败：${err instanceof Error ? err.message : '未知错误'}`)
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -123,13 +138,14 @@ export default function Documents() {
               <TableHead className="w-[80px]">版本</TableHead>
               <TableHead className="w-[100px]">状态</TableHead>
               <TableHead className="hidden lg:table-cell w-[110px]">最近更新</TableHead>
+              <TableHead className="w-[52px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-10">加载中…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-10">加载中…</TableCell></TableRow>
             ) : docs.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-10">未找到匹配文档</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-10">未找到匹配文档</TableCell></TableRow>
             ) : (
               docs.map((doc) => {
                 const sc = statusConfig[doc.status] ?? { label: doc.status, variant: 'secondary' as const }
@@ -143,6 +159,18 @@ export default function Documents() {
                     <TableCell><code className="text-xs text-muted-foreground">{doc.version}</code></TableCell>
                     <TableCell><Badge variant={sc.variant}>{sc.label}</Badge></TableCell>
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{doc.updated_at}</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        disabled={deletingId === doc.doc_id}
+                        onClick={(e) => handleDelete(e, doc)}
+                        title="删除文档"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 )
               })

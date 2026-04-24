@@ -1,5 +1,5 @@
-# [INPUT]: 依赖 FastAPI、graph.store CRUD、graph.indexer、graph.embeddings.EmbeddingStore、models (DocumentNode/Section/ICDParameter)
-# [OUTPUT]: 对外提供 documents_router (文档上传/列表/详情/删除/章节/向量搜索/关键词降级) 与 ICD 参数路由
+# [INPUT]: 依赖 FastAPI Request、graph.store CRUD、graph.indexer、graph.embeddings.EmbeddingStore、models (DocumentNode/Section/ICDParameter)
+# [OUTPUT]: 对外提供 documents_router (文档上传/列表/详情/删除/章节/向量搜索/关键词降级) 与 ICD 参数路由；删除时同步清除向量库
 # [POS]: api/routes 的文档域 REST 端点，被 api/app.py 注册；支持 .md/.yaml/.yml/.docx/.xlsx/.csv/.pdf；上传后自动向量索引
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -170,11 +170,14 @@ def document_detail(doc_id: str):
 
 
 @router.delete("/documents/{doc_id}")
-def delete_document(doc_id: str):
+def delete_document(request: Request, doc_id: str):
     doc = store.get_document(doc_id)
     if not doc:
         raise HTTPException(404, "document not found")
     store.delete_document(doc_id)
+    embedding_store = getattr(request.app.state, "embedding_store", None)
+    if embedding_store is not None:
+        embedding_store.delete_by_doc(doc_id)
     return {"status": "deleted", "doc_id": doc_id}
 
 

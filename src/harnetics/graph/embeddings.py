@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 chromadb、sentence-transformers、openai SDK 与 models.document.Section
-# [OUTPUT]: 对外提供 EmbeddingStore 类（本地/云端 embedding 双模式）
+# [OUTPUT]: 对外提供 EmbeddingStore 类（本地/云端 embedding 双模式）；新增 delete_by_doc(doc_id) 向量删除
 # [POS]: graph 包的向量检索层，负责章节级语义索引、相似性搜索与文档级聚合检索，并统一 OpenAI-compatible embedding 调用
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -225,3 +225,14 @@ class EmbeddingStore:
 
     def section_count(self) -> int:
         return self._collection.count()
+
+    # ---- 删除 --------------------------------------------------------
+
+    def delete_by_doc(self, doc_id: str) -> None:
+        """从向量库移除指定文档的所有章节条目（按 metadata.doc_id 过滤）。"""
+        if not hasattr(self, "_collection"):
+            return
+        try:
+            self._collection.delete(where={"doc_id": doc_id})
+        except Exception:
+            pass  # ChromaDB 在集合为空时可能抛异常，静默忽略

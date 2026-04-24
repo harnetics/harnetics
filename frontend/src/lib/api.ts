@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 @/types 的全部接口定义
- * [OUTPUT]: 对外提供 fetch 封装函数 (fetchDocuments/fetchDocument/uploadDocument/fetchSettings/updateSettings 等)
+ * [OUTPUT]: 对外提供 fetch 封装函数 (fetchDocuments/fetchDocument/uploadDocument/deleteDocument/fetchSettings/updateSettings 等)
  * [POS]: lib 的 API 通信层，被各 page 组件调用，统一处理请求/错误
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
@@ -77,6 +77,14 @@ export async function uploadDocument(file: File): Promise<UploadResult> {
     throw new Error(`${res.status} ${res.statusText}: ${body}`)
   }
   return res.json() as Promise<UploadResult>
+}
+
+export async function deleteDocument(docId: string): Promise<void> {
+  const res = await fetch(`/api/documents/${encodeURIComponent(docId)}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`${res.status} ${res.statusText}: ${body}`)
+  }
 }
 
 // ================================================================

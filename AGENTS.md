@@ -55,6 +55,7 @@ docs/CHANGELOG.md - 版本发布历史（Keep a Changelog 格式）
 - 2026-04-20: Dockerfile 新增 Node 前端构建阶段并将 `frontend/dist` 打入运行时镜像，镜像拉取后可直接启动完整 SPA + API 应用
 - 2026-04-20: `009-cloud-deploy-settings` — 前端设置页面 (LLM/Embedding 运行时配置)、文档上传按钮接入后端 API、docker-compose 拆分云端/本地、README Docker 部署首选 + Qwen 模型对照表
 - 2026-04-24: `010-rich-doc-import-autoindex` — 富格式文档导入（.docx/.xlsx/.csv/.pdf）+ 上传后自动向量索引修复；新增 docx_parser/xlsx_parser/pdf_parser；pyproject.toml 新增 python-docx/openpyxl/pypdf 依赖
+- 2026-04-24: `011-dx-startup-polish` — 启动时 LLM/Embedding 配置检测与友好引导、URL 显示改为 localhost + 自动打开浏览器（--no-browser 可禁用）、fixtures/samples/ 一键导入目录、文档库删除按钮（前端 + 向量库同步清除）
 
 ## Active Technologies
 - Python 3.11+ + FastAPI (web framework), Jinja2 (templates), HTMX (frontend interactivity), litellm (LLM client), chromadb (vector store), sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (embeddings), PyYAML (parsing), typer+rich (CLI), uvicorn (ASGI server), python-multipart (file upload) (001-aerospace-doc-alignment)

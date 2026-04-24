@@ -1,21 +1,68 @@
 """
-# [INPUT]: 依赖 typer、rich、graph.store、graph.indexer、api.app、uvicorn
-# [OUTPUT]: 对外提供 CLI 命令: init、ingest、serve
+# [INPUT]: 依赖 typer、rich、graph.store、graph.indexer、api.app、uvicorn、webbrowser、threading
+# [OUTPUT]: 对外提供 CLI 命令: init、ingest、serve；serve 支持启动配置检测、浏览器自动打开
 # [POS]: cli 包的命令入口，默认操作独立 graph DB，并提供 reset/reload 等开发启动能力
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
 from __future__ import annotations
 
+import threading
+import webbrowser
 from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 
 from harnetics.config import DEFAULT_CHROMADB_PATH, DEFAULT_GRAPH_DB_PATH
 
 app = typer.Typer(name="harnetics", help="Harnetics — 航天文档对齐工具")
 console = Console()
+
+
+# ================================================================
+# 配置检测辅助
+# ================================================================
+
+def _check_config_warnings() -> None:
+    """检查 LLM / Embedding 关键参数，未配置时打印友好引导。"""
+    from harnetics.config import get_settings, get_dotenv_path
+
+    settings = get_settings()
+    dotenv_path = get_dotenv_path()
+    env_hint = str(dotenv_path) if dotenv_path else ".env（将在项目根目录自动创建）"
+
+    rows: list[tuple[str, str, str]] = []
+
+    # --- LLM ---
+    if not settings.llm_api_key:
+        rows.append(("HARNETICS_LLM_API_KEY", settings.llm_model or "gpt-4o-mini", "云端 LLM API Key（OpenAI-compatible）"))
+    if not settings.llm_base_url:
+        rows.append(("HARNETICS_LLM_BASE_URL", "https://api.openai.com/v1", "LLM 端点 URL（留空则用 OpenAI 官方）"))
+
+    # --- Embedding ---
+    if not settings.embedding_api_key and settings.embedding_base_url:
+        rows.append(("HARNETICS_EMBEDDING_API_KEY", "", "远端 Embedding API Key"))
+    if not settings.embedding_base_url:
+        rows.append(("HARNETICS_EMBEDDING_MODEL", settings.embedding_model, "Embedding 模型名（本地默认已内置，云端需指定）"))
+
+    if not rows:
+        return  # 已正确配置，静默退出
+
+    tbl = Table("环境变量", "示例值/当前默认", "说明", show_lines=False, style="yellow")
+    for var, example, desc in rows:
+        tbl.add_row(f"[bold]{var}[/bold]", example, desc)
+
+    console.print(
+        Panel(
+            tbl,
+            title="[yellow bold]⚠  检测到未配置的 LLM/Embedding 参数[/yellow bold]",
+            subtitle=f"[dim]请在 {env_hint} 中填写以上变量后重启服务[/dim]",
+            border_style="yellow",
+            padding=(1, 2),
+        )
+    )
 
 
 # ================================================================
@@ -98,13 +145,30 @@ def serve(
     port: int = typer.Option(8000, help="监听端口"),
     reload: bool = typer.Option(False, help="开发模式热重载"),
     db: str = typer.Option(str(DEFAULT_GRAPH_DB_PATH), help="Graph SQLite 数据库路径"),
+    no_browser: bool = typer.Option(False, "--no-browser", help="禁止自动打开浏览器"),
 ) -> None:
     """启动 Harnetics Web 服务（FastAPI + uvicorn）。"""
     import os
     import uvicorn
 
     os.environ.setdefault("HARNETICS_GRAPH_DB_PATH", str(Path(db)))
-    console.print(f"[cyan]►[/cyan] 启动服务 http://{host}:{port}")
+
+    # ---- 配置检测 ----
+    _check_config_warnings()
+
+    # ---- 打印可点击地址 ----
+    url = f"http://localhost:{port}"
+    console.print(f"[cyan]►[/cyan] 启动服务 {url}")
+
+    # ---- 自动打开浏览器（uvicorn.run 是阻塞调用，用后台线程延迟打开） ----
+    if not no_browser and not reload:
+        def _open() -> None:
+            try:
+                webbrowser.open(url)
+            except Exception:
+                pass
+        threading.Timer(1.5, _open).start()
+
     uvicorn.run(
         "harnetics.api.app:create_api_app",
         factory=True,
