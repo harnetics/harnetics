@@ -5,6 +5,30 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [0.1.1] - 2026-04-24
+
+### 新增
+
+- **富格式文档导入**：新增 `.docx`（Word）、`.xlsx`（Excel）、`.csv`、`.pdf` 格式解析支持，含专用解析器 `docx_parser`（按 Heading 拆分章节）、`xlsx_parser`（Sheet 为章节 + CSV GBK 回退）、`pdf_parser`（每页为章节）
+- **上传自动向量索引**：修复上传端点，上传后立即触发向量索引，无需手动 reindex
+- **文档删除按钮**：Documents 页面每行新增 Trash2 删除按钮，含 confirm 确认对话框，删除时同步清除 ChromaDB 向量条目（`EmbeddingStore.delete_by_doc`）
+- **浏览器自动打开**：`harnetics serve` 启动后自动打开系统浏览器（macOS 用 `open`，其他平台用 `webbrowser`）；`--no-browser` 可禁用
+- **`fixtures/samples/`**：所有样本文件整合为扁平目录，支持一键批量导入（`harnetics ingest fixtures/samples/`）
+- **`fixtures/format-test/`**：6 种格式（`.md`/`.yaml`/`.csv`/`.docx`/`.xlsx`/`.pdf`）各一个最小化航天主题样本，用于验证解析器行为
+- **Reindex 端点**：新增 `POST /api/documents/{doc_id}/reindex`，支持手动触发单文档重建向量索引
+- **可配置 LLM max tokens**：通过环境变量 `HARNETICS_LLM_MAX_TOKENS` 控制
+
+### 变更
+
+- 启动地址显示改为 `http://localhost:PORT`（原为 `0.0.0.0:PORT`）
+- README 配置章节重写：使用 `.env` 工作流，修正环境变量名 `OPENAI_API_KEY` → `HARNETICS_LLM_API_KEY`，补充 Embedding 配置说明
+- 启动时 LLM/Embedding 未配置提示改为简洁单行 hint，引导查阅 README 或设置页
+- CI 工作流升级 Node 24，更新各 actions 至最新版本，修复 Docker 构建中 uv 二进制来源
+
+### 依赖
+
+- 新增：`python-docx>=1.0.0`、`openpyxl>=3.1.0`、`pypdf>=4.0.0`
+
 ## [0.1.0] - 2026-04-20
 
 ### 新增
@@ -35,4 +59,5 @@
 - 前端：React 18 / TypeScript 5.7 / Vite 6 / Tailwind CSS v4 / shadcn/ui
 - 本地优先设计：默认所有数据保留在用户机器上；`.env` 是运行时配置的单一真相源
 
+[0.1.1]: https://github.com/harnetics/harnetics/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/harnetics/harnetics/releases/tag/v0.1.0
