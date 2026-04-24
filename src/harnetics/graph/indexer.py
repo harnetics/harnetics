@@ -1,6 +1,6 @@
-# [INPUT]: 依赖 parsers (markdown/yaml/icd)、graph.store CRUD、models (DocumentNode/Section/DocumentEdge)
+# [INPUT]: 依赖 parsers (markdown/yaml/icd/docx/xlsx/pdf)、graph.store CRUD、models (DocumentNode/Section/DocumentEdge)
 # [OUTPUT]: 对外提供 DocumentIndexer 类与 extract_relations()
-# [POS]: graph 包的文档入库引擎，负责解析文件、写入图谱、提取关系
+# [POS]: graph 包的文档入库引擎，负责解析文件、写入图谱、提取关系；支持 .md/.yaml/.docx/.xlsx/.csv/.pdf
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from __future__ import annotations
@@ -17,6 +17,9 @@ from harnetics.models.icd import ICDParameter
 from harnetics.parsers.icd_parser import parse_icd_yaml
 from harnetics.parsers.markdown_parser import parse_markdown
 from harnetics.parsers.yaml_parser import parse_yaml
+
+# 富格式解析器（lazy-imported 在各 _ingest_* 方法内）
+_OFFICE_EXTS = frozenset((".docx", ".xlsx", ".csv", ".pdf"))
 
 _DOC_ID_RE = re.compile(r"DOC-[A-Z]{3}-\d{3}")
 _LEADING_HTML_COMMENT_RE = re.compile(r"^\s*<!--.*?-->\s*", re.DOTALL)
@@ -186,9 +189,24 @@ class DocumentIndexer:
         self, file_path: str, metadata: dict | None = None
     ) -> DocumentNode:
         p = Path(file_path)
-        content = p.read_text(encoding="utf-8")
         ext = p.suffix.lower()
         meta = metadata or {}
+
+        # ---- 富格式（二进制）走独立分支，不尝试 read_text ----
+        if ext == ".docx":
+            doc_id = meta.get("doc_id") or p.stem
+            content_hash = hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+            return self._ingest_docx(p, doc_id, content_hash, meta)
+        if ext in (".xlsx", ".csv"):
+            doc_id = meta.get("doc_id") or p.stem
+            content_hash = hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+            return self._ingest_office(p, ext, doc_id, content_hash, meta)
+        if ext == ".pdf":
+            doc_id = meta.get("doc_id") or p.stem
+            content_hash = hashlib.sha256(p.read_bytes()).hexdigest()[:16]
+            return self._ingest_pdf(p, doc_id, content_hash, meta)
+
+        content = p.read_text(encoding="utf-8")
 
         # ---- 从文件名或 frontmatter/metadata 块提取 doc_id ----
         doc_id = meta.get("doc_id") or self._extract_doc_id(p.stem, content, ext)
@@ -197,6 +215,97 @@ class DocumentIndexer:
         if ext in (".yaml", ".yml"):
             return self._ingest_yaml(p, content, doc_id, content_hash, meta)
         return self._ingest_markdown(p, content, doc_id, content_hash, meta)
+
+    # ---- Word (.docx) ----
+    def _ingest_docx(
+        self, path: Path, doc_id: str, content_hash: str, meta: dict,
+    ) -> DocumentNode:
+        from harnetics.parsers.docx_parser import parse_docx
+
+        sections = parse_docx(str(path), doc_id)
+        title = meta.get("title") or (sections[0].heading if sections else path.stem)
+        doc = DocumentNode(
+            doc_id=doc_id,
+            title=title,
+            doc_type=meta.get("doc_type", "Document"),
+            department=meta.get("department", ""),
+            system_level=meta.get("system_level", ""),
+            engineering_phase=meta.get("engineering_phase", ""),
+            version=meta.get("version", "v1.0"),
+            status=meta.get("status", "draft"),
+            content_hash=content_hash,
+            file_path=str(path),
+        )
+        store.insert_document(doc)
+        store.insert_sections(sections)
+        if self._embedding_store is not None:
+            self._embedding_store.index_sections(doc_id, sections)
+        combined = "\n".join(s.content for s in sections)
+        edges = extract_section_relations(doc_id, sections) or extract_relations(doc_id, combined)
+        self._safe_insert_edges(doc_id, edges)
+        return doc
+
+    # ---- Excel (.xlsx) / CSV ----
+    def _ingest_office(
+        self, path: Path, ext: str, doc_id: str, content_hash: str, meta: dict,
+    ) -> DocumentNode:
+        if ext == ".csv":
+            from harnetics.parsers.xlsx_parser import parse_csv
+            sections = parse_csv(str(path), doc_id)
+        else:
+            from harnetics.parsers.xlsx_parser import parse_xlsx
+            sections = parse_xlsx(str(path), doc_id)
+
+        title = meta.get("title") or path.stem
+        doc = DocumentNode(
+            doc_id=doc_id,
+            title=title,
+            doc_type=meta.get("doc_type", "Document"),
+            department=meta.get("department", ""),
+            system_level=meta.get("system_level", ""),
+            engineering_phase=meta.get("engineering_phase", ""),
+            version=meta.get("version", "v1.0"),
+            status=meta.get("status", "draft"),
+            content_hash=content_hash,
+            file_path=str(path),
+        )
+        store.insert_document(doc)
+        store.insert_sections(sections)
+        if self._embedding_store is not None:
+            self._embedding_store.index_sections(doc_id, sections)
+        combined = "\n".join(s.content for s in sections)
+        edges = extract_section_relations(doc_id, sections) or extract_relations(doc_id, combined)
+        self._safe_insert_edges(doc_id, edges)
+        return doc
+
+    # ---- PDF ----
+    def _ingest_pdf(
+        self, path: Path, doc_id: str, content_hash: str, meta: dict,
+    ) -> DocumentNode:
+        from harnetics.parsers.pdf_parser import parse_pdf
+
+        sections = parse_pdf(str(path), doc_id)
+        title = meta.get("title") or path.stem
+        doc = DocumentNode(
+            doc_id=doc_id,
+            title=title,
+            doc_type=meta.get("doc_type", "Document"),
+            department=meta.get("department", ""),
+            system_level=meta.get("system_level", ""),
+            engineering_phase=meta.get("engineering_phase", ""),
+            version=meta.get("version", "v1.0"),
+            status=meta.get("status", "draft"),
+            content_hash=content_hash,
+            file_path=str(path),
+        )
+        store.insert_document(doc)
+        store.insert_sections(sections)
+        if self._embedding_store is not None:
+            self._embedding_store.index_sections(doc_id, sections)
+        combined = "\n".join(s.content for s in sections)
+        edges = extract_section_relations(doc_id, sections) or extract_relations(doc_id, combined)
+        self._safe_insert_edges(doc_id, edges)
+        return doc
 
     # ---- Markdown ----
     def _ingest_markdown(

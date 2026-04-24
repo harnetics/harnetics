@@ -88,7 +88,7 @@ export default function Documents() {
           <Upload className="h-4 w-4" />
           {uploading ? '上传中…' : '上传文档'}
         </Button>
-        <input ref={fileInputRef} type="file" multiple accept=".md,.yaml,.yml" className="hidden" onChange={handleUpload} />
+        <input ref={fileInputRef} type="file" multiple accept=".md,.yaml,.yml,.docx,.xlsx,.csv,.pdf" className="hidden" onChange={handleUpload} />
       </div>
       {uploadError && <p className="text-sm text-destructive whitespace-pre-line">{uploadError}</p>}
 

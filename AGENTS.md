@@ -54,7 +54,7 @@ docs/CHANGELOG.md - 版本发布历史（Keep a Changelog 格式）
 - 2026-04-20: Dockerfile 改为纯 Python 轮子安装路径，移除易失败的 apt 构建依赖；新增 `.dockerignore` 缩减镜像构建上下文
 - 2026-04-20: Dockerfile 新增 Node 前端构建阶段并将 `frontend/dist` 打入运行时镜像，镜像拉取后可直接启动完整 SPA + API 应用
 - 2026-04-20: `009-cloud-deploy-settings` — 前端设置页面 (LLM/Embedding 运行时配置)、文档上传按钮接入后端 API、docker-compose 拆分云端/本地、README Docker 部署首选 + Qwen 模型对照表
-- 2026-04-23: README 切换为中文优先入口，新增 `README_EN.md` 作为英文说明页，并同步 GitHub 元数据到组织仓库地址
+- 2026-04-24: `010-rich-doc-import-autoindex` — 富格式文档导入（.docx/.xlsx/.csv/.pdf）+ 上传后自动向量索引修复；新增 docx_parser/xlsx_parser/pdf_parser；pyproject.toml 新增 python-docx/openpyxl/pypdf 依赖
 
 ## Active Technologies
 - Python 3.11+ + FastAPI (web framework), Jinja2 (templates), HTMX (frontend interactivity), litellm (LLM client), chromadb (vector store), sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (embeddings), PyYAML (parsing), typer+rich (CLI), uvicorn (ASGI server), python-multipart (file upload) (001-aerospace-doc-alignment)
@@ -65,7 +65,7 @@ docs/CHANGELOG.md - 版本发布历史（Keep a Changelog 格式）
 - SQLite (graph DB) + ChromaDB + sentence-transformers + OpenAI-compatible embeddings (005-openai-compatible-llm-client)
 - Python 3.13 (backend) + TypeScript 5.7 (frontend) + FastAPI, React 18, Vite 6, shadcn/ui, react-markdown + remark-gfm (新增) (006-draft-workbench-enhancement)
 - SQLite (var/harnetics-graph.db) (006-draft-workbench-enhancement)
-- Python 3.13 + TypeScript 5.7 + FastAPI, React 18, Vite 6, shadcn/ui, Tailwind v4 (007-remove-legacy-workflow)
+- Python 3.13 + TypeScript 5.7 + FastAPI, React 18, Vite 6, shadcn/ui, Tailwind v4; python-docx, openpyxl, pypdf (010-rich-doc-import-autoindex)
 - SQLite (`var/harnetics-graph.db`) + ChromaDB (007-remove-legacy-workflow)
 
 ## Recent Changes

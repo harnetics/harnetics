@@ -1,6 +1,6 @@
 # [INPUT]: 依赖 FastAPI、graph.store CRUD、graph.indexer、graph.embeddings.EmbeddingStore、models (DocumentNode/Section/ICDParameter)
 # [OUTPUT]: 对外提供 documents_router (文档上传/列表/详情/删除/章节/向量搜索/关键词降级) 与 ICD 参数路由
-# [POS]: api/routes 的文档域 REST 端点，被 api/app.py 注册；搜索接口优先走向量检索，失败时回退关键词匹配
+# [POS]: api/routes 的文档域 REST 端点，被 api/app.py 注册；支持 .md/.yaml/.yml/.docx/.xlsx/.csv/.pdf；上传后自动向量索引
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ router = APIRouter(prefix="/api")
 
 @router.post("/documents/upload")
 async def upload_document(
+    request: Request,
     file: UploadFile = File(...),
     doc_id: str = Form(""),
     title: str = Form(""),
@@ -39,8 +40,8 @@ async def upload_document(
         raise HTTPException(400, "invalid filename")
 
     suffix = Path(safe_name).suffix.lower()
-    if suffix not in (".md", ".yaml", ".yml"):
-        raise HTTPException(400, "unsupported file type, expected .md / .yaml / .yml")
+    if suffix not in (".md", ".yaml", ".yml", ".docx", ".xlsx", ".csv", ".pdf"):
+        raise HTTPException(400, "unsupported file type, expected .md / .yaml / .yml / .docx / .xlsx / .csv / .pdf")
 
     content = await file.read()
     tmp = Path(tempfile.mkdtemp()) / safe_name
@@ -62,7 +63,9 @@ async def upload_document(
     if version:
         meta["version"] = version
 
-    indexer = DocumentIndexer()
+    # ---- 自动向量索引：从 app.state 获取 embedding_store，传入 indexer ----
+    embedding_store = getattr(request.app.state, "embedding_store", None)
+    indexer = DocumentIndexer(embedding_store=embedding_store)
     try:
         doc = indexer.ingest_document(str(tmp), meta)
     except Exception as exc:
