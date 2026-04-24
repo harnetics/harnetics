@@ -278,12 +278,18 @@ def _request_api_key(api_key: str | None, effective_model: str) -> str:
     raise RuntimeError("missing api key")
 
 
+# openai/、ollama/ 等路由前缀应被剥离；HuggingFace 风格的 Org/Model（如 Qwen/Qwen3-...）应原样传递
+_PROVIDER_PREFIXES = frozenset(("openai", "ollama", "anthropic", "deepseek", "azure"))
+
+
 def _request_model_name(model: str) -> str:
     normalized = model.strip()
     if not normalized:
         return normalized
     if "/" in normalized:
-        return normalized.split("/", 1)[1]
+        provider, rest = normalized.split("/", 1)
+        if provider.lower() in _PROVIDER_PREFIXES:
+            return rest
     return normalized
 
 
