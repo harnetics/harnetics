@@ -118,8 +118,50 @@ def serve(
     """启动 Harnetics Web 服务（FastAPI + uvicorn）。"""
     import os
     import uvicorn
+    from datetime import datetime, timezone, timedelta
 
     os.environ.setdefault("HARNETICS_GRAPH_DB_PATH", str(Path(db)))
+
+    # ---- 日志落盘（北京时间命名） ----
+    _TZ_CST = timezone(timedelta(hours=8))
+    log_name = datetime.now(_TZ_CST).strftime("%Y-%m-%d_%H-%M-%S") + ".log"
+    log_dir = Path("data/logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = str((log_dir / log_name).resolve())
+
+    log_config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "default": {
+                "()": "uvicorn.logging.DefaultFormatter",
+                "fmt": "%(levelprefix)s %(message)s",
+                "use_colors": None,
+            },
+            "file": {
+                "format": "%(asctime)s %(levelname)-8s %(name)s %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S",
+            },
+        },
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "default",
+                "stream": "ext://sys.stderr",
+            },
+            "file": {
+                "class": "logging.FileHandler",
+                "formatter": "file",
+                "filename": log_file,
+                "encoding": "utf-8",
+            },
+        },
+        "loggers": {
+            "uvicorn":        {"handlers": ["console", "file"], "level": "INFO", "propagate": False},
+            "uvicorn.error":  {"handlers": ["console", "file"], "level": "INFO", "propagate": False},
+            "uvicorn.access": {"handlers": ["console", "file"], "level": "INFO", "propagate": False},
+        },
+    }
 
     # ---- 配置提示（简短单行，详见 README 或 Web 设置页） ----
     console.print("[dim]💡 LLM/Embedding 未配置？参考 README 配置 .env，或启动后在设置页填写[/dim]")
@@ -127,6 +169,7 @@ def serve(
     # ---- 打印可点击地址 ----
     url = f"http://localhost:{port}"
     console.print(f"[cyan]►[/cyan] 启动服务 {url}")
+    console.print(f"[dim]📄 日志：{log_file}[/dim]")
 
     # ---- 自动打开浏览器（uvicorn.run 阻塞，用后台线程延迟打开） ----
     if not no_browser:
@@ -138,6 +181,7 @@ def serve(
         host=host,
         port=port,
         reload=reload,
+        log_config=log_config,
     )
 
 
