@@ -1,6 +1,6 @@
-# [INPUT]: 依赖 llm.client, llm.prompts, graph.store, graph.embeddings, models.draft, evaluators
+# [INPUT]: 依赖 llm.client, llm.prompts, graph.store, graph.embeddings, models.draft, evaluators, engine.evolution
 # [OUTPUT]: 对外提供 DraftGenerator
-# [POS]: engine 包的草稿生成核心，检索→组装→生成→解析引注→回填引文→自动评估→冲突检测→持久化
+# [POS]: engine 包的草稿生成核心，检索→组装→生成→解析引注→回填引文→自动评估→冲突检测→持久化→写进化信号
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from __future__ import annotations
@@ -88,8 +88,9 @@ class DraftGenerator:
                 f"{'#' * s.level} {s.heading}\n{s.content}" for s in template_secs
             )
 
-        # ---- 调用 LLM ----
+        # ---- 调用 LLM（含演化上下文注入） ----
         context = build_context(sections, icd_params, template_content)
+        system_prompt = _build_system_prompt_with_evolution()
         logger.info(
             "draft.generator.context draft_id=%s sections=%d icd_params=%d template_chars=%d context_chars=%d",
             draft_id,
@@ -98,7 +99,7 @@ class DraftGenerator:
             len(template_content),
             len(context),
         )
-        content_md = self._llm.generate_draft(DRAFT_SYSTEM_PROMPT, context, subject)
+        content_md = self._llm.generate_draft(system_prompt, context, subject)
 
         # ---- 解析引注 + 回填章节内容 ----
         citations = _parse_citations(content_md)
@@ -184,6 +185,20 @@ class DraftGenerator:
 
         logger.info("draft.generator.persisted draft_id=%s generated_by=%s", draft_id, generated_by)
 
+        # ---- 写入进化信号（供 evolver 下次扫描） ----
+        try:
+            from harnetics.engine.evolution import write_draft_signal
+            write_draft_signal(
+                draft_id=draft_id,
+                subject=subject,
+                eval_results=eval_results_payload,
+                has_blocking=has_blocking,
+                sections_used=len(sections),
+                icd_params_used=len(icd_params),
+            )
+        except Exception:
+            pass  # 进化信号写入失败不中断主流程
+
         return AlignedDraft(
             draft_id=draft_id,
             content_md=content_md,
@@ -244,3 +259,26 @@ def _backfill_citation_quotes(citations: list[Citation]) -> None:
                 cit.quote = "原始内容不可用"
         except Exception:
             cit.quote = "原始内容不可用"
+
+
+def _build_system_prompt_with_evolution() -> str:
+    """构建注入了 GEP 演化上下文的 system prompt。
+
+    调用 evolver CLI 获取基于历史信号的 Gene 指导；evolver 未安装时
+    回退到原始 DRAFT_SYSTEM_PROMPT，保持零侵入。
+    """
+    try:
+        from harnetics.engine.evolution import get_evolution_context
+        evo_context = get_evolution_context()
+    except Exception:
+        evo_context = ""
+
+    if not evo_context:
+        return DRAFT_SYSTEM_PROMPT
+
+    return (
+        DRAFT_SYSTEM_PROMPT
+        + "\n\n## 🧬 演化上下文（GEP 协议）\n\n"
+        + "以下是基于历史草稿质量信号的演化指导，请在生成时参考：\n\n"
+        + evo_context
+    )
