@@ -15,6 +15,7 @@ import type {
   DashboardStats,
   GraphData,
   DocumentEdge,
+  EvolutionStats,
 } from '@/types'
 
 // ================================================================
@@ -206,4 +207,12 @@ export function fetchGraphEdges(): Promise<DocumentEdge[]> {
 
 export function fetchDashboardStats(): Promise<DashboardStats> {
   return request<DashboardStats>('/api/dashboard/stats')
+}
+
+// ================================================================
+// 进化 (GEP)
+// ================================================================
+
+export function fetchEvolutionStats(): Promise<EvolutionStats> {
+  return request<EvolutionStats>('/api/evolution/stats')
 }

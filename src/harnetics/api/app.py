@@ -22,6 +22,7 @@ from harnetics.api.routes.impact import router as impact_router
 from harnetics.api.routes.graph import router as graph_router
 from harnetics.api.routes.status import router as status_router
 from harnetics.api.routes.settings import router as settings_router
+from harnetics.api.routes.evolution import router as evolution_router
 
 
 def _configure_harnetics_logging() -> None:
@@ -78,6 +79,7 @@ def create_api_app() -> FastAPI:
     app.include_router(graph_router)
     app.include_router(status_router)
     app.include_router(settings_router)
+    app.include_router(evolution_router)
 
     @app.get("/health")
     def healthcheck() -> dict[str, str]:

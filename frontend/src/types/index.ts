@@ -181,6 +181,32 @@ export interface GraphEdge {
 }
 
 // ================================================================
+// 进化域 (GEP 自进化)
+// ================================================================
+
+export interface EvolutionSignal {
+  timestamp: string
+  draft_id: string
+  subject: string
+  outcome: 'pass' | 'blocked'
+  tags: string[]
+  eval_summary: Record<string, number>
+  context_quality: { sections_used: number; icd_params_used: number }
+  failed_checks: string[]
+}
+
+export interface EvolutionStats {
+  total_signals: number
+  current_strategy: string
+  strategy_label: string
+  blocked_ratio: number
+  evolver_installed: boolean
+  recent: EvolutionSignal[]
+  tag_counts: Record<string, number>
+  check_failure_counts: Record<string, number>
+}
+
+// ================================================================
 // API 响应包装
 // ================================================================
 

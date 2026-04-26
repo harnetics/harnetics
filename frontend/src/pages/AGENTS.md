@@ -12,6 +12,7 @@ Impact.tsx: 影响分析首页与报告列表。
 ImpactReport.tsx: 影响分析报告详情页，展示 AffectedSection（heading + reason tooltip），并将 report/trigger/impacted/new_version 预填参数导航到草稿工作台。
 Graph.tsx: SVG 图谱可视化页。
 Settings.tsx: 运行时配置页——查看和修改 LLM/Embedding 的 model、base_url、api_key，保存后即时生效。
+Evolution.tsx: GEP 自进化视图——展示本机演化信号历史、当前策略（innovate/balanced/harden/repair-only）、基因标签分布、高频失败检查器，消费 /api/evolution/stats。
 DesignSystem.tsx: 设计系统展示页。
 
 法则: 每个页面只负责一个用户故事主视图；跨页复用能力下沉到 components/ 或 lib/。

@@ -23,10 +23,11 @@
 下次生成时 evolver 读取信号，选择更合适的 Gene
 ```
 
-## 依赖
+## 前端可视化
 
-- `npm install -g @evomap/evolver`（可选；未安装时系统正常运行，无演化上下文）
-- `memory/` 目录在项目根目录下自动创建，已加入 `.gitignore`
+`/api/evolution/stats` 端点（`api/routes/evolution.py`）读取 `memory/signals/draft-signals.jsonl`，
+为前端 `Evolution.tsx` 页面提供：当前策略、阻断率、信号时间轴、标签分布、失败检查器统计。
+
 
 ## 演化策略自动选择
 
