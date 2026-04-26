@@ -83,11 +83,13 @@ Impacted documents:
 
 | Module | Description |
 |--------|-------------|
-| **Document Library** | Upload and browse Markdown/YAML documents with automatic section parsing and ICD parameter extraction |
+| **Document Library** | Upload and browse Markdown/YAML/DOCX/XLSX/PDF documents with automatic section parsing and ICD parameter extraction |
 | **Draft Generation** | LLM-powered alignment draft with citation backfill, conflict detection, and evaluator quality gates |
 | **Impact Analysis** | BFS-based downstream change propagation with dual mode (AI vector + heuristic) |
 | **Document Graph** | Visualize reference/derivation/constraint relationships across documents |
 | **Dashboard** | Overview of document count, drafts, stale references, LLM status |
+| **Evolution View** | GEP self-evolution signal history, current strategy badge, tag distribution |
+| **Evaluator Test Lab** | One-click import fixture docs and run EA/EB/ED scenarios to demo self-evolution signal writes and strategy drift |
 
 ## Run Locally
 
@@ -190,6 +192,11 @@ Ingest (Markdown/YAML)
 | `GET /api/settings` | Current runtime settings (keys masked) |
 | `PUT /api/settings` | Update runtime LLM/embedding config |
 | `POST /api/documents/upload` | Upload and ingest document |
+| `POST /api/fixture/import` | Import fixture source docs into the graph |
+| `GET /api/fixture/scenarios` | List runnable fixture test scenarios |
+| `POST /api/fixture/run` | Run one fixture scenario and write an evolution signal |
+| `POST /api/fixture/run-all` | Batch-run all fixture scenarios and return aggregate results |
+| `GET /api/evolution/stats` | GEP self-evolution stats (strategy / signal history) |
 
 ## UI Routes
 

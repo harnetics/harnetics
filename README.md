@@ -85,11 +85,13 @@ docker compose up -d
 
 | 模块 | 说明 |
 |------|------|
-| **文档库** | 上传并浏览 Markdown/YAML 文档，自动解析章节与 ICD 参数 |
+| **文档库** | 上传并浏览 Markdown/YAML/DOCX/XLSX/PDF 文档，自动解析章节与 ICD 参数 |
 | **草稿生成** | LLM 驱动的对齐草稿，含引注回填、冲突检测与质量门评估 |
 | **影响分析** | BFS 下游变更传播，双模式（AI 向量检索 + 启发式分析） |
 | **文档图谱** | 可视化文档间引用、派生、约束关系 |
 | **仪表盘** | 文档数量、草稿状态、陈旧引用、LLM 状态概览 |
+| **进化视图** | GEP 自进化信号历史、策略徽章、标签分布统计 |
+| **校验器实验室** | 一键导入夹具文档并运行 EA/EB/ED 场景，演示自进化信号写入与策略漂移 |
 
 ## 本地运行
 
@@ -216,6 +218,11 @@ curl http://localhost:8000/api/documents
 | `GET /api/settings` | 当前运行时配置（Key 脱敏） |
 | `PUT /api/settings` | 更新运行时 LLM/Embedding 配置 |
 | `POST /api/documents/upload` | 上传并导入文档 |
+| `POST /api/fixture/import` | 导入夹具目录中的源文档到图谱 |
+| `GET /api/fixture/scenarios` | 列举可运行的夹具测试场景 |
+| `POST /api/fixture/run` | 运行单个夹具场景，写入进化信号 |
+| `POST /api/fixture/run-all` | 批量运行所有夹具场景，返回汇总结果 |
+| `GET /api/evolution/stats` | GEP 自进化统计（策略 / 信号历史） |
 
 ## 测试
 

@@ -1,15 +1,15 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 fetchEvolutionStats，依赖 @/types 的 EvolutionStats/EvolutionSignal
- * [OUTPUT]: 对外提供 Evolution 页面组件
- * [POS]: pages 的 GEP 进化视图，展示本地信号历史、当前策略、标签分布与失败检查器统计
+ * [INPUT]: 依赖 @/lib/api 的 fetchEvolutionStats/importFixtures/listFixtureScenarios/runAllFixtures，依赖 @/types 的 EvolutionStats/EvolutionSignal/FixtureScenario/FixtureRunResult
+ * [OUTPUT]: 对外提供 Evolution 页面组件（含策略徽章、信号历史、标签分布、TestLab 面板）
+ * [POS]: pages 的 GEP 进化视图，集成校验器测试实验室完成自进化演示闭环
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Dna, RefreshCw, CheckCircle, XCircle, Zap, Shield, Wrench, TrendingUp, AlertTriangle, Package } from 'lucide-react'
-import { fetchEvolutionStats } from '@/lib/api'
-import type { EvolutionStats, EvolutionSignal } from '@/types'
+import { Dna, RefreshCw, CheckCircle, XCircle, Zap, Shield, Wrench, TrendingUp, AlertTriangle, Package, FlaskConical, Download, PlayCircle } from 'lucide-react'
+import { fetchEvolutionStats, importFixtures, listFixtureScenarios, runAllFixtures } from '@/lib/api'
+import type { EvolutionStats, EvolutionSignal, FixtureScenario, FixtureRunResult } from '@/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -160,6 +160,193 @@ function SignalRow({ signal }: { signal: EvolutionSignal }) {
 }
 
 // ================================================================
+// 测试实验室组件
+// ================================================================
+
+type LabState = 'idle' | 'importing' | 'running' | 'done'
+
+interface ScenarioRowProps {
+  scenario: FixtureScenario
+  result?: FixtureRunResult
+}
+
+function ScenarioResultRow({ scenario, result }: ScenarioRowProps) {
+  const [expanded, setExpanded] = useState(false)
+  const pending = !result
+
+  let statusIcon: React.ReactNode
+  let statusColor: string
+  if (pending) {
+    statusIcon = <span className="h-3 w-3 rounded-full bg-muted-foreground/30 inline-block" />
+    statusColor = 'text-muted-foreground'
+  } else if (result.match) {
+    statusIcon = <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
+    statusColor = 'text-green-600'
+  } else {
+    statusIcon = <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
+    statusColor = 'text-destructive'
+  }
+
+  const outcomeLabel = (o: string) => ({ pass: '通过', blocked: '阻断', warn: '警告' }[o] ?? o)
+  const expectedLabel = (o: string) => ({ pass: '预期通过', warn: '预期警告', fail: '预期阻断' }[o] ?? o)
+
+  return (
+    <div
+      className="rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/40 transition-colors"
+      onClick={() => setExpanded(v => !v)}
+    >
+      <div className="flex items-center gap-2">
+        {statusIcon}
+        <span className="w-12 text-xs font-mono text-muted-foreground shrink-0">{scenario.evaluator}</span>
+        <span className="flex-1 text-sm truncate">{scenario.scenario_id}</span>
+        <span className="text-xs text-muted-foreground shrink-0">{expectedLabel(scenario.expected_outcome)}</span>
+        {result && (
+          <span className={`text-xs font-medium shrink-0 ml-1 ${statusColor}`}>
+            {outcomeLabel(result.outcome)} {result.match ? '✓' : '✗'}
+          </span>
+        )}
+      </div>
+      {expanded && result && result.eval_results.length > 0 && (
+        <ul className="mt-2 space-y-0.5 border-t pt-2">
+          {result.eval_results.map((r, i) => (
+            <li key={i} className="text-xs flex gap-2">
+              <span className={`font-mono shrink-0 ${
+                r.level === 'Blocker' ? 'text-destructive' :
+                r.level === 'Warning' ? 'text-amber-500' :
+                r.status === 'skip' ? 'text-muted-foreground' : 'text-green-600'
+              }`}>{r.evaluator_id}</span>
+              <span className="text-muted-foreground">{r.detail}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function TestLabCard({ onSignalsUpdated }: { onSignalsUpdated: () => void }) {
+  const [state, setState] = useState<LabState>('idle')
+  const [importedCount, setImportedCount] = useState<number | null>(null)
+  const [scenarios, setScenarios] = useState<FixtureScenario[]>([])
+  const [results, setResults] = useState<Map<string, FixtureRunResult>>(new Map())
+  const [runStats, setRunStats] = useState<{ total: number; passed: number; failed: number } | null>(null)
+  const [error, setError] = useState('')
+
+  async function handleImport() {
+    setState('importing')
+    setError('')
+    try {
+      const r = await importFixtures()
+      setImportedCount(r.imported)
+      const sc = await listFixtureScenarios()
+      setScenarios(sc)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '导入失败')
+    } finally {
+      setState('idle')
+    }
+  }
+
+  async function handleRunAll() {
+    if (scenarios.length === 0) {
+      const sc = await listFixtureScenarios().catch(() => [])
+      setScenarios(sc)
+      if (sc.length === 0) { setError('请先导入夹具文档'); return }
+    }
+    setState('running')
+    setError('')
+    setResults(new Map())
+    try {
+      const r = await runAllFixtures()
+      const map = new Map<string, FixtureRunResult>()
+      for (const res of r.results) map.set(res.scenario_id, res as FixtureRunResult)
+      setResults(map)
+      setRunStats({ total: r.total, passed: r.passed, failed: r.failed })
+      onSignalsUpdated()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '运行失败')
+    } finally {
+      setState('done')
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="h-4 w-4 text-primary" />
+            <CardTitle className="text-base">校验器测试实验室</CardTitle>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline" size="sm" className="gap-1.5 text-xs"
+              onClick={handleImport}
+              disabled={state === 'importing' || state === 'running'}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {state === 'importing' ? '导入中…' : '导入夹具'}
+            </Button>
+            <Button
+              size="sm" className="gap-1.5 text-xs"
+              onClick={handleRunAll}
+              disabled={state === 'importing' || state === 'running'}
+            >
+              <PlayCircle className="h-3.5 w-3.5" />
+              {state === 'running' ? '运行中…' : '运行所有场景'}
+            </Button>
+          </div>
+        </div>
+        <CardDescription className="mt-1">
+          一键导入 fixtures 源文档并运行 6 个校验器的 PASS/WARN/FAIL 场景，结果自动写入进化信号流
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {error}
+          </div>
+        )}
+
+        {/* 导入状态提示 */}
+        {importedCount !== null && (
+          <div className="mb-3 rounded-md border border-green-300 bg-green-50 dark:bg-green-900/20 px-3 py-2 text-xs text-green-700 dark:text-green-300 flex items-center gap-2">
+            <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+            已导入 {importedCount} 份源文档到图谱
+          </div>
+        )}
+
+        {/* 运行统计 */}
+        {runStats && (
+          <div className="mb-3 flex items-center gap-4 text-xs">
+            <span className="text-muted-foreground">共 {runStats.total} 个场景</span>
+            <span className="text-green-600 font-medium">{runStats.passed} 符合预期</span>
+            <span className="text-destructive font-medium">{runStats.failed} 不符合预期</span>
+          </div>
+        )}
+
+        {/* 场景结果网格 */}
+        {scenarios.length > 0 ? (
+          <div className="space-y-1.5">
+            {scenarios.map(s => (
+              <ScenarioResultRow
+                key={s.scenario_id}
+                scenario={s}
+                result={results.get(s.scenario_id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            点击『导入夹具』加载场景列表，再点击『运行所有场景』观察自进化效果。
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ================================================================
 // 主页面
 // ================================================================
 
@@ -167,15 +354,15 @@ export default function Evolution() {
   const [stats, setStats] = useState<EvolutionStats | null>(null)
   const [loading, setLoading] = useState(true)
 
-  function load() {
+  const load = useCallback(() => {
     setLoading(true)
     fetchEvolutionStats()
       .then(setStats)
       .catch(() => setStats(null))
       .finally(() => setLoading(false))
-  }
+  }, [])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   if (loading) {
     return (
@@ -384,6 +571,11 @@ export default function Evolution() {
           ))}
         </div>
       </div>
+
+      <Separator />
+
+      {/* ---- 校验器测试实验室 ---- */}
+      <TestLabCard onSignalsUpdated={load} />
     </div>
   )
 }

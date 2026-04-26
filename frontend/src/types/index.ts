@@ -233,3 +233,39 @@ export interface DocumentSearchResponse {
   results: DocumentSearchResult[]
   analysis_mode: 'ai_vector' | 'keyword'
 }
+
+// ================================================================
+// 夹具测试域 (Fixture Test Lab)
+// ================================================================
+
+export interface FixtureScenario {
+  scenario_id: string
+  evaluator: string
+  label: string
+  expected_outcome: 'pass' | 'warn' | 'fail'
+  fixture_path: string
+}
+
+export interface FixtureRunResult {
+  scenario_id: string
+  draft_id: string
+  outcome: 'pass' | 'blocked'
+  expected_outcome: 'pass' | 'warn' | 'fail'
+  match: boolean
+  eval_results: EvalResult[]
+  error: string
+}
+
+export interface FixtureImportResult {
+  status: string
+  imported: number
+  doc_ids: string[]
+}
+
+export interface FixtureRunAllResult {
+  total: number
+  passed: number
+  failed: number
+  results: FixtureRunResult[]
+}
+

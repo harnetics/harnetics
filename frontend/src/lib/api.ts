@@ -16,6 +16,10 @@ import type {
   GraphData,
   DocumentEdge,
   EvolutionStats,
+  FixtureScenario,
+  FixtureRunResult,
+  FixtureImportResult,
+  FixtureRunAllResult,
 } from '@/types'
 
 // ================================================================
@@ -215,4 +219,36 @@ export function fetchDashboardStats(): Promise<DashboardStats> {
 
 export function fetchEvolutionStats(): Promise<EvolutionStats> {
   return request<EvolutionStats>('/api/evolution/stats')
+}
+
+// ================================================================
+// 夹具测试实验室 (Fixture Test Lab)
+// ================================================================
+
+export function importFixtures(path = 'fixtures/evaluator-test'): Promise<FixtureImportResult> {
+  return request<FixtureImportResult>('/api/fixture/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path }),
+  })
+}
+
+export function listFixtureScenarios(): Promise<FixtureScenario[]> {
+  return request<FixtureScenario[]>('/api/fixture/scenarios')
+}
+
+export function runFixtureScenario(scenario_id: string): Promise<FixtureRunResult> {
+  return request<FixtureRunResult>('/api/fixture/run', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scenario_id }),
+  })
+}
+
+export function runAllFixtures(): Promise<FixtureRunAllResult> {
+  return request<FixtureRunAllResult>('/api/fixture/run-all', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
 }
