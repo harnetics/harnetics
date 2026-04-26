@@ -1,0 +1,35 @@
+# [INPUT]: 无外部依赖——EB1 测试专用 ICD 文档
+# [OUTPUT]: 提供一个 ICD 参数「燃烧室压力 = 10 MPa」供 EB1 一致性检查
+# [POS]: EB1 测试语料的 ICD 真相源，被 DRAFT-PASS 和 DRAFT-FAIL 草稿引用
+# [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
+
+metadata:
+  doc_id: DOC-EB1-ICD
+  title: 推进分系统接口控制文档（EB1 测试专用）
+  version: "v1.0"
+  status: Approved
+  department: 技术负责人
+  doc_type: ICD
+  system_level: Subsystem
+  engineering_phase: Design
+
+interfaces:
+  - param_id: EB1-P001
+    name: 燃烧室压力
+    interface_type: pressure
+    subsystem_a: 动力系统
+    subsystem_b: 结构系统
+    value: "10"
+    unit: MPa
+    range: "9.5 ~ 10.5 MPa"
+    owner_department: 动力系统部
+
+  - param_id: EB1-P002
+    name: 额定推力
+    interface_type: force
+    subsystem_a: 动力系统
+    subsystem_b: 结构系统
+    value: "650"
+    unit: kN
+    range: "390 ~ 650 kN"
+    owner_department: 动力系统部
