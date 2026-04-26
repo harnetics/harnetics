@@ -16,66 +16,14 @@ _DOC_REF_RE = re.compile(r"DOC-[A-Z]{3}-\d{3}")
 _CONFLICT_ANCHOR_RE = re.compile(r"⚠️")
 
 
-class ED1_NoFabrication(BaseEvaluator):
-    """草稿中每个数字值必须能在引用文档的章节中找到原文。"""
+# ============================================================
+# [DISABLED] ED1_NoFabrication
+# 原因：草稿数字需可追溯到引用文档，误判率高（LLM 改写数字表述后
+#       正则无法匹配），导致几乎所有草稿报 WARN/BLOCK。暂时禁用。
+# ============================================================
+class ED1_NoFabrication:  # DISABLED — 不注册到总线
+    """[已禁用] 草稿数字必须可在引用文档溯源。暂时太严格。"""
     evaluator_id = "ED.1"
-    name = "无捏造技术指标"
-    level = EvalLevel.BLOCK
-
-    def evaluate(self, draft: dict, graph_conn=None) -> EvalResult:
-        from harnetics.graph import store
-        content = draft.get("content_md", "")
-        citations = draft.get("citations", [])  # list of dicts or Citation objects
-        if not citations:
-            # 无引注信息则基于文档内容做宽松检查
-            numbers = _NUMBER_RE.findall(content)
-            if not numbers:
-                return EvalResult(
-                    evaluator_id=self.evaluator_id, name=self.name,
-                    status=EvalStatus.SKIP, level=self.level,
-                    detail="草稿无数值内容，跳过捏造检查", locations=[],
-                )
-            # 有数字但无任何引注
-            return EvalResult(
-                evaluator_id=self.evaluator_id, name=self.name,
-                status=EvalStatus.WARN, level=self.level,
-                detail=f"草稿中含 {len(numbers)} 个数值但未提供引注信息，无法验证来源",
-                locations=[],
-            )
-
-        # 基于草稿引注列表验证数字可追溯
-        # 收集引用文档中出现的所有数字
-        source_numbers: set[str] = set()
-        cited_doc_ids = set()
-        for c in citations:
-            if isinstance(c, dict):
-                cited_doc_ids.add(c.get("source_doc_id", ""))
-            else:
-                cited_doc_ids.add(getattr(c, "source_doc_id", ""))
-
-        for doc_id in cited_doc_ids:
-            sections = store.get_sections(doc_id)
-            for sec in sections:
-                for m in _NUMBER_RE.finditer(sec.content or ""):
-                    source_numbers.add(m.group(1))
-
-        # 检查草稿中的数字是否都在来源中能找到
-        draft_numbers = [m.group(1) for m in _NUMBER_RE.finditer(content)]
-        unfounded = [n for n in draft_numbers if n not in source_numbers]
-        
-        if unfounded and len(unfounded) > len(draft_numbers) * 0.3:
-            return EvalResult(
-                evaluator_id=self.evaluator_id, name=self.name,
-                status=EvalStatus.FAIL, level=self.level,
-                detail=f"{len(unfounded)}/{len(draft_numbers)} 个数值未在引用文档中找到原文",
-                locations=unfounded[:5],
-            )
-        return EvalResult(
-            evaluator_id=self.evaluator_id, name=self.name,
-            status=EvalStatus.PASS, level=self.level,
-            detail="草稿数值均可在引用文档中溯源", locations=[],
-        )
-
 
 class ED3_ConflictMarked(BaseEvaluator):
     """检测到的冲突必须在草稿正文中有对应 ⚠️ 标记。"""

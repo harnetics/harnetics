@@ -19,33 +19,42 @@ _DOC_REF_RE = re.compile(r"DOC-[A-Z]{3}-\d{3}")
 _TECH_PARA_RE = re.compile(r"\d+(?:\.\d+)?\s*(?:kN|MPa|K|km|s|kg|m/s|t|%|°C|Hz)?")
 
 
-class EA1_CitationCompleteness(BaseEvaluator):
-    """每个含数字/参数的技术段落必须有📎来源标注。"""
+# ============================================================
+# [DISABLED] EA1_CitationCompleteness
+# 原因：要求每个含数字段落都有 📎 标记，LLM 输出很难稳定满足，
+#       导致几乎所有草稿都被阻断。暂时禁用，待提示词工程成熟后重启。
+# ============================================================
+# class EA1_CitationCompleteness(BaseEvaluator):
+#     """每个含数字/参数的技术段落必须有📎来源标注。"""
+#     evaluator_id = "EA.1"
+#     name = "引注完整性"
+#     level = EvalLevel.BLOCK
+#
+#     def evaluate(self, draft: dict, graph_conn=None) -> EvalResult:
+#         content = draft.get("content_md", "")
+#         paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()]
+#         missing: list[str] = []
+#         for p in paragraphs:
+#             if _TECH_PARA_RE.search(p) and "📎" not in p:
+#                 snippet = p[:60].replace("\n", " ")
+#                 missing.append(snippet)
+#         if missing:
+#             return EvalResult(
+#                 evaluator_id=self.evaluator_id, name=self.name,
+#                 status=EvalStatus.FAIL, level=self.level,
+#                 detail=f"发现 {len(missing)} 个含数字段落缺少引注标记",
+#                 locations=missing[:5],
+#             )
+#         return EvalResult(
+#             evaluator_id=self.evaluator_id, name=self.name,
+#             status=EvalStatus.PASS, level=self.level,
+#             detail="所有技术段落均有来源引注", locations=[],
+#         )
+
+
+class EA1_CitationCompleteness:  # DISABLED — 不注册到总线
+    """[已禁用] 每个含数字段落必须有 📎。暂时太严格。"""
     evaluator_id = "EA.1"
-    name = "引注完整性"
-    level = EvalLevel.BLOCK
-
-    def evaluate(self, draft: dict, graph_conn=None) -> EvalResult:
-        content = draft.get("content_md", "")
-        paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()]
-        missing: list[str] = []
-        for p in paragraphs:
-            if _TECH_PARA_RE.search(p) and "📎" not in p:
-                snippet = p[:60].replace("\n", " ")
-                missing.append(snippet)
-        if missing:
-            return EvalResult(
-                evaluator_id=self.evaluator_id, name=self.name,
-                status=EvalStatus.FAIL, level=self.level,
-                detail=f"发现 {len(missing)} 个含数字段落缺少引注标记",
-                locations=missing[:5],
-            )
-        return EvalResult(
-            evaluator_id=self.evaluator_id, name=self.name,
-            status=EvalStatus.PASS, level=self.level,
-            detail="所有技术段落均有来源引注", locations=[],
-        )
-
 
 class EA2_CitationReality(BaseEvaluator):
     """引注中的文档编号必须在图谱中真实存在。"""
