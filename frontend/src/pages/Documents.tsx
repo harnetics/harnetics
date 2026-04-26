@@ -137,7 +137,7 @@ export default function Documents() {
               <TableHead className="hidden lg:table-cell">层级</TableHead>
               <TableHead className="w-[80px]">版本</TableHead>
               <TableHead className="w-[100px]">状态</TableHead>
-              <TableHead className="hidden lg:table-cell w-[110px]">最近更新</TableHead>
+              <TableHead className="hidden lg:table-cell w-[160px]">最近更新</TableHead>
               <TableHead className="w-[52px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -158,7 +158,7 @@ export default function Documents() {
                     <TableCell className="hidden lg:table-cell"><span className="text-sm text-muted-foreground">{doc.system_level}</span></TableCell>
                     <TableCell><code className="text-xs text-muted-foreground">{doc.version}</code></TableCell>
                     <TableCell><Badge variant={sc.variant}>{sc.label}</Badge></TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{doc.updated_at}</TableCell>
+                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">{doc.updated_at}</TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="ghost"

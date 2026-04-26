@@ -575,7 +575,7 @@ export default function Evolution() {
       <Separator />
 
       {/* ---- 校验器测试实验室 ---- */}
-      <TestLabCard onSignalsUpdated={load} />
+      {/* <TestLabCard onSignalsUpdated={load} /> */}
     </div>
   )
 }
