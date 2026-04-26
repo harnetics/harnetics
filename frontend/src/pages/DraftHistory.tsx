@@ -1,14 +1,14 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 fetchDrafts，依赖 @/types 的 DraftSummary
+ * [INPUT]: 依赖 @/lib/api 的 fetchDrafts/deleteDraft，依赖 @/types 的 DraftSummary
  * [OUTPUT]: 对外提供 DraftHistory 页面组件
- * [POS]: pages 的历史草稿列表页，US6 展示所有草稿及其状态
+ * [POS]: pages 的历史草稿列表页，US6 展示所有草稿及其状态，支持逐条删除
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FileText, Plus, CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
-import { fetchDrafts } from '@/lib/api'
+import { FileText, Plus, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { fetchDrafts, deleteDraft } from '@/lib/api'
 import type { DraftSummary } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +24,7 @@ export default function DraftHistory() {
   const navigate = useNavigate()
   const [drafts, setDrafts] = useState<DraftSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     fetchDrafts()
@@ -31,6 +32,17 @@ export default function DraftHistory() {
       .catch(() => setDrafts([]))
       .finally(() => setLoading(false))
   }, [])
+
+  async function handleDelete(e: React.MouseEvent, draftId: string) {
+    e.stopPropagation()
+    setDeleting(draftId)
+    try {
+      await deleteDraft(draftId)
+      setDrafts(prev => prev.filter(d => d.draft_id !== draftId))
+    } finally {
+      setDeleting(null)
+    }
+  }
 
   if (loading) {
     return <div className="container mx-auto max-w-screen-xl px-4 py-16 text-center text-muted-foreground">加载中…</div>
@@ -86,6 +98,15 @@ export default function DraftHistory() {
                       {d.eval_summary.block > 0 && <Badge variant="destructive" className="text-xs">{d.eval_summary.block}✗</Badge>}
                     </div>
                   )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    disabled={deleting === d.draft_id}
+                    onClick={(e) => handleDelete(e, d.draft_id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </CardContent>
               </Card>
             )

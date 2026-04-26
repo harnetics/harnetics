@@ -14,6 +14,7 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
 from harnetics.engine.draft_generator import DraftGenerator
+from harnetics.engine.evolution.signals import delete_signal_by_draft_id
 from harnetics.graph import store
 from harnetics.llm.client import HarneticsLLM
 
@@ -192,3 +193,16 @@ def export_draft(draft_id: str) -> str:
     if row is None:
         raise HTTPException(status_code=404, detail="draft not found")
     return row["content_md"]
+
+
+@router.delete("/{draft_id}", status_code=204)
+def delete_draft(draft_id: str) -> None:
+    """删除单条草稿记录及其进化信号。"""
+    with store.get_connection() as conn:
+        result = conn.execute(
+            "DELETE FROM drafts WHERE draft_id = ?", (draft_id,)
+        )
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="draft not found")
+        conn.commit()
+    delete_signal_by_draft_id(draft_id)

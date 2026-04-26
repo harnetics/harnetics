@@ -1,7 +1,7 @@
 """
 # [INPUT]: 依赖 pathlib, json, shutil；读取 memory/signals/draft-signals.jsonl
-# [OUTPUT]: 对外提供 router: GET /api/evolution/stats
-# [POS]: api/routes 的进化统计端点，为前端 Evolution 页面提供信号历史与策略状态
+# [OUTPUT]: 对外提供 router: GET /api/evolution/stats, DELETE /api/evolution/signals/{draft_id}, PATCH /api/evolution/signals/{draft_id}
+# [POS]: api/routes 的进化统计端点，为前端 Evolution 页面提供信号历史与策略状态，支持单条信号的删除与改名
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
 from __future__ import annotations
@@ -11,7 +11,10 @@ import shutil
 from collections import Counter
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
+from harnetics.engine.evolution.signals import delete_signal_by_draft_id, rename_signal_subject
 
 router = APIRouter(prefix="/api/evolution", tags=["evolution"])
 
@@ -110,3 +113,26 @@ def evolution_stats() -> dict:
         "tag_counts": dict(tag_counter.most_common()),
         "check_failure_counts": dict(check_counter.most_common(10)),
     }
+
+
+# ---- 单条信号操作 -----------------------------------------------
+
+class RenameSignalRequest(BaseModel):
+    subject: str
+
+
+@router.delete("/signals/{draft_id}", status_code=204)
+def delete_signal(draft_id: str) -> None:
+    """删除指定 draft_id 的进化信号行。"""
+    found = delete_signal_by_draft_id(draft_id)
+    if not found:
+        raise HTTPException(status_code=404, detail="signal not found")
+
+
+@router.patch("/signals/{draft_id}")
+def rename_signal(draft_id: str, body: RenameSignalRequest) -> dict:
+    """更新指定 draft_id 的进化信号的 subject 字段。"""
+    found = rename_signal_subject(draft_id, body.subject)
+    if not found:
+        raise HTTPException(status_code=404, detail="signal not found")
+    return {"draft_id": draft_id, "subject": body.subject}

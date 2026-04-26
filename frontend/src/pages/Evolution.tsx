@@ -1,18 +1,19 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 fetchEvolutionStats/importFixtures/listFixtureScenarios/runAllFixtures，依赖 @/types 的 EvolutionStats/EvolutionSignal/FixtureScenario/FixtureRunResult
- * [OUTPUT]: 对外提供 Evolution 页面组件（含策略徽章、信号历史、标签分布、TestLab 面板）
+ * [INPUT]: 依赖 @/lib/api 的 fetchEvolutionStats/deleteEvolutionSignal/renameEvolutionSignal/importFixtures/listFixtureScenarios/runAllFixtures，依赖 @/types 的全部进化域类型
+ * [OUTPUT]: 对外提供 Evolution 页面组件（含策略徽章、信号历史、标签分布、TestLab 面板，信号支持改名与删除）
  * [POS]: pages 的 GEP 进化视图，集成校验器测试实验室完成自进化演示闭环
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Dna, RefreshCw, CheckCircle, XCircle, Zap, Shield, Wrench, TrendingUp, AlertTriangle, Package, FlaskConical, Download, PlayCircle } from 'lucide-react'
-import { fetchEvolutionStats, importFixtures, listFixtureScenarios, runAllFixtures } from '@/lib/api'
+import { Dna, RefreshCw, CheckCircle, XCircle, Zap, Shield, Wrench, TrendingUp, AlertTriangle, Package, FlaskConical, Download, PlayCircle, Trash2, Pencil } from 'lucide-react'
+import { fetchEvolutionStats, importFixtures, listFixtureScenarios, runAllFixtures, deleteEvolutionSignal, renameEvolutionSignal } from '@/lib/api'
 import type { EvolutionStats, EvolutionSignal, FixtureScenario, FixtureRunResult } from '@/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 
 // ---- 策略元数据 ----
@@ -122,28 +123,98 @@ function BarRow({ label, count, total, color }: { label: string; count: number; 
 }
 
 // ---- 信号详情行 ----
-function SignalRow({ signal }: { signal: EvolutionSignal }) {
+interface SignalRowProps {
+  signal: EvolutionSignal
+  onDelete: (draftId: string) => void
+  onRename: (draftId: string, subject: string) => void
+}
+
+function SignalRow({ signal, onDelete, onRename }: SignalRowProps) {
   const [expanded, setExpanded] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editValue, setEditValue] = useState(signal.subject || signal.draft_id)
+  const [busy, setBusy] = useState(false)
   const isBlocked = signal.outcome === 'blocked'
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation()
+    setBusy(true)
+    try {
+      await deleteEvolutionSignal(signal.draft_id)
+      onDelete(signal.draft_id)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleRenameSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!editValue.trim() || editValue === signal.subject) { setEditing(false); return }
+    setBusy(true)
+    try {
+      await renameEvolutionSignal(signal.draft_id, editValue.trim())
+      onRename(signal.draft_id, editValue.trim())
+      setEditing(false)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div
-      className={`rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/40 transition-colors ${
+      className={`rounded-md border px-3 py-2 transition-colors ${
         isBlocked ? 'border-destructive/30' : 'border-green-500/30'
-      }`}
-      onClick={() => setExpanded(v => !v)}
+      } ${!editing ? 'cursor-pointer hover:bg-muted/40' : ''}`}
+      onClick={() => { if (!editing) setExpanded(v => !v) }}
     >
       <div className="flex items-center gap-2">
         {isBlocked
           ? <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
           : <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />}
-        <span className="flex-1 text-sm font-medium truncate">{signal.subject || signal.draft_id}</span>
-        <div className="flex gap-1 shrink-0">
-          {signal.tags.map(t => <TagChip key={t} tag={t} />)}
-        </div>
-        <span className="text-xs text-muted-foreground shrink-0 ml-1">
-          {signal.timestamp.replace('T', ' ').substring(0, 16)}
-        </span>
+
+        {editing ? (
+          <form className="flex-1 flex gap-1" onSubmit={handleRenameSubmit} onClick={e => e.stopPropagation()}>
+            <Input
+              autoFocus
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+              className="h-6 text-sm px-1.5 py-0"
+              disabled={busy}
+            />
+            <Button type="submit" size="sm" variant="default" className="h-6 text-xs px-2" disabled={busy}>保存</Button>
+            <Button type="button" size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setEditing(false)}>取消</Button>
+          </form>
+        ) : (
+          <span className="flex-1 text-sm font-medium truncate">{signal.subject || signal.draft_id}</span>
+        )}
+
+        {!editing && (
+          <>
+            <div className="flex gap-1 shrink-0">
+              {signal.tags.map(t => <TagChip key={t} tag={t} />)}
+            </div>
+            <span className="text-xs text-muted-foreground shrink-0 ml-1">
+              {signal.timestamp.replace('T', ' ').substring(0, 16)}
+            </span>
+            <Button
+              variant="ghost" size="icon"
+              className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+              disabled={busy}
+              onClick={e => { e.stopPropagation(); setEditValue(signal.subject || signal.draft_id); setEditing(true) }}
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="ghost" size="icon"
+              className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+              disabled={busy}
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </>
+        )}
       </div>
       {expanded && signal.failed_checks.length > 0 && (
         <ul className="mt-2 space-y-0.5 border-t pt-2">
@@ -353,16 +424,27 @@ function TestLabCard({ onSignalsUpdated }: { onSignalsUpdated: () => void }) {
 export default function Evolution() {
   const [stats, setStats] = useState<EvolutionStats | null>(null)
   const [loading, setLoading] = useState(true)
+  // 本地维护 recent 列表，支持乐观删除/改名
+  const [localRecent, setLocalRecent] = useState<EvolutionSignal[]>([])
 
   const load = useCallback(() => {
     setLoading(true)
     fetchEvolutionStats()
-      .then(setStats)
+      .then(s => { setStats(s); setLocalRecent(s.recent) })
       .catch(() => setStats(null))
       .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  function handleSignalDelete(draftId: string) {
+    setLocalRecent(prev => prev.filter(s => s.draft_id !== draftId))
+    setStats(prev => prev ? { ...prev, total_signals: Math.max(0, prev.total_signals - 1) } : prev)
+  }
+
+  function handleSignalRename(draftId: string, subject: string) {
+    setLocalRecent(prev => prev.map(s => s.draft_id === draftId ? { ...s, subject } : s))
+  }
 
   if (loading) {
     return (
@@ -566,8 +648,13 @@ export default function Evolution() {
       <div>
         <h2 className="text-base font-semibold mb-3">近期信号详情</h2>
         <div className="space-y-1.5">
-          {stats.recent.map((s, i) => (
-            <SignalRow key={s.draft_id ?? i} signal={s} />
+          {localRecent.map((s, i) => (
+            <SignalRow
+              key={s.draft_id ?? i}
+              signal={s}
+              onDelete={handleSignalDelete}
+              onRename={handleSignalRename}
+            />
           ))}
         </div>
       </div>

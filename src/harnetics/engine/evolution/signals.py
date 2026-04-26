@@ -116,3 +116,62 @@ def _append_log(log_dir: Path, draft_id: str, signal: dict) -> None:
             f.write(line)
     except Exception:
         pass
+
+
+def delete_signal_by_draft_id(draft_id: str) -> bool:
+    """从 draft-signals.jsonl 中删除匹配 draft_id 的行。返回是否找到并删除。"""
+    signal_file = _memory_dir() / "draft-signals.jsonl"
+    if not signal_file.exists():
+        return False
+    try:
+        lines = signal_file.read_text(encoding="utf-8").splitlines()
+        kept, removed = [], 0
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                obj = json.loads(stripped)
+                if obj.get("draft_id") == draft_id:
+                    removed += 1
+                    continue
+            except json.JSONDecodeError:
+                pass
+            kept.append(stripped)
+        if removed == 0:
+            return False
+        signal_file.write_text("\n".join(kept) + ("\n" if kept else ""), encoding="utf-8")
+        return True
+    except Exception as exc:
+        logger.debug("evolution.signal.delete_failed draft_id=%s error=%s", draft_id, exc)
+        return False
+
+
+def rename_signal_subject(draft_id: str, new_subject: str) -> bool:
+    """将 draft-signals.jsonl 中匹配 draft_id 的行的 subject 字段更新为 new_subject。"""
+    signal_file = _memory_dir() / "draft-signals.jsonl"
+    if not signal_file.exists():
+        return False
+    try:
+        lines = signal_file.read_text(encoding="utf-8").splitlines()
+        updated, found = [], False
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                obj = json.loads(stripped)
+                if obj.get("draft_id") == draft_id:
+                    obj["subject"] = new_subject
+                    stripped = json.dumps(obj, ensure_ascii=False)
+                    found = True
+            except json.JSONDecodeError:
+                pass
+            updated.append(stripped)
+        if not found:
+            return False
+        signal_file.write_text("\n".join(updated) + "\n", encoding="utf-8")
+        return True
+    except Exception as exc:
+        logger.debug("evolution.signal.rename_failed draft_id=%s error=%s", draft_id, exc)
+        return False
