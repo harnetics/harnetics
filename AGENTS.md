@@ -5,6 +5,7 @@ Markdown + YAML + public docs + local planning workspace
 docs/ - 文档树：根层承载公开架构/协作文档，子目录承载设计、规格、执行计划、生成物与本地记忆材料 (7 子目录: bank, daily, design-docs, exec-plans, generated, product-specs, references)
 fixtures/ - 航天领域样本文档语料，模拟跨部门、跨层级、跨版本对齐场景，作为未来解析、检索、评测与演示输入
 frontend/ - React 18 + TypeScript 5.7 + Vite 6 SPA 前端 (shadcn/ui amethyst-haze 主题)
+scripts/ - 本地自动化脚本与工作流入口（默认按本地私有工作区处理）
 specs/ - 本地 Spec Kit 特性目录（默认不进入 Git 发布），保存每个顺序特性的 spec/plan/tasks/checklists/contracts 闭环产物
 src/ - Python 应用源码，含 graph store/API/engine/evaluators/LLM/CLI 全栈
 tests/ - pytest 回归、契约与端到端场景集合
@@ -29,6 +30,7 @@ docs/CHANGELOG.md - 版本发布历史（Keep a Changelog 格式）
 - docs/：本地规划与治理页面（gitignored）
 - fixtures/：样本需求、设计、ICD、质量、模板与测试大纲
 - frontend/：React SPA 前端 (开发: `npm run dev` / 生产: `npm run build` → FastAPI 托管)
+- scripts/：本地自动化脚本（默认按本地私有工作区处理）
 - specs/：本地 Spec Kit 闭环产物（gitignored）
 - src/：Python 后端与图谱/LLM/导入/评估引擎
 - tests/：契约、回归与 E2E 测试

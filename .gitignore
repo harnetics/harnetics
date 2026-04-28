@@ -62,3 +62,10 @@ docs/daily
 specs/
 generated/
 assets/
+
+# ================================================================
+# Local-only WeChat publishing workflow
+# ================================================================
+scripts/
+src/harnetics/publishing/
+tests/test_wechat_publish.py
