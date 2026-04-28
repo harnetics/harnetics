@@ -5,6 +5,29 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [0.1.2] - 2026-04-28
+
+### 新增
+
+- **Evolution 进化视图**：新增 Evolution 页面，展示 GEP signal history、策略徽章与标签分布统计，并补齐前端类型、API 封装与导航入口
+- **本地自进化链路**：新增基于 EvoMap / evolver GEP 协议的 self-evolution runner 与 signal pipeline，让评估与运行事件可沉淀为可回看的演化信号
+- **Fixture API / CLI**：新增 `fixture` 路由与 `fixture_runner`，支持围绕评估器夹具执行可重复测试场景
+- **校验器实验室样例集**：新增 `fixtures/evaluator-test/` 完整示例与说明文档，覆盖多类 EA / EB / ED 场景，便于演示、回归与策略验证
+- **Evolution 相关 API**：新增 evolution / fixture 配套后端路由，支持进化历史查询与夹具驱动测试
+
+### 变更
+
+- **评估器收敛**：当前 active evaluators 收敛为 6 个，并补齐对应 fixtures 与回归测试
+- **测试覆盖增强**：新增 24 条测试，同时停用 EA1 / ED1，降低噪声并集中维护更稳定、可解释的评估链路
+- **README / README_EN 更新**：补充“进化视图”和“校验器实验室”能力说明，便于开源用户快速理解新闭环
+- **草稿生成与评估链路调整**：`draft_generator`、citation / AI quality 等模块持续对齐新的演化信号与夹具测试流程
+
+### 修复
+
+- **YAML ingest 修复**：正确解析 root-level metadata 与 `sections` 列表结构
+- **LLM 路由修复**：保留 HuggingFace 风格的 `Org/Model` ID，避免模型标识被错误截断
+- **服务日志增强**：`harnetics serve` 启动时将 uvicorn 日志写入 `data/logs/<CST-timestamp>.log`，便于排查运行问题
+
 ## [0.1.1] - 2026-04-24
 
 ### 新增
@@ -59,5 +82,6 @@
 - 前端：React 18 / TypeScript 5.7 / Vite 6 / Tailwind CSS v4 / shadcn/ui
 - 本地优先设计：默认所有数据保留在用户机器上；`.env` 是运行时配置的单一真相源
 
+[0.1.2]: https://github.com/harnetics/harnetics/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/harnetics/harnetics/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/harnetics/harnetics/releases/tag/v0.1.0
