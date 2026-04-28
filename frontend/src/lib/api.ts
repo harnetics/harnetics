@@ -92,6 +92,26 @@ export async function deleteDocument(docId: string): Promise<void> {
   }
 }
 
+export async function batchDeleteDocuments(docIds: string[]): Promise<{ failed: string[] }> {
+  const results = await Promise.allSettled(docIds.map((id) => deleteDocument(id)))
+  const failed = docIds.filter((_, i) => results[i].status === 'rejected')
+  return { failed }
+}
+
+export function fetchStatus(): Promise<DashboardStats> {
+  return request<DashboardStats>('/api/status')
+}
+
+export interface ReindexResult {
+  status: string
+  indexed_documents: number
+  indexed_sections: number
+}
+
+export function reindexDocuments(): Promise<ReindexResult> {
+  return request<ReindexResult>('/api/documents/reindex', { method: 'POST' })
+}
+
 // ================================================================
 // 设置
 // ================================================================

@@ -156,6 +156,13 @@ export interface DashboardStats {
   eval_pass_rate: number | null
   eval_pass: number
   eval_blocked: number
+  // embedding 字段
+  embedding_available: boolean
+  embedding_model: string
+  embedding_base_url: string
+  embedding_error: string
+  embedding_collection_reset: boolean
+  sections_indexed: number
 }
 
 // ================================================================

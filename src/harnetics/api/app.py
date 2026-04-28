@@ -56,6 +56,7 @@ async def _lifespan(app: FastAPI):
         embedding_error = f"{type(exc).__name__}: {exc}"
     app.state.embedding_store = emb_store
     app.state.embedding_error = embedding_error
+    app.state.embedding_collection_reset = bool(emb_store and emb_store.collection_was_reset)
 
     yield
 

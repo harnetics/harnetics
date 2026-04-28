@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from openai import OpenAI
 
 from harnetics.models.document import Section
@@ -91,10 +93,16 @@ def _normalize_embedding_model(model_name: str, api_key: str = "", base_url: str
     return normalized
 
 
+_EMBEDDING_PROVIDER_PREFIXES = frozenset(("openai", "ollama", "anthropic", "azure", "huggingface"))
+
+
 def _request_embedding_model(model_name: str) -> str:
+    """剥离路由前缀（openai/、ollama/ 等），HuggingFace 风格的 Org/Model 原样传递。"""
     normalized = model_name.strip()
     if "/" in normalized:
-        return normalized.split("/", 1)[1]
+        prefix, rest = normalized.split("/", 1)
+        if prefix.lower() in _EMBEDDING_PROVIDER_PREFIXES:
+            return rest
     return normalized
 
 
@@ -132,6 +140,11 @@ def _uses_remote_embeddings(model_name: str, api_key: str = "", base_url: str = 
     return False
 
 
+import logging as _logging
+
+_emb_logger = _logging.getLogger("harnetics.embeddings")
+
+
 class EmbeddingStore:
     """ChromaDB 向量存储，承载章节级语义检索。支持本地 sentence-transformers 与云端 OpenAI-compatible embedding。"""
 
@@ -155,10 +168,30 @@ class EmbeddingStore:
             api_key=api_key,
             base_url=base_url,
         )
-        self._collection = self._client.get_or_create_collection(
-            name=_COLLECTION_NAME,
-            embedding_function=self._ef,
-        )
+        self.collection_was_reset: bool = False
+        self._collection = self._get_or_reset_collection()
+
+    def _get_or_reset_collection(self):
+        """获取 collection；若 embedding function 类型冲突则删除后重建（数据需重新导入）。"""
+        try:
+            return self._client.get_or_create_collection(
+                name=_COLLECTION_NAME,
+                embedding_function=cast(Any, self._ef),
+            )
+        except ValueError as exc:
+            if "embedding function" in str(exc).lower() and "conflict" in str(exc).lower():
+                _emb_logger.warning(
+                    "embeddings.collection_ef_conflict: 检测到 embedding function 与已有 collection 不兼容，"
+                    "自动删除并重建 collection（已索引数据需重新导入）。error=%s",
+                    exc,
+                )
+                self._client.delete_collection(name=_COLLECTION_NAME)
+                self.collection_was_reset = True
+                return self._client.get_or_create_collection(
+                    name=_COLLECTION_NAME,
+                    embedding_function=cast(Any, self._ef),
+                )
+            raise
 
     @staticmethod
     def _build_ef(model_name: str, api_key: str = "", base_url: str = ""):
@@ -179,7 +212,7 @@ class EmbeddingStore:
              "level": s.level, "order_index": s.order_index}
             for s in sections
         ]
-        self._collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
+        self._collection.upsert(ids=ids, documents=documents, metadatas=cast(Any, metadatas))
 
     # ---- 章节级检索 ---------------------------------------------------
 

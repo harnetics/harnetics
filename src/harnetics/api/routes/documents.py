@@ -118,6 +118,7 @@ def reindex_embeddings(request: Request):
         indexed_docs += 1
         indexed_sections += len(sections)
 
+    request.app.state.embedding_collection_reset = False
     return {
         "status": "ok",
         "indexed_documents": indexed_docs,

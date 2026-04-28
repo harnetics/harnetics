@@ -47,6 +47,7 @@ def system_status(request: Request) -> dict:
     embedding_available = emb_store is not None
     sections_indexed = emb_store.section_count() if emb_store else 0
     embedding_error = getattr(request.app.state, "embedding_error", "")
+    embedding_collection_reset = getattr(request.app.state, "embedding_collection_reset", False)
 
     eval_total = eval_pass + eval_blocked
     eval_pass_rate = round(eval_pass / eval_total, 2) if eval_total > 0 else None
@@ -67,6 +68,7 @@ def system_status(request: Request) -> dict:
         "embedding_model": settings.embedding_model,
         "embedding_base_url": settings.embedding_base_url,
         "embedding_error": embedding_error,
+        "embedding_collection_reset": embedding_collection_reset,
         "sections_indexed": sections_indexed,
         "eval_pass_rate": eval_pass_rate,
         "eval_pass": eval_pass,
