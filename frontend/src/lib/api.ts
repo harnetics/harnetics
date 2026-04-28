@@ -20,6 +20,8 @@ import type {
   FixtureRunResult,
   FixtureImportResult,
   FixtureRunAllResult,
+  ComparisonSession,
+  ComparisonSessionSummary,
 } from '@/types'
 
 // ================================================================
@@ -295,4 +297,39 @@ export function runAllFixtures(): Promise<FixtureRunAllResult> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
   })
+}
+
+// ================================================================
+// 文档比对 (Doc Comparison Review)
+// ================================================================
+
+export async function analyzeComparison(
+  reqFile: File,
+  respFile: File,
+): Promise<ComparisonSession> {
+  const form = new FormData()
+  form.append('req_file', reqFile)
+  form.append('resp_file', respFile)
+  const res = await fetch('/api/comparison/analyze', { method: 'POST', body: form })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`${res.status} ${res.statusText}: ${body}`)
+  }
+  return res.json() as Promise<ComparisonSession>
+}
+
+export function listComparisonSessions(): Promise<{ sessions: ComparisonSessionSummary[] }> {
+  return request<{ sessions: ComparisonSessionSummary[] }>('/api/comparison')
+}
+
+export function fetchComparisonSession(sessionId: string): Promise<ComparisonSession> {
+  return request<ComparisonSession>(`/api/comparison/${encodeURIComponent(sessionId)}`)
+}
+
+export async function deleteComparisonSession(sessionId: string): Promise<void> {
+  const res = await fetch(`/api/comparison/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`${res.status} ${res.statusText}: ${body}`)
+  }
 }

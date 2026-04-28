@@ -276,3 +276,52 @@ export interface FixtureRunAllResult {
   results: FixtureRunResult[]
 }
 
+// ================================================================
+// 文档比对域 (Doc Comparison Review)
+// ================================================================
+
+export interface ComparisonFinding {
+  finding_id: string
+  chapter: string
+  requirement_heading: string
+  requirement_content: string
+  status: 'covered' | 'partial' | 'missing' | 'unclear'
+  detail: string
+  requirement_ref: string
+  response_ref: string
+}
+
+export interface ComparisonSessionSummary {
+  session_id: string
+  req_filename: string
+  resp_filename: string
+  status: 'pending' | 'completed' | 'failed'
+  created_at: string
+  findings_count: number
+  covered: number
+  partial: number
+  missing: number
+  unclear: number
+}
+
+export interface ComparisonSectionItem {
+  section_id: string
+  doc_id: string
+  heading: string
+  content: string
+  level: number
+  order_index: number
+}
+
+export interface ComparisonSession {
+  session_id: string
+  req_filename: string
+  resp_filename: string
+  req_sections: ComparisonSectionItem[]
+  resp_sections: ComparisonSectionItem[]
+  analysis_md: string
+  findings: ComparisonFinding[]
+  status: 'pending' | 'completed' | 'failed'
+  created_at: string
+}
+

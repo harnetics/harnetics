@@ -352,3 +352,72 @@ def search_documents(q: str) -> list["DocumentNode"]:
             (pattern, pattern, pattern),
         ).fetchall()
         return [_row_to_document(r) for r in rows]
+
+
+# ================================================================
+# 文档比对会话 CRUD
+# ================================================================
+
+import json as _json  # noqa: E402  — 局部导入避免顶层冲突
+
+
+def create_comparison_session(
+    session_id: str,
+    req_filename: str,
+    resp_filename: str,
+    req_sections: list[dict],
+    resp_sections: list[dict],
+) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO comparison_sessions
+               (session_id, req_filename, resp_filename, req_sections_json, resp_sections_json, status)
+               VALUES (?, ?, ?, ?, ?, 'pending')""",
+            (
+                session_id,
+                req_filename,
+                resp_filename,
+                _json.dumps(req_sections, ensure_ascii=False),
+                _json.dumps(resp_sections, ensure_ascii=False),
+            ),
+        )
+
+
+def update_comparison_session(
+    session_id: str,
+    analysis_md: str,
+    findings: list[dict],
+    status: str,
+) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            """UPDATE comparison_sessions
+               SET analysis_md = ?, findings_json = ?, status = ?
+               WHERE session_id = ?""",
+            (analysis_md, _json.dumps(findings, ensure_ascii=False), status, session_id),
+        )
+
+
+def get_comparison_session(session_id: str) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM comparison_sessions WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+    if row is None:
+        return None
+    return dict(row)
+
+
+def list_comparison_sessions() -> list[dict]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT session_id, req_filename, resp_filename, findings_json, status, created_at "
+            "FROM comparison_sessions ORDER BY created_at DESC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_comparison_session(session_id: str) -> None:
+    with get_connection() as conn:
+        conn.execute("DELETE FROM comparison_sessions WHERE session_id = ?", (session_id,))
