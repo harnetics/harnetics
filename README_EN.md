@@ -91,6 +91,17 @@ Impacted documents:
 | **Evolution View** | GEP self-evolution signal history, current strategy badge, tag distribution |
 | **Evaluator Test Lab** | One-click import fixture docs and run EA/EB/ED scenarios to demo self-evolution signal writes and strategy drift |
 
+## Third-Party Attribution & Thanks
+
+Harnetics' self-evolution module references and interoperates with parts of the public design and workflow of [EvoMap / Evolver](https://github.com/EvoMap/evolver), especially the **GEP (Genome Evolution Protocol)** framing, the Gene / Capsule / EvolutionEvent terminology, and the local evolution-context injection flow built around the `evolver` CLI. We would like to explicitly thank the Evolver project and its authors.
+
+- Upstream project: `EvoMap/evolver`
+- Repository: <https://github.com/EvoMap/evolver>
+- Upstream license: `GPL-3.0-or-later` (per the current upstream repository declaration)
+- Relevant Harnetics areas: `src/harnetics/engine/evolution/`, the Evolution view, and related README / CHANGELOG notes
+
+For a more precise boundary statement and compliance note, see [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+
 ## Run Locally
 
 ### Prerequisites

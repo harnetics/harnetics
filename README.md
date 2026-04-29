@@ -93,6 +93,17 @@ docker compose up -d
 | **进化视图** | GEP 自进化信号历史、策略徽章、标签分布统计 |
 | **校验器实验室** | 一键导入夹具文档并运行 EA/EB/ED 场景，演示自进化信号写入与策略漂移 |
 
+## 第三方引用与致谢
+
+Harnetics 的自进化模块参考并对接了 [EvoMap / Evolver](https://github.com/EvoMap/evolver) 的部分公开设计与工作流，尤其是 **GEP（Genome Evolution Protocol）**、Gene / Capsule / EvolutionEvent 等概念，以及围绕 `evolver` CLI 的本机演化上下文注入方式。在此对 Evolver 项目及其作者表示感谢。
+
+- 上游项目：`EvoMap/evolver`
+- 项目地址：<https://github.com/EvoMap/evolver>
+- 上游许可证：`GPL-3.0-or-later`（以其仓库当前声明为准）
+- Harnetics 中的相关位置：`src/harnetics/engine/evolution/`、Evolution 视图、相关 README / CHANGELOG 说明
+
+更详细的引用边界、说明与后续合规注意事项，请见 [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md)。
+
 ## 本地运行
 
 ### 环境要求

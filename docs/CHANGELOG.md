@@ -5,6 +5,12 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### 变更
+
+- **第三方引用补充**：为自进化链路新增对 `EvoMap/evolver` 的公开引用、致谢与边界说明，并补充 `docs/THIRD_PARTY_NOTICES.md`
+
 ## [0.1.2] - 2026-04-28
 
 ### 新增

@@ -23,6 +23,7 @@ docs/ARCHITECTURE.md - 当前系统结构、数据流、边界与演进方向
 docs/CONTRIBUTING.md - 贡献者指南（开发环境、分支策略、PR 流程、编码规范）
 docs/CODE_OF_CONDUCT.md - Contributor Covenant v2.1 社区行为准则
 docs/CHANGELOG.md - 版本发布历史（Keep a Changelog 格式）
+docs/THIRD_PARTY_NOTICES.md - 第三方项目引用、致谢、许可证边界与合规说明
 .github/ - GitHub 特定配置（SECURITY.md、CI workflow、Issue/PR 模板）
 </config>
 
