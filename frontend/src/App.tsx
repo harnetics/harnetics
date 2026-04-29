@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Dashboard from './pages/Dashboard';
@@ -18,6 +19,7 @@ import ComparisonSession from './pages/ComparisonSession';
 
 function App() {
   return (
+    <ThemeProvider>
     <Router>
       <div className="relative flex min-h-screen flex-col bg-background">
         <Header />
@@ -42,6 +44,7 @@ function App() {
         <Footer />
       </div>
     </Router>
+    </ThemeProvider>
   );
 }
 
