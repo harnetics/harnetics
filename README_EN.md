@@ -81,25 +81,25 @@ Impacted documents:
 
 ## Capability Snapshot
 
-| Module | Description |
-|--------|-------------|
-| **Document Library** | Upload and browse Markdown/YAML/DOCX/XLSX/PDF documents with automatic section parsing and ICD parameter extraction |
-| **Draft Generation** | LLM-powered alignment draft with citation backfill, conflict detection, and evaluator quality gates |
-| **Impact Analysis** | BFS-based downstream change propagation with dual mode (AI vector + heuristic) |
-| **Document Graph** | Visualize reference/derivation/constraint relationships across documents |
-| **Dashboard** | Overview of document count, drafts, stale references, LLM status |
-| **Evolution View** | GEP self-evolution signal history, current strategy badge, tag distribution |
-| **Evaluator Test Lab** | One-click import fixture docs and run EA/EB/ED scenarios to demo self-evolution signal writes and strategy drift |
+| Module                       | Description                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Document Library**   | Upload and browse Markdown/YAML/DOCX/XLSX/PDF documents with automatic section parsing and ICD parameter extraction |
+| **Draft Generation**   | LLM-powered alignment draft with citation backfill, conflict detection, and evaluator quality gates                 |
+| **Impact Analysis**    | BFS-based downstream change propagation with dual mode (AI vector + heuristic)                                      |
+| **Document Graph**     | Visualize reference/derivation/constraint relationships across documents                                            |
+| **Dashboard**          | Overview of document count, drafts, stale references, LLM status                                                    |
+| **Evolution View**     | GEP self-evolution signal history, current strategy badge, tag distribution                                         |
+| **Evaluator Test Lab** | One-click import fixture docs and run EA/EB/ED scenarios to demo self-evolution signal writes and strategy drift    |
 
 ## Run Locally
 
 ### Prerequisites
 
-| Tool | Version | Install |
-|------|---------|---------|
-| Python | ≥ 3.12 | [python.org](https://www.python.org/downloads/) |
-| uv | latest | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| Node.js | ≥ 20 | [nodejs.org](https://nodejs.org/) |
+| Tool    | Version | Install                                             |
+| ------- | ------- | --------------------------------------------------- |
+| Python  | ≥ 3.12 | [python.org](https://www.python.org/downloads/)        |
+| uv      | latest  | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Node.js | ≥ 20   | [nodejs.org](https://nodejs.org/)                      |
 
 ### Install
 
@@ -107,7 +107,7 @@ Impacted documents:
 git clone https://github.com/harnetics/harnetics.git
 cd harnetics
 uv sync --dev
-cd frontend && npm install && cd ..
+cd frontend && npm install && npm run build && cd ..
 ```
 
 ### Configure LLM
@@ -176,41 +176,41 @@ Ingest (Markdown/YAML)
 
 ## API Routes
 
-| Route | Description |
-|-------|-------------|
-| `GET /health` | Health check |
-| `GET /api/dashboard/stats` | Dashboard statistics |
-| `GET /api/documents` | List all documents |
-| `GET /api/documents/{doc_id}` | Document detail with sections |
-| `POST /api/draft/generate` | Generate alignment draft |
-| `GET /api/draft/{draft_id}` | View draft with citations |
-| `POST /api/impact/analyze` | Trigger impact analysis |
-| `GET /api/impact` | List impact reports |
-| `GET /api/impact/{report_id}` | Impact report detail |
-| `GET /api/graph/edges` | Raw graph edges |
-| `GET /api/status` | LLM/embedding configuration status |
-| `GET /api/settings` | Current runtime settings (keys masked) |
-| `PUT /api/settings` | Update runtime LLM/embedding config |
-| `POST /api/documents/upload` | Upload and ingest document |
-| `POST /api/fixture/import` | Import fixture source docs into the graph |
-| `GET /api/fixture/scenarios` | List runnable fixture test scenarios |
-| `POST /api/fixture/run` | Run one fixture scenario and write an evolution signal |
-| `POST /api/fixture/run-all` | Batch-run all fixture scenarios and return aggregate results |
-| `GET /api/evolution/stats` | GEP self-evolution stats (strategy / signal history) |
+| Route                           | Description                                                  |
+| ------------------------------- | ------------------------------------------------------------ |
+| `GET /health`                 | Health check                                                 |
+| `GET /api/dashboard/stats`    | Dashboard statistics                                         |
+| `GET /api/documents`          | List all documents                                           |
+| `GET /api/documents/{doc_id}` | Document detail with sections                                |
+| `POST /api/draft/generate`    | Generate alignment draft                                     |
+| `GET /api/draft/{draft_id}`   | View draft with citations                                    |
+| `POST /api/impact/analyze`    | Trigger impact analysis                                      |
+| `GET /api/impact`             | List impact reports                                          |
+| `GET /api/impact/{report_id}` | Impact report detail                                         |
+| `GET /api/graph/edges`        | Raw graph edges                                              |
+| `GET /api/status`             | LLM/embedding configuration status                           |
+| `GET /api/settings`           | Current runtime settings (keys masked)                       |
+| `PUT /api/settings`           | Update runtime LLM/embedding config                          |
+| `POST /api/documents/upload`  | Upload and ingest document                                   |
+| `POST /api/fixture/import`    | Import fixture source docs into the graph                    |
+| `GET /api/fixture/scenarios`  | List runnable fixture test scenarios                         |
+| `POST /api/fixture/run`       | Run one fixture scenario and write an evolution signal       |
+| `POST /api/fixture/run-all`   | Batch-run all fixture scenarios and return aggregate results |
+| `GET /api/evolution/stats`    | GEP self-evolution stats (strategy / signal history)         |
 
 ## UI Routes
 
-| Path | Page |
-|------|------|
-| `/` | Dashboard |
-| `/documents` | Document catalog |
-| `/documents/{doc_id}` | Document detail |
-| `/draft` | Draft workbench |
-| `/draft/{draft_id}` | Draft viewer |
-| `/impact` | Impact analysis |
-| `/impact/{report_id}` | Impact report |
-| `/graph` | Document graph visualization |
-| `/settings` | Runtime configuration |
+| Path                    | Page                         |
+| ----------------------- | ---------------------------- |
+| `/`                   | Dashboard                    |
+| `/documents`          | Document catalog             |
+| `/documents/{doc_id}` | Document detail              |
+| `/draft`              | Draft workbench              |
+| `/draft/{draft_id}`   | Draft viewer                 |
+| `/impact`             | Impact analysis              |
+| `/impact/{report_id}` | Impact report                |
+| `/graph`              | Document graph visualization |
+| `/settings`           | Runtime configuration        |
 
 ## Testing
 
@@ -244,15 +244,15 @@ docker exec ollama ollama pull nomic-embed-text
 
 ### Qwen3.5 local model reference
 
-| Model | Params | 4-bit VRAM | Ollama name | Suitable for |
-|-------|--------|------------|-------------|--------------|
-| Qwen3.5 0.8B | 0.8B | 2–4 GB | `qwen3.5:0.8b` | Thin & light laptop, CPU-only |
-| Qwen3.5 2B | 2B | 4–6 GB | `qwen3.5:2b` | Regular laptop |
-| Qwen3.5 4B | 4B | 6–8 GB | `qwen3.5:4b` | Entry-level GPU / Apple Silicon base |
-| Qwen3.5 9B *(latest)* | 9B | 10–14 GB | `qwen3.5:9b` | RTX 3060/4060, 24 GB Mac |
-| Qwen3.5 27B | 27B | 22–28 GB | `qwen3.5:27b` | 24 GB+ VRAM / 48–64 GB Mac |
-| Qwen3.5 35B-A3B *(MoE)* | 35B | 24–32 GB | `qwen3.5:35b` | 32 GB+ high-VRAM card |
-| Qwen3.5 122B-A10B *(MoE)* | 122B | 90–120 GB | `qwen3.5:122b` | Multi-GPU workstation / server |
+| Model                      | Params | 4-bit VRAM | Ollama name      | Suitable for                         |
+| -------------------------- | ------ | ---------- | ---------------- | ------------------------------------ |
+| Qwen3.5 0.8B               | 0.8B   | 2–4 GB    | `qwen3.5:0.8b` | Thin & light laptop, CPU-only        |
+| Qwen3.5 2B                 | 2B     | 4–6 GB    | `qwen3.5:2b`   | Regular laptop                       |
+| Qwen3.5 4B                 | 4B     | 6–8 GB    | `qwen3.5:4b`   | Entry-level GPU / Apple Silicon base |
+| Qwen3.5 9B*(latest)*     | 9B     | 10–14 GB  | `qwen3.5:9b`   | RTX 3060/4060, 24 GB Mac             |
+| Qwen3.5 27B                | 27B    | 22–28 GB  | `qwen3.5:27b`  | 24 GB+ VRAM / 48–64 GB Mac          |
+| Qwen3.5 35B-A3B*(MoE)*   | 35B    | 24–32 GB  | `qwen3.5:35b`  | 32 GB+ high-VRAM card                |
+| Qwen3.5 122B-A10B*(MoE)* | 122B   | 90–120 GB | `qwen3.5:122b` | Multi-GPU workstation / server       |
 
 ## Project Structure
 
@@ -291,26 +291,26 @@ harnetics/
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System structure, data flow, module boundaries |
-| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | How to contribute |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Release history |
-| [docs/CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md) | Community standards |
-| [README.md](README.md) | Chinese-first public README |
-| [README_EN.md](README_EN.md) | English public README |
-| [README_zh.md](README_zh.md) | Legacy Chinese compatibility pointer |
-| [.env.example](.env.example) | Environment variable reference |
+| Document                                        | Description                                    |
+| ----------------------------------------------- | ---------------------------------------------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)       | System structure, data flow, module boundaries |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)       | How to contribute                              |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md)             | Release history                                |
+| [docs/CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md) | Community standards                            |
+| [README.md](README.md)                             | Chinese-first public README                    |
+| [README_EN.md](README_EN.md)                       | English public README                          |
+| [README_zh.md](README_zh.md)                       | Legacy Chinese compatibility pointer           |
+| [.env.example](.env.example)                       | Environment variable reference                 |
 
 ## Roadmap
 
-| Horizon | Focus | Planned work |
-|---------|-------|--------------|
-| **Now (MVP)** | Core alignment loop | Markdown/YAML ingest, document graph, citation-backed draft generation, impact analysis, evaluator gates, React workbench |
-| **Next (P1)** | Broader document ingestion | Add Word, PDF, and Excel parsers; strengthen ICD table extraction; add file watcher-based re-indexing |
-| **Next (P1)** | Human governance | Add review queue, AI edge confirmation workflow, stale-reference remediation, stronger conflict surfacing |
-| **Later (P2)** | Scale and collaboration | Move from SQLite-only assumptions toward PostgreSQL-ready scale, add richer audit/history views, team review workflows, and real-time collaboration endpoints |
-| **Later (P2)** | Domain depth | Extend support for CAD metadata ingestion, more reuse-aware knowledge retrieval, and stronger cross-department traceability analytics |
+| Horizon              | Focus                      | Planned work                                                                                                                                                  |
+| -------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Now (MVP)**  | Core alignment loop        | Markdown/YAML ingest, document graph, citation-backed draft generation, impact analysis, evaluator gates, React workbench                                     |
+| **Next (P1)**  | Broader document ingestion | Add Word, PDF, and Excel parsers; strengthen ICD table extraction; add file watcher-based re-indexing                                                         |
+| **Next (P1)**  | Human governance           | Add review queue, AI edge confirmation workflow, stale-reference remediation, stronger conflict surfacing                                                     |
+| **Later (P2)** | Scale and collaboration    | Move from SQLite-only assumptions toward PostgreSQL-ready scale, add richer audit/history views, team review workflows, and real-time collaboration endpoints |
+| **Later (P2)** | Domain depth               | Extend support for CAD metadata ingestion, more reuse-aware knowledge retrieval, and stronger cross-department traceability analytics                         |
 
 ## Contributing: Where to Start
 
