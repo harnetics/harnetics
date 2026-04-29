@@ -398,6 +398,27 @@ def update_comparison_session(
         )
 
 
+def append_comparison_findings(
+    session_id: str,
+    new_findings: list[dict],
+    status: str,
+) -> None:
+    """追加批次 findings，同步更新 status（流式端点每批完成后调用）。"""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT findings_json FROM comparison_sessions WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+        existing: list[dict] = _json.loads(row["findings_json"] or "[]") if row else []
+        merged = existing + new_findings
+        conn.execute(
+            """UPDATE comparison_sessions
+               SET findings_json = ?, status = ?
+               WHERE session_id = ?""",
+            (_json.dumps(merged, ensure_ascii=False), status, session_id),
+        )
+
+
 def get_comparison_session(session_id: str) -> dict | None:
     with get_connection() as conn:
         row = conn.execute(

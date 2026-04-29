@@ -1,15 +1,15 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 analyzeComparison/listComparisonSessions/deleteComparisonSession，依赖 @/types 的 ComparisonSession/ComparisonSessionSummary
- * [OUTPUT]: 对外提供 Comparison 页面组件（上传工作台 + 历史记录列表）
- * [POS]: pages 的文档比对入口，上传要求文件和应答文件，触发 LLM 符合性审查，展示历史比对记录
+ * [INPUT]: 依赖 @/lib/api 的 analyzeComparisonStream/listComparisonSessions/deleteComparisonSession，依赖 @/types 的 ComparisonFinding/ComparisonSessionSummary
+ * [OUTPUT]: 对外提供 Comparison 页面组件（上传工作台 + 流式进度 + 历史记录列表）
+ * [POS]: pages 的文档比对入口，上传要求文件和应答文件，触发 LLM 分批流式符合性审查，实时展示进度
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, FileText, Trash2, ExternalLink, GitCompare, Loader2 } from 'lucide-react'
-import { analyzeComparison, listComparisonSessions, deleteComparisonSession } from '@/lib/api'
-import type { ComparisonSessionSummary } from '@/types'
+import { Upload, FileText, Trash2, ExternalLink, GitCompare, Loader2, X } from 'lucide-react'
+import { analyzeComparisonStream, listComparisonSessions, deleteComparisonSession } from '@/lib/api'
+import type { ComparisonFinding, ComparisonSessionSummary } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -20,6 +20,7 @@ import { Card, CardContent } from '@/components/ui/card'
 
 const statusConfig = {
   completed: { label: '已完成', variant: 'success' as const },
+  analyzing: { label: '审查中', variant: 'warning' as const },
   pending:   { label: '处理中', variant: 'warning' as const },
   failed:    { label: '失败',   variant: 'destructive' as const },
 }
@@ -106,6 +107,11 @@ export default function Comparison() {
   const [sessions, setSessions] = useState<ComparisonSessionSummary[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
+  // 流式状态
+  const [streamProgress, setStreamProgress] = useState<{ batch: number; total: number } | null>(null)
+  const [streamFindings, setStreamFindings] = useState<ComparisonFinding[]>([])
+  const abortRef = useRef<AbortController | null>(null)
+
   const loadSessions = () => {
     listComparisonSessions()
       .then((res) => setSessions(res.sessions))
@@ -118,13 +124,42 @@ export default function Comparison() {
     if (!reqFile || !respFile) return
     setAnalyzing(true)
     setAnalyzeError('')
+    setStreamProgress(null)
+    setStreamFindings([])
+
+    const controller = new AbortController()
+    abortRef.current = controller
+
     try {
-      const session = await analyzeComparison(reqFile, respFile)
-      navigate(`/comparison/${session.session_id}`)
+      await analyzeComparisonStream(
+        reqFile,
+        respFile,
+        (event) => {
+          if (event.type === 'started') {
+            setStreamProgress({ batch: 0, total: event.total_batches ?? 1 })
+          } else if (event.type === 'batch_progress') {
+            setStreamProgress({ batch: event.batch ?? 0, total: event.total_batches ?? 1 })
+            setStreamFindings((prev) => [...prev, ...(event.batch_findings ?? [])])
+          } else if (event.type === 'completed') {
+            navigate(`/comparison/${event.session_id}`)
+          } else if (event.type === 'error') {
+            setAnalyzeError(event.message ?? '部分批次审查失败')
+          }
+        },
+        controller.signal,
+      )
     } catch (err) {
-      setAnalyzeError(err instanceof Error ? err.message : '分析失败')
+      if ((err as Error).name !== 'AbortError') {
+        setAnalyzeError(err instanceof Error ? err.message : '分析失败')
+      }
+    } finally {
       setAnalyzing(false)
+      abortRef.current = null
     }
+  }
+
+  const handleCancel = () => {
+    abortRef.current?.abort()
   }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -177,7 +212,13 @@ export default function Comparison() {
             <p className="text-sm text-destructive">{analyzeError}</p>
           )}
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {analyzing && (
+              <Button variant="outline" size="lg" className="gap-2" onClick={handleCancel}>
+                <X className="h-4 w-4" />
+                取消
+              </Button>
+            )}
             <Button
               size="lg"
               className="gap-2 min-w-[140px]"
@@ -187,7 +228,7 @@ export default function Comparison() {
               {analyzing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  审查中，请稍候…
+                  审查中…
                 </>
               ) : (
                 <>
@@ -198,9 +239,47 @@ export default function Comparison() {
             </Button>
           </div>
 
-          {analyzing && (
+          {/* 流式进度区域 */}
+          {analyzing && streamProgress && (
+            <div className="space-y-3 pt-2">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>
+                    正在审查第 {streamProgress.batch}/{streamProgress.total} 批
+                    {streamFindings.length > 0 && `，已发现 ${streamFindings.length} 条意见`}
+                  </span>
+                  <span>{Math.round((streamProgress.batch / streamProgress.total) * 100)}%</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    style={{ width: `${(streamProgress.batch / streamProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {streamFindings.length > 0 && (
+                <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                  {streamFindings.slice(-8).map((f) => {
+                    const sc = findingStatusConfig[f.status] ?? { label: f.status, variant: 'secondary' as const }
+                    return (
+                      <div key={f.finding_id} className="flex items-start gap-2 rounded-md border px-3 py-2 text-xs bg-muted/30">
+                        <Badge variant={sc.variant} className="shrink-0 mt-0.5 text-[10px] px-1.5">{sc.label}</Badge>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{f.requirement_heading || f.chapter}</p>
+                          <p className="text-muted-foreground line-clamp-1 mt-0.5">{f.detail}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {analyzing && !streamProgress && (
             <p className="text-xs text-center text-muted-foreground">
-              正在解析文件并调用 AI 逐条审查，可能需要 30–120 秒，请勿关闭页面
+              正在解析文件并调用 AI 逐条审查，可能需要 30–300 秒，请勿关闭页面
             </p>
           )}
         </CardContent>

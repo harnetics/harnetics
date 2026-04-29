@@ -22,6 +22,7 @@ import type {
   FixtureRunAllResult,
   ComparisonSession,
   ComparisonSessionSummary,
+  ComparisonProgressEvent,
 } from '@/types'
 
 // ================================================================
@@ -331,5 +332,55 @@ export async function deleteComparisonSession(sessionId: string): Promise<void> 
   if (!res.ok) {
     const body = await res.text().catch(() => '')
     throw new Error(`${res.status} ${res.statusText}: ${body}`)
+  }
+}
+
+/**
+ * 流式分批审查：消费 SSE 事件，每批完成后回调 onEvent。
+ * 使用 fetch + ReadableStream 而非 EventSource（EventSource 不支持 POST）。
+ */
+export async function analyzeComparisonStream(
+  reqFile: File,
+  respFile: File,
+  onEvent: (event: ComparisonProgressEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const form = new FormData()
+  form.append('req_file', reqFile)
+  form.append('resp_file', respFile)
+
+  const res = await fetch('/api/comparison/analyze-stream', {
+    method: 'POST',
+    body: form,
+    signal,
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`${res.status} ${res.statusText}: ${body}`)
+  }
+
+  const reader = res.body!.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    // SSE 每条消息以 "\n\n" 结尾
+    const parts = buffer.split('\n\n')
+    buffer = parts.pop() ?? ''
+
+    for (const part of parts) {
+      const line = part.trim()
+      if (!line.startsWith('data:')) continue
+      const json = line.slice('data:'.length).trim()
+      try {
+        onEvent(JSON.parse(json) as ComparisonProgressEvent)
+      } catch {
+        // 忽略技展行或空行
+      }
+    }
   }
 }

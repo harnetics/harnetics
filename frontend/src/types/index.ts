@@ -295,7 +295,7 @@ export interface ComparisonSessionSummary {
   session_id: string
   req_filename: string
   resp_filename: string
-  status: 'pending' | 'completed' | 'failed'
+  status: 'pending' | 'analyzing' | 'completed' | 'failed'
   created_at: string
   findings_count: number
   covered: number
@@ -321,7 +321,19 @@ export interface ComparisonSession {
   resp_sections: ComparisonSectionItem[]
   analysis_md: string
   findings: ComparisonFinding[]
-  status: 'pending' | 'completed' | 'failed'
+  status: 'pending' | 'analyzing' | 'completed' | 'failed'
   created_at: string
+}
+
+export interface ComparisonProgressEvent {
+  type: 'started' | 'batch_progress' | 'completed' | 'error'
+  session_id?: string
+  total_batches?: number
+  batch?: number
+  batch_findings?: ComparisonFinding[]
+  total_findings?: number
+  findings?: ComparisonFinding[]
+  analysis_md?: string
+  message?: string
 }
 

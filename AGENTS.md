@@ -59,7 +59,7 @@ docs/CHANGELOG.md - 版本发布历史（Keep a Changelog 格式）
 - 2026-04-24: `010-rich-doc-import-autoindex` — 富格式文档导入（.docx/.xlsx/.csv/.pdf）+ 上传后自动向量索引修复；新增 docx_parser/xlsx_parser/pdf_parser；pyproject.toml 新增 python-docx/openpyxl/pypdf 依赖
 - 2026-04-24: `011-dx-startup-polish` — 启动时 LLM/Embedding 配置检测与友好引导、URL 显示改为 localhost + 自动打开浏览器（--no-browser 可禁用）、fixtures/samples/ 一键导入目录、文档库删除按钮（前端 + 向量库同步清除）
 - 2026-04-25: `013-doc-comparison-review` — 文档比对审查工作台：审查大纲 vs 应答文件 LLM 符合性审查（covered/partial/missing/unclear）、双文件上传、结果 Tabs 预览 + 章节溯源跳转、历史会话记录、Markdown 报告导出；新增 comparison_analyzer.py / api/routes/comparison.py / Comparison.tsx / ComparisonSession.tsx
-- 2026-04-29: `014-dark-mode` — 前端夜间模式集成：ThemeProvider Context + localStorage 持久化 + 系统偏好自动检测 + FOUC 防止脚本；Header 新增月亮/太阳主题切换按钮
+- 2026-04-29: `015-comparison-multiround-stream` — 修复比对审查上下文截断 Bug（12K→240K chars，匹配模型 1M context / 384K output）；新增 `analyze_streaming` 分批生成器 + SSE 端点 `POST /api/comparison/analyze-stream`；前端流式 UI：实时进度条 + 批次意见即时展示 + 取消按钮
 
 ## Active Technologies
 - Python 3.11+ + FastAPI (web framework), Jinja2 (templates), HTMX (frontend interactivity), litellm (LLM client), chromadb (vector store), sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (embeddings), PyYAML (parsing), typer+rich (CLI), uvicorn (ASGI server), python-multipart (file upload) (001-aerospace-doc-alignment)

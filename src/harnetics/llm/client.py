@@ -94,7 +94,14 @@ class HarneticsLLM:
         except Exception:
             return 16384
 
-    def generate_draft(self, system_prompt: str, context: str, user_request: str) -> str:
+    def generate_draft(
+        self,
+        system_prompt: str,
+        context: str,
+        user_request: str,
+        *,
+        max_tokens: int | None = None,
+    ) -> str:
         """调用 OpenAI-compatible 会话接口生成草稿 Markdown。"""
         if not _is_ollama_model(self.model) and not self.api_key:
             logger.warning(
@@ -116,7 +123,7 @@ class HarneticsLLM:
                     {"role": "user", "content": f"## 参考文档\n\n{context}\n\n## 任务\n\n{user_request}"},
                 ],
                 temperature=0.3,
-                max_tokens=self._max_tokens(),
+                max_tokens=max_tokens or self._max_tokens(),
             )
         except Exception as exc:
             raise RuntimeError(
@@ -216,7 +223,7 @@ def _create_chat_completion(
     client = OpenAI(
         base_url=request_api_base,
         api_key=api_key,
-        timeout=600.0,
+        timeout=6000.0,
     )
     try:
         response = client.chat.completions.create(
