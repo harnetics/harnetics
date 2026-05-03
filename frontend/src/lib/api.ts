@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 @/types 的全部接口定义
- * [OUTPUT]: 对外提供 fetch 封装函数 (fetchDocuments/fetchDocument/uploadDocument/deleteDocument/fetchSettings/updateSettings 等)
+ * [OUTPUT]: 对外提供 fetch 封装函数 (fetchDocuments/uploadDocument/analyzeComparisonStream/analyzeComparison4Step 等)
  * [POS]: lib 的 API 通信层，被各 page 组件调用，统一处理请求/错误
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
@@ -20,6 +20,10 @@ import type {
   FixtureRunResult,
   FixtureImportResult,
   FixtureRunAllResult,
+  ComparisonSession,
+  ComparisonSessionSummary,
+  ComparisonProgressEvent,
+  Comparison4StepEvent,
 } from '@/types'
 
 // ================================================================
@@ -33,6 +37,63 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     throw new Error(`${res.status} ${res.statusText}: ${body}`)
   }
   return res.json() as Promise<T>
+}
+
+async function streamSse<T>(
+  url: string,
+  body: BodyInit,
+  onEvent: (event: T) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(url, {
+    method: 'POST',
+    body,
+    signal,
+  })
+  if (!res.ok) {
+    const payload = await res.text().catch(() => '')
+    throw new Error(`${res.status} ${res.statusText}: ${payload}`)
+  }
+  if (!res.body) {
+    throw new Error('SSE 响应流不可用')
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  const flushEvent = (rawEvent: string) => {
+    const dataLines = rawEvent
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice('data:'.length).trim())
+
+    if (dataLines.length === 0) return
+
+    try {
+      onEvent(JSON.parse(dataLines.join('\n')) as T)
+    } catch {
+      // 忽略非 JSON 心跳或破损分片
+    }
+  }
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const parts = buffer.split('\n\n')
+    buffer = parts.pop() ?? ''
+
+    for (const part of parts) {
+      flushEvent(part)
+    }
+  }
+
+  if (buffer.trim()) {
+    flushEvent(buffer)
+  }
 }
 
 // ================================================================
@@ -295,4 +356,71 @@ export function runAllFixtures(): Promise<FixtureRunAllResult> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
   })
+}
+
+// ================================================================
+// 文档比对 (Doc Comparison Review)
+// ================================================================
+
+export async function analyzeComparison(
+  reqFile: File,
+  respFile: File,
+): Promise<ComparisonSession> {
+  const form = new FormData()
+  form.append('req_file', reqFile)
+  form.append('resp_file', respFile)
+  const res = await fetch('/api/comparison/analyze', { method: 'POST', body: form })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`${res.status} ${res.statusText}: ${body}`)
+  }
+  return res.json() as Promise<ComparisonSession>
+}
+
+export function listComparisonSessions(): Promise<{ sessions: ComparisonSessionSummary[] }> {
+  return request<{ sessions: ComparisonSessionSummary[] }>('/api/comparison')
+}
+
+export function fetchComparisonSession(sessionId: string): Promise<ComparisonSession> {
+  return request<ComparisonSession>(`/api/comparison/${encodeURIComponent(sessionId)}`)
+}
+
+export async function deleteComparisonSession(sessionId: string): Promise<void> {
+  const res = await fetch(`/api/comparison/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`${res.status} ${res.statusText}: ${body}`)
+  }
+}
+
+/**
+ * 流式分批审查：消费 SSE 事件，每批完成后回调 onEvent。
+ * 使用 fetch + ReadableStream 而非 EventSource（EventSource 不支持 POST）。
+ */
+export async function analyzeComparisonStream(
+  reqFile: File,
+  respFile: File,
+  onEvent: (event: ComparisonProgressEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const form = new FormData()
+  form.append('req_file', reqFile)
+  form.append('resp_file', respFile)
+  await streamSse('/api/comparison/analyze-stream', form, onEvent, signal)
+}
+
+/**
+ * 四步流水线比对审查：消费 SSE 事件，每步完成后回调 onEvent。
+ * 步骤：需求扫描 → 向量匹配 → LLM逐项评估 → 全局校验
+ */
+export async function analyzeComparison4Step(
+  reqFile: File,
+  respFile: File,
+  onEvent: (event: Comparison4StepEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const form = new FormData()
+  form.append('req_file', reqFile)
+  form.append('resp_file', respFile)
+  await streamSse('/api/comparison/analyze-4step', form, onEvent, signal)
 }

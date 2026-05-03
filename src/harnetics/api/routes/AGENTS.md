@@ -12,6 +12,7 @@ graph.py: 文档图谱节点/边查询路由，挂载于 /api/graph。
 impact.py: 影响分析触发与报告查询路由，挂载于 /api/impact。
 settings.py: LLM/Embedding 运行时配置读写路由，挂载于 /api/settings。
 status.py: 健康检查与 LLM/Embedding 状态探测路由，挂载于 /api/status。
+comparison.py: 文档比对会话路由，挂载于 /api/comparison，提供 analyze、analyze-stream、analyze-4step、list、get、export、delete 端点。
 
 法则: routes/ 只做 HTTP 协议适配与请求验证，业务逻辑全部委托 engine/ 与 store/ 层。
 

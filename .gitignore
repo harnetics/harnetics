@@ -69,3 +69,5 @@ assets/
 scripts/
 src/harnetics/publishing/
 tests/test_wechat_publish.py
+fixtures/nucleus/
+docs/dev/

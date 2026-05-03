@@ -106,3 +106,19 @@ CREATE TABLE IF NOT EXISTS impact_reports (
 );
 
 CREATE INDEX IF NOT EXISTS idx_impact_trigger ON impact_reports(trigger_doc_id);
+
+-- ---- 文档比对会话 ----
+CREATE TABLE IF NOT EXISTS comparison_sessions (
+    session_id         TEXT PRIMARY KEY,
+    req_filename       TEXT NOT NULL DEFAULT '',
+    resp_filename      TEXT NOT NULL DEFAULT '',
+    req_sections_json  TEXT NOT NULL DEFAULT '[]',
+    resp_sections_json TEXT NOT NULL DEFAULT '[]',
+    analysis_md        TEXT NOT NULL DEFAULT '',
+    findings_json      TEXT NOT NULL DEFAULT '[]',
+    status             TEXT NOT NULL DEFAULT 'pending',
+    created_at         TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_comparison_created ON comparison_sessions(created_at DESC);
+

@@ -9,6 +9,7 @@ vite-env.d.ts: Vite 客户端类型声明。
 
 components/: 共享布局与基础 UI 组件。
 pages/: 路由页实现，承接后端 API 数据。
+context/: React Context 提供者目录，当前含主题状态 ThemeContext.tsx。
 lib/: 工具与 API 通信层。
 types/: 前端领域类型真相源。
 data/: 原型 mock 数据参考。

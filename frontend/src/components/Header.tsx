@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, FileEdit, History, GitMerge, Share2, Settings, Dna } from 'lucide-react'
+import { LayoutDashboard, BookOpen, FileEdit, History, GitMerge, Share2, Settings, Dna, GitCompare, Moon, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTheme } from '@/context/ThemeContext'
+import { Button } from '@/components/ui/button'
 
 const navItems = [
   { to: '/', label: '仪表盘', icon: LayoutDashboard },
@@ -9,12 +11,14 @@ const navItems = [
   { to: '/drafts', label: '历史草稿', icon: History },
   { to: '/impact', label: '变更影响', icon: GitMerge },
   { to: '/graph', label: '图谱', icon: Share2 },
+  { to: '/comparison', label: '比对', icon: GitCompare },
   { to: '/evolution', label: '进化', icon: Dna },
   { to: '/settings', label: '设置', icon: Settings },
 ]
 
 export default function Header() {
   const { pathname } = useLocation()
+  const { theme, toggleTheme } = useTheme()
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
       <div className="container mx-auto flex h-14 max-w-screen-xl items-center gap-6 px-4">
@@ -50,8 +54,15 @@ export default function Header() {
                 {label}
               </Link>
             )
-          })}
-        </nav>
+          })}          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto shrink-0"
+            onClick={toggleTheme}
+            title={theme === 'light' ? '切换至夜间模式' : '切换至浅色模式'}
+          >
+            {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          </Button>        </nav>
       </div>
     </header>
   )

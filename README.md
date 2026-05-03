@@ -83,15 +83,15 @@ docker compose up -d
 
 ## 能力概览
 
-| 模块 | 说明 |
-|------|------|
-| **文档库** | 上传并浏览 Markdown/YAML/DOCX/XLSX/PDF 文档，自动解析章节与 ICD 参数 |
-| **草稿生成** | LLM 驱动的对齐草稿，含引注回填、冲突检测与质量门评估 |
-| **影响分析** | BFS 下游变更传播，双模式（AI 向量检索 + 启发式分析） |
-| **文档图谱** | 可视化文档间引用、派生、约束关系 |
-| **仪表盘** | 文档数量、草稿状态、陈旧引用、LLM 状态概览 |
-| **进化视图** | GEP 自进化信号历史、策略徽章、标签分布统计 |
-| **校验器实验室** | 一键导入夹具文档并运行 EA/EB/ED 场景，演示自进化信号写入与策略漂移 |
+| 模块                   | 说明                                                                 |
+| ---------------------- | -------------------------------------------------------------------- |
+| **文档库**       | 上传并浏览 Markdown/YAML/DOCX/XLSX/PDF 文档，自动解析章节与 ICD 参数 |
+| **草稿生成**     | LLM 驱动的对齐草稿，含引注回填、冲突检测与质量门评估                 |
+| **影响分析**     | BFS 下游变更传播，双模式（AI 向量检索 + 启发式分析）                 |
+| **文档图谱**     | 可视化文档间引用、派生、约束关系                                     |
+| **仪表盘**       | 文档数量、草稿状态、陈旧引用、LLM 状态概览                           |
+| **进化视图**     | GEP 自进化信号历史、策略徽章、标签分布统计                           |
+| **校验器实验室** | 一键导入夹具文档并运行 EA/EB/ED 场景，演示自进化信号写入与策略漂移   |
 
 ## 第三方引用与致谢
 
@@ -108,11 +108,11 @@ Harnetics 的自进化模块参考并对接了 [EvoMap / Evolver](https://github
 
 ### 环境要求
 
-| 工具 | 版本 | 安装方式 |
-|------|------|---------|
-| Python | ≥ 3.12 | [python.org](https://www.python.org/downloads/) |
-| uv | 最新版 | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| Node.js | ≥ 20 | [nodejs.org](https://nodejs.org/) |
+| 工具    | 版本    | 安装方式                                            |
+| ------- | ------- | --------------------------------------------------- |
+| Python  | ≥ 3.12 | [python.org](https://www.python.org/downloads/)        |
+| uv      | 最新版  | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Node.js | ≥ 20   | [nodejs.org](https://nodejs.org/)                      |
 
 ### 安装
 
@@ -120,7 +120,7 @@ Harnetics 的自进化模块参考并对接了 [EvoMap / Evolver](https://github
 git clone https://github.com/harnetics/harnetics.git
 cd harnetics
 uv sync --dev
-cd frontend && npm install && cd ..
+cd frontend && npm install && npm run build && cd ..
 ```
 
 ### 配置 LLM 与 Embedding
@@ -213,27 +213,27 @@ curl http://localhost:8000/api/documents
 
 ## API 路由
 
-| 路由 | 说明 |
-|------|------|
-| `GET /health` | 健康检查 |
-| `GET /api/dashboard/stats` | 仪表盘统计数据 |
-| `GET /api/documents` | 文档列表 |
-| `GET /api/documents/{doc_id}` | 文档详情（含章节） |
-| `POST /api/draft/generate` | 生成对齐草稿 |
-| `GET /api/draft/{draft_id}` | 查看草稿与引注 |
-| `POST /api/impact/analyze` | 触发影响分析 |
-| `GET /api/impact` | 影响分析报告列表 |
-| `GET /api/impact/{report_id}` | 影响分析报告详情 |
-| `GET /api/graph/edges` | 原始图谱边数据 |
-| `GET /api/status` | LLM/Embedding 配置状态 |
-| `GET /api/settings` | 当前运行时配置（Key 脱敏） |
-| `PUT /api/settings` | 更新运行时 LLM/Embedding 配置 |
-| `POST /api/documents/upload` | 上传并导入文档 |
-| `POST /api/fixture/import` | 导入夹具目录中的源文档到图谱 |
-| `GET /api/fixture/scenarios` | 列举可运行的夹具测试场景 |
-| `POST /api/fixture/run` | 运行单个夹具场景，写入进化信号 |
-| `POST /api/fixture/run-all` | 批量运行所有夹具场景，返回汇总结果 |
-| `GET /api/evolution/stats` | GEP 自进化统计（策略 / 信号历史） |
+| 路由                            | 说明                               |
+| ------------------------------- | ---------------------------------- |
+| `GET /health`                 | 健康检查                           |
+| `GET /api/dashboard/stats`    | 仪表盘统计数据                     |
+| `GET /api/documents`          | 文档列表                           |
+| `GET /api/documents/{doc_id}` | 文档详情（含章节）                 |
+| `POST /api/draft/generate`    | 生成对齐草稿                       |
+| `GET /api/draft/{draft_id}`   | 查看草稿与引注                     |
+| `POST /api/impact/analyze`    | 触发影响分析                       |
+| `GET /api/impact`             | 影响分析报告列表                   |
+| `GET /api/impact/{report_id}` | 影响分析报告详情                   |
+| `GET /api/graph/edges`        | 原始图谱边数据                     |
+| `GET /api/status`             | LLM/Embedding 配置状态             |
+| `GET /api/settings`           | 当前运行时配置（Key 脱敏）         |
+| `PUT /api/settings`           | 更新运行时 LLM/Embedding 配置      |
+| `POST /api/documents/upload`  | 上传并导入文档                     |
+| `POST /api/fixture/import`    | 导入夹具目录中的源文档到图谱       |
+| `GET /api/fixture/scenarios`  | 列举可运行的夹具测试场景           |
+| `POST /api/fixture/run`       | 运行单个夹具场景，写入进化信号     |
+| `POST /api/fixture/run-all`   | 批量运行所有夹具场景，返回汇总结果 |
+| `GET /api/evolution/stats`    | GEP 自进化统计（策略 / 信号历史）  |
 
 ## 测试
 
@@ -267,15 +267,15 @@ docker exec ollama ollama pull nomic-embed-text
 
 ### Qwen3.5 本地模型参考
 
-| 模型 | 参数量 | 本地硬件显存建议 | Ollama 名称 | 适合机器 |
-|------|--------|----------------|-------------|----------|
-| Qwen3.5 0.8B | 0.8B | 2–4 GB | `qwen3.5:0.8b` | 轻薄本、CPU |
-| Qwen3.5 2B | 2B | 4–6 GB | `qwen3.5:2b` | 普通笔记本 |
-| Qwen3.5 4B | 4B | 6–8 GB | `qwen3.5:4b` | 入门独显 / Apple Silicon 入门机 |
-| Qwen3.5 9B *(latest)* | 9B | 10–14 GB | `qwen3.5:9b` | RTX 3060/4060、24GB Mac |
-| Qwen3.5 27B | 27B | 22–28 GB | `qwen3.5:27b` | 24GB+ 显存 / 48–64GB Mac |
-| Qwen3.5 35B-A3B *(MoE)* | 35B | 24–32 GB | `qwen3.5:35b` | 32GB+ 高显存卡 |
-| Qwen3.5 122B-A10B *(MoE)* | 122B | 90–120 GB | `qwen3.5:122b` | 多卡工作站 / 服务器 |
+| 模型                       | 参数量 | 本地硬件显存建议 | Ollama 名称      | 适合机器                        |
+| -------------------------- | ------ | ---------------- | ---------------- | ------------------------------- |
+| Qwen3.5 0.8B               | 0.8B   | 2–4 GB          | `qwen3.5:0.8b` | 轻薄本、CPU                     |
+| Qwen3.5 2B                 | 2B     | 4–6 GB          | `qwen3.5:2b`   | 普通笔记本                      |
+| Qwen3.5 4B                 | 4B     | 6–8 GB          | `qwen3.5:4b`   | 入门独显 / Apple Silicon 入门机 |
+| Qwen3.5 9B*(latest)*     | 9B     | 10–14 GB        | `qwen3.5:9b`   | RTX 3060/4060、24GB Mac         |
+| Qwen3.5 27B                | 27B    | 22–28 GB        | `qwen3.5:27b`  | 24GB+ 显存 / 48–64GB Mac       |
+| Qwen3.5 35B-A3B*(MoE)*   | 35B    | 24–32 GB        | `qwen3.5:35b`  | 32GB+ 高显存卡                  |
+| Qwen3.5 122B-A10B*(MoE)* | 122B   | 90–120 GB       | `qwen3.5:122b` | 多卡工作站 / 服务器             |
 
 ## 项目结构
 
@@ -314,26 +314,26 @@ harnetics/
 
 ## 文档导航
 
-| 文档 | 说明 |
-|------|------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 系统结构、数据流、模块边界 |
-| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | 贡献指南 |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md) | 版本发布历史 |
-| [docs/CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md) | 社区行为准则 |
-| [README.md](README.md) | 中文优先公开 README |
-| [README_EN.md](README_EN.md) | 英文公开 README |
-| [README_zh.md](README_zh.md) | 中文兼容跳转说明 |
-| [.env.example](.env.example) | 环境变量配置参考 |
+| 文档                                            | 说明                       |
+| ----------------------------------------------- | -------------------------- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)       | 系统结构、数据流、模块边界 |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)       | 贡献指南                   |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md)             | 版本发布历史               |
+| [docs/CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md) | 社区行为准则               |
+| [README.md](README.md)                             | 中文优先公开 README        |
+| [README_EN.md](README_EN.md)                       | 英文公开 README            |
+| [README_zh.md](README_zh.md)                       | 中文兼容跳转说明           |
+| [.env.example](.env.example)                       | 环境变量配置参考           |
 
 ## 路线图
 
-| 阶段 | 重点 | 计划内容 |
-|------|------|----------|
-| **当前（MVP）** | 核心对齐闭环 | Markdown/YAML 入库、文档图谱、带引注草稿生成、变更影响分析、Evaluator 质量门、React 工作台 |
-| **下一阶段（P1）** | 扩展文档接入 | 增加 Word、PDF、Excel 解析器；强化 ICD 表格抽取；加入基于文件监听的自动重索引 |
-| **下一阶段（P1）** | 人类治理增强 | 增加审核队列、AI 边人工确认流程、陈旧引用修复提示、冲突显式标记 |
+| 阶段                     | 重点         | 计划内容                                                                                          |
+| ------------------------ | ------------ | ------------------------------------------------------------------------------------------------- |
+| **当前（MVP）**    | 核心对齐闭环 | Markdown/YAML 入库、文档图谱、带引注草稿生成、变更影响分析、Evaluator 质量门、React 工作台        |
+| **下一阶段（P1）** | 扩展文档接入 | 增加 Word、PDF、Excel 解析器；强化 ICD 表格抽取；加入基于文件监听的自动重索引                     |
+| **下一阶段（P1）** | 人类治理增强 | 增加审核队列、AI 边人工确认流程、陈旧引用修复提示、冲突显式标记                                   |
 | **后续阶段（P2）** | 规模化与协作 | 从 SQLite 主路径演进到 PostgreSQL-ready 架构，引入更完整的审计/历史视图、团队评审流和实时协作端点 |
-| **后续阶段（P2）** | 领域深度 | 扩展 CAD 元数据接入、强化历史知识复用检索、增强跨部门追溯分析能力 |
+| **后续阶段（P2）** | 领域深度     | 扩展 CAD 元数据接入、强化历史知识复用检索、增强跨部门追溯分析能力                                 |
 
 ## 贡献：从哪里开始
 

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Dashboard from './pages/Dashboard';
@@ -13,9 +14,12 @@ import Graph from './pages/Graph';
 import DesignSystem from './pages/DesignSystem';
 import Settings from './pages/Settings';
 import Evolution from './pages/Evolution';
+import Comparison from './pages/Comparison';
+import ComparisonSession from './pages/ComparisonSession';
 
 function App() {
   return (
+    <ThemeProvider>
     <Router>
       <div className="relative flex min-h-screen flex-col bg-background">
         <Header />
@@ -32,12 +36,15 @@ function App() {
             <Route path="/graph" element={<Graph />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/evolution" element={<Evolution />} />
+            <Route path="/comparison" element={<Comparison />} />
+            <Route path="/comparison/:id" element={<ComparisonSession />} />
             <Route path="/design-system" element={<DesignSystem />} />
           </Routes>
         </main>
         <Footer />
       </div>
     </Router>
+    </ThemeProvider>
   );
 }
 

@@ -9,6 +9,7 @@ ARCHITECTURE.md: 对外公开的系统总图，说明运行时主链、模块边
 CHANGELOG.md: 对外公开的版本变更记录。
 CODE_OF_CONDUCT.md: 对外公开的社区行为准则。
 CONTRIBUTING.md: 对外公开的贡献指南。
+MEMORY.md: 跨会话核心记忆，收敛当前项目阶段、活跃约束与已验证 workflow。
 DESIGN.md: 设计入口页，连接设计原则、架构叙事与深入文档。
 FRONTEND.md: 前端与浏览器交互面的现状、边界与未来实现假设。
 THIRD_PARTY_NOTICES.md: 第三方项目引用、致谢、许可证边界与合规说明。
@@ -35,3 +36,4 @@ superpowers/: 通过技能流程产出的工作文档与阶段性设计 spec。
 - 2026-04-11: 新增 `daily/` 目录，开始按日沉淀开发记忆
 - 2026-04-19: 新增 `ARCHITECTURE.md`、`CHANGELOG.md`、`CODE_OF_CONDUCT.md`、`CONTRIBUTING.md` 到 `docs/` 根层，公开文档与本地记忆材料分层
 - 2026-04-29: 新增 `THIRD_PARTY_NOTICES.md`，公开记录 Evolver 引用与许可证边界说明
+- 2026-04-30: 新增 `MEMORY.md`，把四步比对审查与前后端双模式状态机沉淀为跨会话入口记忆
