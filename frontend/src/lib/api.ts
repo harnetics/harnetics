@@ -182,9 +182,16 @@ export interface SettingsData {
   llm_model: string
   llm_base_url: string
   llm_api_key: string
+  llm_thinking_supported: string
+  llm_enable_thinking: string
   embedding_model: string
   embedding_base_url: string
   embedding_api_key: string
+  llm_max_tokens: string
+  llm_timeout_seconds: string
+  comparison_4step_batch_size: string
+  comparison_step1_max_tokens: string
+  comparison_step4_max_tokens: string
 }
 
 export function fetchSettings(): Promise<SettingsData> {

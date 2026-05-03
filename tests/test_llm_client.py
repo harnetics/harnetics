@@ -4,8 +4,16 @@
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from unittest.mock import Mock, patch
+from pathlib import Path
 
 from harnetics.llm.client import HarneticsLLM, LocalLlmClient
+
+
+def _isolate_settings(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("harnetics.config._PROJECT_ROOT", tmp_path)
+    monkeypatch.delenv("HARNETICS_ENV_FILE", raising=False)
+    monkeypatch.delenv("HARNETICS_LLM_TIMEOUT_SECONDS", raising=False)
 
 
 def test_chat_completion_uses_configured_timeout(monkeypatch) -> None:
@@ -100,7 +108,8 @@ def test_default_constructor_uses_current_settings_for_remote_gateway(monkeypatc
     assert llm.api_key == "sk-harnetics"
 
 
-def test_generate_draft_uses_openai_client_with_raw_model_name() -> None:
+def test_generate_draft_uses_openai_client_with_raw_model_name(tmp_path: Path, monkeypatch) -> None:
+    _isolate_settings(tmp_path, monkeypatch)
     llm = HarneticsLLM(
         model="claude-sonnet-4-6-think",
         api_base="https://aihubmix.com/v1",
@@ -124,6 +133,35 @@ def test_generate_draft_uses_openai_client_with_raw_model_name() -> None:
     assert kwargs["model"] == "claude-sonnet-4-6-think"
     assert kwargs["messages"][0]["role"] == "system"
     assert "top_p" not in kwargs
+    assert "enable_thinking" not in kwargs
+
+
+def test_generate_draft_sends_enable_thinking_when_model_supports_it(tmp_path: Path, monkeypatch) -> None:
+    _isolate_settings(tmp_path, monkeypatch)
+    (tmp_path / ".env").write_text(
+        "\n".join(
+            [
+                "HARNETICS_LLM_THINKING_SUPPORTED=true",
+                "HARNETICS_LLM_ENABLE_THINKING=false",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    llm = HarneticsLLM(
+        model="deepseek-ai/DeepSeek-V3.2",
+        api_base="https://api.siliconflow.cn/v1",
+        api_key="sk-test",
+    )
+
+    with patch("harnetics.llm.client.OpenAI") as MockOpenAI:
+        MockOpenAI.return_value.chat.completions.create.return_value.choices = [
+            Mock(message=Mock(content="ok"))
+        ]
+
+        assert llm.generate_draft("system", "context", "request") == "ok"
+
+    kwargs = MockOpenAI.return_value.chat.completions.create.call_args.kwargs
+    assert kwargs["enable_thinking"] is False
 
 
 def test_generate_draft_error_masks_api_key() -> None:
@@ -151,7 +189,8 @@ def test_generate_draft_error_masks_api_key() -> None:
     assert "openai/claude-sonnet-4-6" in message
 
 
-def test_local_client_uses_ollama_openai_compatible_endpoint() -> None:
+def test_local_client_uses_ollama_openai_compatible_endpoint(tmp_path: Path, monkeypatch) -> None:
+    _isolate_settings(tmp_path, monkeypatch)
     client = LocalLlmClient(
         base_url="http://localhost:11434",
         model="gemma4:26b",

@@ -55,6 +55,9 @@ def test_get_settings_defaults_to_cloud_llm_and_embedding(tmp_path: Path, monkey
         "HARNETICS_EMBEDDING_BASE_URL",
         "HARNETICS_EMBEDDING_API_KEY",
         "HARNETICS_LLM_TIMEOUT_SECONDS",
+        "HARNETICS_LLM_MAX_TOKENS",
+        "HARNETICS_LLM_THINKING_SUPPORTED",
+        "HARNETICS_LLM_ENABLE_THINKING",
         "HARNETICS_COMPARISON_4STEP_BATCH_SIZE",
         "HARNETICS_COMPARISON_STEP1_MAX_TOKENS",
         "HARNETICS_COMPARISON_STEP4_MAX_TOKENS",
@@ -68,9 +71,11 @@ def test_get_settings_defaults_to_cloud_llm_and_embedding(tmp_path: Path, monkey
     assert settings.embedding_model == "text-embedding-3-small"
     assert settings.embedding_base_url == ""
     assert settings.llm_timeout_seconds == 180.0
+    assert settings.llm_thinking_supported is False
+    assert settings.llm_enable_thinking is False
     assert settings.comparison_4step_batch_size == 10
-    assert settings.comparison_step1_max_tokens == 8192
-    assert settings.comparison_step4_max_tokens == 4096
+    assert settings.comparison_step1_max_tokens == 500000
+    assert settings.comparison_step4_max_tokens == 500000
 
 
 def test_get_settings_loads_tunable_reasoning_limits(tmp_path: Path, monkeypatch) -> None:
@@ -93,6 +98,58 @@ def test_get_settings_loads_tunable_reasoning_limits(tmp_path: Path, monkeypatch
     assert settings.comparison_4step_batch_size == 6
     assert settings.comparison_step1_max_tokens == 4096
     assert settings.comparison_step4_max_tokens == 2048
+
+
+def test_settings_api_updates_advanced_runtime_limits(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HARNETICS_ENV_FILE", str(tmp_path / ".env"))
+    client = TestClient(create_api_app())
+
+    response = client.put(
+        "/api/settings",
+        json={
+            "llm_timeout_seconds": "90",
+            "llm_max_tokens": "32768",
+            "comparison_4step_batch_size": "5",
+            "comparison_step1_max_tokens": "12000",
+            "comparison_step4_max_tokens": "6000",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["llm_timeout_seconds"] == "90"
+    assert data["llm_max_tokens"] == "32768"
+    assert data["comparison_4step_batch_size"] == "5"
+    assert data["comparison_step1_max_tokens"] == "12000"
+    assert data["comparison_step4_max_tokens"] == "6000"
+
+    env_text = (tmp_path / ".env").read_text(encoding="utf-8")
+    assert "HARNETICS_LLM_TIMEOUT_SECONDS='90'" in env_text
+    assert "HARNETICS_COMPARISON_4STEP_BATCH_SIZE='5'" in env_text
+
+
+def test_settings_api_updates_llm_thinking_flags(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HARNETICS_ENV_FILE", str(tmp_path / ".env"))
+    client = TestClient(create_api_app())
+
+    response = client.put(
+        "/api/settings",
+        json={
+            "llm_thinking_supported": "true",
+            "llm_enable_thinking": "false",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["llm_thinking_supported"] == "true"
+    assert data["llm_enable_thinking"] == "false"
+
+    env_text = (tmp_path / ".env").read_text(encoding="utf-8")
+    assert "HARNETICS_LLM_THINKING_SUPPORTED='true'" in env_text
+    assert "HARNETICS_LLM_ENABLE_THINKING='false'" in env_text
 
 
 def test_get_settings_falls_back_to_project_root_dotenv(tmp_path: Path, monkeypatch) -> None:

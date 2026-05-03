@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 os、pathlib、dotenv、threading
-# [OUTPUT]: 提供 Settings 数据对象、RuntimeSettingsManager 运行时覆盖层、write_dotenv_values() 回写函数、默认路径/模型/推理边界常量、get_settings() 工厂
+# [OUTPUT]: 提供 Settings 数据对象、RuntimeSettingsManager 运行时覆盖层、write_dotenv_values() 回写函数、默认路径/模型/thinking/推理边界常量、get_settings() 工厂
 # [POS]: harnetics 的运行时配置中心，.env 文件是单一真相源，API 层写操作经 write_dotenv_values 回写，进程内经 RuntimeSettingsManager 即时可见
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -20,6 +20,8 @@ DEFAULT_LLM_BASE_URL = ""  # 空字符串 → SDK 使用 api.openai.com/v1；本
 DEFAULT_LLM_MODEL = "gpt-4o-mini"
 DEFAULT_LLM_MAX_TOKENS = 16384
 DEFAULT_LLM_TIMEOUT_SECONDS = 180.0
+DEFAULT_LLM_THINKING_SUPPORTED = False
+DEFAULT_LLM_ENABLE_THINKING = False
 DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
 DEFAULT_EMBEDDING_BASE_URL = ""
 DEFAULT_COMPARISON_4STEP_BATCH_SIZE = 10
@@ -45,6 +47,8 @@ class Settings:
     llm_model: str = DEFAULT_LLM_MODEL
     llm_max_tokens: int = DEFAULT_LLM_MAX_TOKENS
     llm_timeout_seconds: float = DEFAULT_LLM_TIMEOUT_SECONDS
+    llm_thinking_supported: bool = DEFAULT_LLM_THINKING_SUPPORTED
+    llm_enable_thinking: bool = DEFAULT_LLM_ENABLE_THINKING
 
     # ---- Embedding ----
     embedding_model: str = DEFAULT_EMBEDDING_MODEL
@@ -103,6 +107,8 @@ def get_settings() -> Settings:
     llm_api_key = _get("HARNETICS_LLM_API_KEY", "") or ""
     llm_max_tokens_raw = _get("HARNETICS_LLM_MAX_TOKENS")
     llm_timeout_raw = _get("HARNETICS_LLM_TIMEOUT_SECONDS")
+    llm_thinking_supported_raw = _get("HARNETICS_LLM_THINKING_SUPPORTED")
+    llm_enable_thinking_raw = _get("HARNETICS_LLM_ENABLE_THINKING")
     embedding_model = _get("HARNETICS_EMBEDDING_MODEL")
     embedding_api_key = _get("HARNETICS_EMBEDDING_API_KEY", "") or ""
     embedding_base_url = _get("HARNETICS_EMBEDDING_BASE_URL", "") or ""
@@ -120,6 +126,10 @@ def get_settings() -> Settings:
         llm_api_key=llm_api_key,
         llm_max_tokens=_int_setting(llm_max_tokens_raw, DEFAULT_LLM_MAX_TOKENS),
         llm_timeout_seconds=_float_setting(llm_timeout_raw, DEFAULT_LLM_TIMEOUT_SECONDS),
+        llm_thinking_supported=_bool_setting(
+            llm_thinking_supported_raw, DEFAULT_LLM_THINKING_SUPPORTED
+        ),
+        llm_enable_thinking=_bool_setting(llm_enable_thinking_raw, DEFAULT_LLM_ENABLE_THINKING),
         embedding_model=embedding_model or DEFAULT_EMBEDDING_MODEL,
         embedding_api_key=embedding_api_key,
         embedding_base_url=embedding_base_url or DEFAULT_EMBEDDING_BASE_URL,
@@ -156,6 +166,17 @@ def _float_setting(raw: str | None, default: float) -> float:
     return value if value > 0 else default
 
 
+def _bool_setting(raw: str | None, default: bool) -> bool:
+    if raw is None or raw == "":
+        return default
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return default
+
+
 # ================================================================
 # 运行时可变配置覆盖层
 # ================================================================
@@ -164,6 +185,9 @@ def _float_setting(raw: str | None, default: float) -> float:
 _MUTABLE_KEYS = frozenset({
     "llm_model", "llm_base_url", "llm_api_key",
     "embedding_model", "embedding_base_url", "embedding_api_key",
+    "llm_thinking_supported", "llm_enable_thinking",
+    "llm_max_tokens", "llm_timeout_seconds",
+    "comparison_4step_batch_size", "comparison_step1_max_tokens", "comparison_step4_max_tokens",
 })
 
 # Settings 字段名 → .env 键名映射（用于回写）
@@ -174,6 +198,13 @@ _MUTABLE_KEY_TO_ENV: dict[str, str] = {
     "embedding_model":     "HARNETICS_EMBEDDING_MODEL",
     "embedding_base_url":  "HARNETICS_EMBEDDING_BASE_URL",
     "embedding_api_key":   "HARNETICS_EMBEDDING_API_KEY",
+    "llm_thinking_supported": "HARNETICS_LLM_THINKING_SUPPORTED",
+    "llm_enable_thinking":    "HARNETICS_LLM_ENABLE_THINKING",
+    "llm_max_tokens":      "HARNETICS_LLM_MAX_TOKENS",
+    "llm_timeout_seconds": "HARNETICS_LLM_TIMEOUT_SECONDS",
+    "comparison_4step_batch_size":  "HARNETICS_COMPARISON_4STEP_BATCH_SIZE",
+    "comparison_step1_max_tokens":  "HARNETICS_COMPARISON_STEP1_MAX_TOKENS",
+    "comparison_step4_max_tokens":  "HARNETICS_COMPARISON_STEP4_MAX_TOKENS",
 }
 
 

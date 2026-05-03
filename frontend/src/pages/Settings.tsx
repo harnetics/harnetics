@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 @/lib/api 的 fetchSettings/updateSettings/fetchDeveloperLogs
- * [OUTPUT]: 对外提供 Settings 页面组件，含开发者模式实时日志窗口
- * [POS]: pages 的运行时配置与调试页，允许用户查看/修改 LLM/Embedding 参数并观察后端日志
+ * [OUTPUT]: 对外提供 Settings 页面组件，含 LLM thinking 开关、高级推理边界配置与开发者模式实时日志窗口
+ * [POS]: pages 的运行时配置与调试页，允许用户查看/修改 LLM/Embedding 参数、thinking 请求开关、比对推理边界并观察后端日志
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
@@ -16,9 +16,16 @@ const EMPTY: SettingsData = {
   llm_model: '',
   llm_base_url: '',
   llm_api_key: '',
+  llm_thinking_supported: 'false',
+  llm_enable_thinking: 'false',
   embedding_model: '',
   embedding_base_url: '',
   embedding_api_key: '',
+  llm_max_tokens: '',
+  llm_timeout_seconds: '',
+  comparison_4step_batch_size: '',
+  comparison_step1_max_tokens: '',
+  comparison_step4_max_tokens: '',
 }
 
 interface FieldDef {
@@ -26,6 +33,7 @@ interface FieldDef {
   label: string
   placeholder: string
   sensitive?: boolean
+  numeric?: boolean
 }
 
 const LLM_FIELDS: FieldDef[] = [
@@ -40,6 +48,14 @@ const EMBEDDING_FIELDS: FieldDef[] = [
   { key: 'embedding_api_key', label: 'API Key', placeholder: 'sk-...', sensitive: true },
 ]
 
+const ADVANCED_FIELDS: FieldDef[] = [
+  { key: 'llm_timeout_seconds', label: '请求超时秒数', placeholder: '180', numeric: true },
+  { key: 'llm_max_tokens', label: '通用输出上限', placeholder: '16384', numeric: true },
+  { key: 'comparison_step1_max_tokens', label: 'Step1 输出上限', placeholder: '500000', numeric: true },
+  { key: 'comparison_4step_batch_size', label: 'Step3 批大小', placeholder: '10', numeric: true },
+  { key: 'comparison_step4_max_tokens', label: 'Step4 输出上限', placeholder: '500000', numeric: true },
+]
+
 export default function Settings() {
   const [data, setData] = useState<SettingsData>(EMPTY)
   const [form, setForm] = useState<SettingsData>(EMPTY)
@@ -49,6 +65,7 @@ export default function Settings() {
   const [developerMode, setDeveloperMode] = useState(false)
   const [logs, setLogs] = useState<DeveloperLogs>({ path: '', lines: [] })
   const [logError, setLogError] = useState('')
+  const thinkingSupported = form.llm_thinking_supported === 'true'
 
   useEffect(() => {
     fetchSettings()
@@ -109,11 +126,13 @@ export default function Settings() {
   const renderFields = (title: string, fields: FieldDef[]) => (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">{title}</h2>
-      {fields.map(({ key, label, placeholder, sensitive }) => (
+      {fields.map(({ key, label, placeholder, sensitive, numeric }) => (
         <div key={key} className="grid grid-cols-[140px_1fr] items-center gap-3">
           <label className="text-sm font-medium text-right">{label}</label>
           <Input
-            type={sensitive ? 'password' : 'text'}
+            type={sensitive ? 'password' : numeric ? 'number' : 'text'}
+            min={numeric ? 1 : undefined}
+            step={numeric && key === 'llm_timeout_seconds' ? '0.1' : numeric ? '1' : undefined}
             autoComplete="off"
             placeholder={placeholder}
             value={form[key]}
@@ -121,6 +140,41 @@ export default function Settings() {
           />
         </div>
       ))}
+    </div>
+  )
+
+  const setBooleanField = (key: keyof SettingsData, checked: boolean) => {
+    setForm((prev) => ({ ...prev, [key]: checked ? 'true' : 'false' }))
+  }
+
+  const renderThinkingControls = () => (
+    <div className="space-y-3 border-t pt-4">
+      <label className="flex items-center gap-3 text-sm">
+        <input
+          type="checkbox"
+          className="h-4 w-4 rounded border-border"
+          checked={thinkingSupported}
+          onChange={(e) => {
+            const checked = e.target.checked
+            setForm((prev) => ({
+              ...prev,
+              llm_thinking_supported: checked ? 'true' : 'false',
+              llm_enable_thinking: checked ? prev.llm_enable_thinking : 'false',
+            }))
+          }}
+        />
+        <span className="font-medium">模型支持 thinking 参数</span>
+      </label>
+      <label className={`flex items-center gap-3 text-sm ${thinkingSupported ? '' : 'text-muted-foreground'}`}>
+        <input
+          type="checkbox"
+          className="h-4 w-4 rounded border-border"
+          checked={form.llm_enable_thinking === 'true'}
+          disabled={!thinkingSupported}
+          onChange={(e) => setBooleanField('llm_enable_thinking', e.target.checked)}
+        />
+        <span className="font-medium">请求时发送 enable_thinking</span>
+      </label>
     </div>
   )
 
@@ -151,9 +205,13 @@ export default function Settings() {
         <div className="space-y-6">
           <div className="rounded-xl border bg-card p-6 space-y-6">
             {renderFields('LLM 配置', LLM_FIELDS)}
+            {renderThinkingControls()}
           </div>
           <div className="rounded-xl border bg-card p-6 space-y-6">
             {renderFields('Embedding 配置', EMBEDDING_FIELDS)}
+          </div>
+          <div className="rounded-xl border bg-card p-6 space-y-6">
+            {renderFields('高级 / 开发者配置', ADVANCED_FIELDS)}
           </div>
         </div>
 

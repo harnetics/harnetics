@@ -35,7 +35,7 @@ src/pages/DraftShow.tsx: 草稿详情 — 调用 /api/draft/:id
 src/pages/Impact.tsx: 影响分析首页 — 调用 /api/impact
 src/pages/ImpactReport.tsx: 影响报告详情 — 调用 /api/impact/:id
 src/pages/Graph.tsx: 文档图谱 SVG — 调用 /api/graph
-src/pages/Settings.tsx: 设置页 — LLM/Embedding 运行时配置 + 开发者日志窗口
+src/pages/Settings.tsx: 设置页 — LLM/Embedding 运行时配置 + LLM thinking 开关 + 高级推理边界 + 开发者日志窗口
 src/pages/Comparison.tsx: 文档比对工作台 — 四步向量流 / 传统流式切换、实时步骤状态、匹配进度与历史会话。
 src/pages/DesignSystem.tsx: 设计系统展示页 (静态)
 

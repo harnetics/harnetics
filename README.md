@@ -140,6 +140,9 @@ cp .env.example .env
 HARNETICS_LLM_MODEL=gpt-4o-mini
 HARNETICS_LLM_BASE_URL=
 HARNETICS_LLM_API_KEY=sk-...
+# 若供应商模型支持 SiliconFlow enable_thinking，可在设置页勾选后发送
+# HARNETICS_LLM_THINKING_SUPPORTED=true
+# HARNETICS_LLM_ENABLE_THINKING=false
 
 HARNETICS_EMBEDDING_MODEL=text-embedding-3-small
 HARNETICS_EMBEDDING_BASE_URL=
@@ -168,9 +171,9 @@ ollama pull qwen3.5:4b
 ollama pull nomic-embed-text
 ```
 
-> **提示**：也可以在启动服务后，进入 Web UI 的**设置**页面实时填写并保存 LLM / Embedding 配置，无需重启服务。完整配置项见 [.env.example](.env.example)。
+> **提示**：也可以在启动服务后，进入 Web UI 的**设置**页面实时填写并保存 LLM / Embedding 配置和高级推理边界，无需重启服务。完整配置项见 [.env.example](.env.example)。
 
-比对审查遇到模型响应慢、供应商输出限制或大文件卡顿时，可在 `.env` 调整推理边界：
+比对审查遇到模型响应慢、供应商输出限制或大文件卡顿时，可在设置页的“高级 / 开发者配置”调整推理边界，也可以直接改 `.env`：
 
 ```bash
 HARNETICS_LLM_TIMEOUT_SECONDS=180
