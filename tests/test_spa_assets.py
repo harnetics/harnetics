@@ -26,6 +26,9 @@ def test_resolve_spa_dist_dir_supports_pyinstaller_meipass(monkeypatch, tmp_path
 def test_resolve_spa_dist_dir_ignores_missing_meipass_and_uses_source_fallback(monkeypatch, tmp_path):
     monkeypatch.delenv("HARNETICS_SPA_DIST_DIR", raising=False)
     monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+    source_dist = tmp_path / "frontend" / "dist"
+    source_dist.mkdir(parents=True)
+    monkeypatch.setattr("harnetics.api.app.__file__", str(tmp_path / "src" / "harnetics" / "api" / "app.py"))
 
     result = _resolve_spa_dist_dir()
 
