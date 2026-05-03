@@ -42,6 +42,13 @@ memory/
 # Local build tools cache (binary only, not committed)
 # ================================================================
 .docker/
+desktop/node_modules/
+desktop/src-tauri/target/
+desktop/src-tauri/binaries/
+desktop/src-tauri/gen/
+dist/
+build/
+*.spec~
 
 # ================================================================
 # Local environment

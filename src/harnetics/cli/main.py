@@ -1,7 +1,7 @@
 """
-# [INPUT]: 依赖 typer、rich、graph.store、graph.indexer、api.app、uvicorn、webbrowser、threading
-# [OUTPUT]: 对外提供 CLI 命令: init、ingest、serve；serve 支持浏览器自动打开
-# [POS]: cli 包的命令入口，默认操作独立 graph DB，并提供 reset/reload 等开发启动能力
+# [INPUT]: 依赖 typer、rich、graph.store、graph.indexer、api.app、uvicorn、webbrowser、threading、运行时环境变量
+# [OUTPUT]: 对外提供 CLI 命令: init、ingest、serve；serve 支持浏览器自动打开与桌面 sidecar 日志目录注入
+# [POS]: cli 包的命令入口，默认操作独立 graph DB，并为 Web/Docker/桌面三种启动路径提供同一服务入口
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
 from __future__ import annotations
@@ -125,7 +125,7 @@ def serve(
     # ---- 日志落盘（北京时间命名） ----
     _TZ_CST = timezone(timedelta(hours=8))
     log_name = datetime.now(_TZ_CST).strftime("%Y-%m-%d_%H-%M-%S") + ".log"
-    log_dir = Path("data/logs")
+    log_dir = Path(os.environ.get("HARNETICS_LOG_DIR", "data/logs"))
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = str((log_dir / log_name).resolve())
 

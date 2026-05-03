@@ -9,6 +9,8 @@ test_graph_store.py: 图谱存储与索引回归测试，锁定 graph schema、l
 test_impact_analyzer.py: 影响分析器单元测试，锁定 AI 精判按文档批量调用 LLM，而不是按候选章节重复外呼。
 test_e2e_mvp_scenario.py: 图谱栈端到端场景测试，覆盖上传、草稿、评估、影响分析、图谱与仪表盘契约。
 test_env_routing.py: 环境配置回归测试，使用本地 fake OpenAI-compatible provider 验证 bare LLM/Embedding 模型名经 .env + base_url 路由后可完成 completion 和 embedding。
+test_desktop_runtime.py: 桌面运行时路径契约测试，锁定 app data 下的 DB/Chroma/上传/导出/日志/.env 与 sidecar 环境变量。
+test_spa_assets.py: SPA 静态资源定位测试，锁定显式环境变量、PyInstaller `_MEIPASS` 与缺失场景的解析语义。
 
 法则: 测试只锁定可观察行为，优先覆盖真实工作流而非内部步骤。
 

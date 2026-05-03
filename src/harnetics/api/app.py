@@ -1,11 +1,13 @@
-# [INPUT]: 依赖 FastAPI、pathlib、graph.store、config 与所有 api.routes.*
-# [OUTPUT]: 对外提供 create_api_app() 工厂函数
-# [POS]: api 包的应用装配层，注册全量 API 路由 + SPA 前端托管，挂载 RuntimeSettingsManager
+# [INPUT]: 依赖 FastAPI、pathlib、sys、os、graph.store、config 与所有 api.routes.*
+# [OUTPUT]: 对外提供 create_api_app() 工厂函数与 _resolve_spa_dist_dir() 静态资源定位器
+# [POS]: api 包的应用装配层，注册全量 API 路由 + SPA 前端托管，兼容源码布局与 PyInstaller 桌面 sidecar
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from __future__ import annotations
 
 import logging
+import os
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -34,6 +36,25 @@ def _configure_harnetics_logging() -> None:
         app_logger.handlers = uvicorn_logger.handlers
         app_logger.propagate = False
     app_logger.setLevel(logging.INFO)
+
+
+def _resolve_spa_dist_dir() -> Path | None:
+    """解析生产 SPA 目录：显式环境变量 > PyInstaller bundle > 源码仓库布局。"""
+    candidates: list[Path] = []
+    explicit = os.environ.get("HARNETICS_SPA_DIST_DIR", "").strip()
+    if explicit:
+        candidates.append(Path(explicit).expanduser())
+
+    meipass = getattr(sys, "_MEIPASS", "")
+    if meipass:
+        candidates.append(Path(meipass) / "frontend" / "dist")
+
+    candidates.append(Path(__file__).resolve().parent.parent.parent.parent / "frontend" / "dist")
+
+    for path in candidates:
+        if path.is_dir():
+            return path
+    return None
 
 
 @asynccontextmanager
@@ -91,8 +112,8 @@ def create_api_app() -> FastAPI:
         return {"status": "ok"}
 
     # ---- SPA 前端托管 (production build) ----
-    dist_dir = Path(__file__).resolve().parent.parent.parent.parent / "frontend" / "dist"
-    if dist_dir.is_dir():
+    dist_dir = _resolve_spa_dist_dir()
+    if dist_dir is not None:
         app.mount("/assets", StaticFiles(directory=str(dist_dir / "assets")), name="spa-assets")
 
         @app.get("/{full_path:path}")

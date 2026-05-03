@@ -112,7 +112,8 @@ Harnetics 的自进化模块参考并对接了 [EvoMap / Evolver](https://github
 | ------- | ------- | --------------------------------------------------- |
 | Python  | ≥ 3.12 | [python.org](https://www.python.org/downloads/)        |
 | uv      | 最新版  | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| Node.js | ≥ 20   | [nodejs.org](https://nodejs.org/)                      |
+| Node.js | ≥ 22   | [nodejs.org](https://nodejs.org/)                      |
+| Rust    | stable  | 仅桌面安装包构建需要，[rustup.rs](https://rustup.rs/) |
 
 ### 安装
 
@@ -187,6 +188,34 @@ uv run python -m harnetics.cli.main serve
 cd frontend && npm run dev    # → http://localhost:5173
 ```
 
+### 桌面安装包构建
+
+桌面版复用同一套 React 工作台和 FastAPI 后端：Tauri 负责窗口与进程生命周期，PyInstaller 将后端打成 sidecar。首次桌面构建前先安装 Rust stable。
+
+```bash
+# 1. 构建前端静态资源
+cd frontend
+npm ci
+npm run build
+cd ..
+
+# 2. 构建 Python 后端 sidecar
+uv sync --dev
+uv run pyinstaller desktop/pyinstaller/harnetics-server.spec --noconfirm --clean
+mkdir -p desktop/src-tauri/binaries
+
+# macOS Apple Silicon 示例；其他平台后缀见 desktop-release CI matrix
+cp dist/harnetics-server desktop/src-tauri/binaries/harnetics-server-aarch64-apple-darwin
+chmod +x desktop/src-tauri/binaries/harnetics-server-aarch64-apple-darwin
+
+# 3. 构建当前平台桌面包
+cd desktop
+npm ci
+npm run build
+```
+
+Windows/macOS 发布包由 `.github/workflows/desktop-release.yml` 在 `v*.*.*` 标签或手动触发时自动构建；手动触发需要填写已有 `release_tag` 才会把产物挂到 GitHub Release。正式公开分发前仍需补充平台签名与 macOS notarization。
+
 ### 冒烟测试
 
 ```bash
@@ -243,6 +272,9 @@ uv run pytest tests/ -q
 
 # 前端构建验证
 cd frontend && npm run build
+
+# 桌面运行时路径测试
+uv run pytest tests/test_desktop_runtime.py -q
 ```
 
 ## Docker

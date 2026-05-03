@@ -41,6 +41,10 @@ dependencies = [
   "pypdf>=4.0.0",
 ]
 
+[project.scripts]
+harnetics = "harnetics.cli.main:app"
+harnetics-server = "harnetics.cli.main:app"
+
 [project.urls]
 Homepage = "https://github.com/harnetics/harnetics"
 Documentation = "https://github.com/harnetics/harnetics#readme"
@@ -52,6 +56,7 @@ Changelog = "https://github.com/harnetics/harnetics/blob/main/docs/CHANGELOG.md"
 
 [dependency-groups]
 dev = [
+  "pyinstaller>=6.13.0",
   "pytest>=8.4.0",
 ]
 
