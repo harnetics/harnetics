@@ -10,7 +10,7 @@ evolution.py: 进化信号统计路由，挂载于 /api/evolution，服务 Evolu
 fixture.py: 夹具导入、场景列举与运行路由，挂载于 /api/fixture，驱动 TestLab 演示。
 graph.py: 文档图谱节点/边查询路由，挂载于 /api/graph。
 impact.py: 影响分析触发与报告查询路由，挂载于 /api/impact。
-settings.py: LLM/Embedding 运行时配置读写路由，挂载于 /api/settings。
+settings.py: LLM/Embedding 运行时配置读写与开发者日志 tail 路由，挂载于 /api/settings。
 status.py: 健康检查与 LLM/Embedding 状态探测路由，挂载于 /api/status。
 comparison.py: 文档比对会话路由，挂载于 /api/comparison，提供 analyze、analyze-stream、analyze-4step、list、get、export、delete 端点。
 

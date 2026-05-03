@@ -11,6 +11,7 @@ test_e2e_mvp_scenario.py: 图谱栈端到端场景测试，覆盖上传、草稿
 test_env_routing.py: 环境配置回归测试，使用本地 fake OpenAI-compatible provider 验证 bare LLM/Embedding 模型名经 .env + base_url 路由后可完成 completion 和 embedding。
 test_desktop_runtime.py: 桌面运行时路径契约测试，锁定 app data 下的 DB/Chroma/上传/导出/日志/.env 与 sidecar 环境变量。
 test_spa_assets.py: SPA 静态资源定位测试，锁定显式环境变量、PyInstaller `_MEIPASS` 与缺失场景的解析语义。
+test_developer_logs.py: 开发者日志 API 契约测试，锁定显式日志文件、日志目录最新文件与空日志响应。
 
 法则: 测试只锁定可观察行为，优先覆盖真实工作流而非内部步骤。
 

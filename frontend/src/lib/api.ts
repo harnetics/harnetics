@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 @/types 的全部接口定义
- * [OUTPUT]: 对外提供 fetch 封装函数 (fetchDocuments/uploadDocument/analyzeComparisonStream/analyzeComparison4Step 等)
+ * [OUTPUT]: 对外提供 fetch 封装函数 (fetchDocuments/uploadDocument/fetchDeveloperLogs/analyzeComparisonStream/analyzeComparison4Step 等)
  * [POS]: lib 的 API 通信层，被各 page 组件调用，统一处理请求/错误
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
@@ -24,6 +24,7 @@ import type {
   ComparisonSessionSummary,
   ComparisonProgressEvent,
   Comparison4StepEvent,
+  DeveloperLogs,
 } from '@/types'
 
 // ================================================================
@@ -196,6 +197,11 @@ export function updateSettings(data: Partial<SettingsData>): Promise<SettingsDat
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
+}
+
+export function fetchDeveloperLogs(limit = 200): Promise<DeveloperLogs> {
+  const qs = new URLSearchParams({ limit: String(limit) })
+  return request<DeveloperLogs>(`/api/settings/logs?${qs}`)
 }
 
 // ================================================================

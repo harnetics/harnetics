@@ -1,15 +1,16 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 fetchSettings/updateSettings
- * [OUTPUT]: 对外提供 Settings 页面组件
- * [POS]: pages 的运行时配置页，允许用户查看和修改 LLM/Embedding 参数
+ * [INPUT]: 依赖 @/lib/api 的 fetchSettings/updateSettings/fetchDeveloperLogs
+ * [OUTPUT]: 对外提供 Settings 页面组件，含开发者模式实时日志窗口
+ * [POS]: pages 的运行时配置与调试页，允许用户查看/修改 LLM/Embedding 参数并观察后端日志
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
 import { useState, useEffect } from 'react'
-import { fetchSettings, updateSettings, type SettingsData } from '@/lib/api'
+import { fetchDeveloperLogs, fetchSettings, updateSettings, type SettingsData } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Save } from 'lucide-react'
+import type { DeveloperLogs } from '@/types'
+import { Bug, Save, ScrollText } from 'lucide-react'
 
 const EMPTY: SettingsData = {
   llm_model: '',
@@ -45,12 +46,40 @@ export default function Settings() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [developerMode, setDeveloperMode] = useState(false)
+  const [logs, setLogs] = useState<DeveloperLogs>({ path: '', lines: [] })
+  const [logError, setLogError] = useState('')
 
   useEffect(() => {
     fetchSettings()
       .then((s) => { setData(s); setForm(s) })
       .catch((e) => setError(e instanceof Error ? e.message : '加载失败'))
   }, [])
+
+  useEffect(() => {
+    if (!developerMode) return
+
+    let active = true
+    const loadLogs = () => {
+      fetchDeveloperLogs()
+        .then((next) => {
+          if (!active) return
+          setLogs(next)
+          setLogError('')
+        })
+        .catch((e) => {
+          if (!active) return
+          setLogError(e instanceof Error ? e.message : '日志加载失败')
+        })
+    }
+
+    loadLogs()
+    const timer = window.setInterval(loadLogs, 1000)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [developerMode])
 
   const handleSave = async () => {
     setSaving(true)
@@ -96,22 +125,67 @@ export default function Settings() {
   )
 
   return (
-    <div className="container mx-auto max-w-screen-md px-4 py-8 space-y-8">
+    <div className="container mx-auto max-w-screen-xl px-4 py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">设置</h1>
-        <Button className="gap-2" onClick={handleSave} disabled={saving}>
-          <Save className="h-4 w-4" />
-          {saving ? '保存中…' : '保存'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant={developerMode ? 'default' : 'outline'}
+            className="gap-2"
+            onClick={() => setDeveloperMode((v) => !v)}
+          >
+            <Bug className="h-4 w-4" />
+            开发者模式
+          </Button>
+          <Button className="gap-2" onClick={handleSave} disabled={saving}>
+            <Save className="h-4 w-4" />
+            {saving ? '保存中…' : '保存'}
+          </Button>
+        </div>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
-      <div className="rounded-xl border bg-card p-6 space-y-6">
-        {renderFields('LLM 配置', LLM_FIELDS)}
-      </div>
-      <div className="rounded-xl border bg-card p-6 space-y-6">
-        {renderFields('Embedding 配置', EMBEDDING_FIELDS)}
+      <div className={`mt-8 grid gap-6 ${developerMode ? 'lg:grid-cols-[minmax(0,1fr)_430px]' : 'max-w-screen-md'}`}>
+        <div className="space-y-6">
+          <div className="rounded-xl border bg-card p-6 space-y-6">
+            {renderFields('LLM 配置', LLM_FIELDS)}
+          </div>
+          <div className="rounded-xl border bg-card p-6 space-y-6">
+            {renderFields('Embedding 配置', EMBEDDING_FIELDS)}
+          </div>
+        </div>
+
+        {developerMode && (
+          <aside className="rounded-xl border bg-card p-0 lg:sticky lg:top-20 lg:h-[calc(100vh-7rem)]">
+            <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <ScrollText className="h-4 w-4 shrink-0 text-primary" />
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold">后端日志</h2>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {logs.path || '等待日志文件'}
+                  </p>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-300">
+                实时
+              </span>
+            </div>
+            <div className="h-[520px] overflow-auto bg-muted/30 p-3 lg:h-[calc(100%-58px)]">
+              {logError ? (
+                <p className="text-sm text-destructive">{logError}</p>
+              ) : logs.lines.length ? (
+                <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-5 text-foreground">
+                  {logs.lines.join('\n')}
+                </pre>
+              ) : (
+                <p className="text-sm text-muted-foreground">暂无日志输出</p>
+              )}
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   )

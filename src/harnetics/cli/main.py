@@ -1,6 +1,6 @@
 """
 # [INPUT]: 依赖 typer、rich、graph.store、graph.indexer、api.app、uvicorn、webbrowser、threading、运行时环境变量
-# [OUTPUT]: 对外提供 CLI 命令: init、ingest、serve；serve 支持浏览器自动打开与桌面 sidecar 日志目录注入
+# [OUTPUT]: 对外提供 CLI 命令: init、ingest、serve；serve 支持浏览器自动打开、桌面 sidecar 日志目录注入与当前日志文件暴露
 # [POS]: cli 包的命令入口，默认操作独立 graph DB，并为 Web/Docker/桌面三种启动路径提供同一服务入口
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
@@ -128,6 +128,7 @@ def serve(
     log_dir = Path(os.environ.get("HARNETICS_LOG_DIR", "data/logs"))
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = str((log_dir / log_name).resolve())
+    os.environ["HARNETICS_LOG_FILE"] = log_file
 
     log_config = {
         "version": 1,

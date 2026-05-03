@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 无外部依赖
- * [OUTPUT]: 对外提供全部前端领域类型 (Document/Section/Edge/Draft/Impact/Dashboard/Comparison/Comparison4Step)
+ * [OUTPUT]: 对外提供全部前端领域类型 (Document/Section/Edge/Draft/Impact/Dashboard/DeveloperLogs/Comparison/Comparison4Step)
  * [POS]: types 的唯一入口，被 lib/api.ts 和各 page 组件消费
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
@@ -163,6 +163,11 @@ export interface DashboardStats {
   embedding_error: string
   embedding_collection_reset: boolean
   sections_indexed: number
+}
+
+export interface DeveloperLogs {
+  path: string
+  lines: string[]
 }
 
 // ================================================================

@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 os、pathlib、dotenv、threading
-# [OUTPUT]: 提供 Settings 数据对象、RuntimeSettingsManager 运行时覆盖层、write_dotenv_values() 回写函数、默认路径常量、get_settings() 工厂
+# [OUTPUT]: 提供 Settings 数据对象、RuntimeSettingsManager 运行时覆盖层、write_dotenv_values() 回写函数、默认路径/模型常量、get_settings() 工厂
 # [POS]: harnetics 的运行时配置中心，.env 文件是单一真相源，API 层写操作经 write_dotenv_values 回写，进程内经 RuntimeSettingsManager 即时可见
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -19,6 +19,8 @@ DEFAULT_SERVER_PORT = 8000
 DEFAULT_LLM_BASE_URL = ""  # 空字符串 → SDK 使用 api.openai.com/v1；本地 Ollama 设为 http://localhost:11434
 DEFAULT_LLM_MODEL = "gpt-4o-mini"
 DEFAULT_LLM_MAX_TOKENS = 16384
+DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
+DEFAULT_EMBEDDING_BASE_URL = ""
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -40,9 +42,9 @@ class Settings:
     llm_max_tokens: int = DEFAULT_LLM_MAX_TOKENS
 
     # ---- Embedding ----
-    embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
+    embedding_model: str = DEFAULT_EMBEDDING_MODEL
     embedding_api_key: str = ""
-    embedding_base_url: str = ""
+    embedding_base_url: str = DEFAULT_EMBEDDING_BASE_URL
 
     # ---- LLM API Key ----
     llm_api_key: str = ""
@@ -103,9 +105,9 @@ def get_settings() -> Settings:
         llm_base_url=llm_url or DEFAULT_LLM_BASE_URL,
         llm_api_key=llm_api_key,
         llm_max_tokens=int(llm_max_tokens_raw) if llm_max_tokens_raw else DEFAULT_LLM_MAX_TOKENS,
-        embedding_model=embedding_model or "paraphrase-multilingual-MiniLM-L12-v2",
+        embedding_model=embedding_model or DEFAULT_EMBEDDING_MODEL,
         embedding_api_key=embedding_api_key,
-        embedding_base_url=embedding_base_url,
+        embedding_base_url=embedding_base_url or DEFAULT_EMBEDDING_BASE_URL,
         server_port=int(server_port) if server_port else DEFAULT_SERVER_PORT,
     )
 

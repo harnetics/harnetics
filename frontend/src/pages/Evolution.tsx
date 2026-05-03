@@ -462,19 +462,19 @@ export default function Evolution() {
           <Dna className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold tracking-tight">GEP 自进化</h1>
         </div>
-        <Card>
-          <CardContent className="py-16 text-center space-y-4">
-            <Dna className="mx-auto h-12 w-12 text-muted-foreground/30" />
-            <p className="text-muted-foreground">
+        <Card className="border-border bg-card">
+          <CardContent className="py-16 text-center space-y-5">
+            <Dna className="mx-auto h-12 w-12 text-primary/70" />
+            <p className="text-foreground">
               还没有任何进化信号。
               <Link to="/draft" className="text-primary hover:underline ml-1">生成第一份草稿</Link>
               后，系统将自动开始积累本机演化记忆。
             </p>
             {stats && !stats.evolver_installed && (
-              <div className="inline-flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+              <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-md border border-amber-400/70 bg-amber-100/80 px-3 py-2 text-sm text-amber-950 dark:border-amber-500/40 dark:bg-amber-900/30 dark:text-amber-200">
                 <Package className="h-4 w-4 shrink-0" />
                 evolver 未安装——运行
-                <code className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1 rounded">
+                <code className="rounded bg-amber-200/80 px-1 font-mono text-amber-950 dark:bg-amber-950/50 dark:text-amber-100">
                   npm install -g @evomap/evolver
                 </code>
                 以启用 GEP 引导

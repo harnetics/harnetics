@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 fastapi.testclient、harnetics.api.app 的 create_api_app、harnetics.config
-# [OUTPUT]: 提供 API app 冒烟测试——healthcheck、settings、dotenv 加载、dashboard 缓存
+# [OUTPUT]: 提供 API app 冒烟测试——healthcheck、settings、dotenv 加载、云端默认模型、dashboard 缓存
 # [POS]: tests 目录中的应用骨架测试，验证 API app factory 行为
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -42,6 +42,27 @@ def test_get_settings_loads_dotenv(tmp_path: Path, monkeypatch) -> None:
     assert settings.llm_api_key == "sk-llm"
     assert settings.embedding_model == "text-embedding-3-small"
     assert settings.embedding_api_key == "sk-emb"
+
+
+def test_get_settings_defaults_to_cloud_llm_and_embedding(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("harnetics.config._PROJECT_ROOT", tmp_path)
+    for name in (
+        "HARNETICS_LLM_MODEL",
+        "HARNETICS_LLM_BASE_URL",
+        "HARNETICS_LLM_API_KEY",
+        "HARNETICS_EMBEDDING_MODEL",
+        "HARNETICS_EMBEDDING_BASE_URL",
+        "HARNETICS_EMBEDDING_API_KEY",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = get_settings()
+
+    assert settings.llm_model == "gpt-4o-mini"
+    assert settings.llm_base_url == ""
+    assert settings.embedding_model == "text-embedding-3-small"
+    assert settings.embedding_base_url == ""
 
 
 def test_get_settings_falls_back_to_project_root_dotenv(tmp_path: Path, monkeypatch) -> None:

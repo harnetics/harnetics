@@ -133,7 +133,22 @@ cp .env.example .env
 # 用任意编辑器打开 .env，取消注释并填写对应方案的变量
 ```
 
-**方案 A：本地 Ollama**（离线，无需 API Key）
+**方案 A：云端 OpenAI-compatible**（默认推荐）
+
+```bash
+# .env 中填写：
+HARNETICS_LLM_MODEL=gpt-4o-mini
+HARNETICS_LLM_BASE_URL=
+HARNETICS_LLM_API_KEY=sk-...
+
+HARNETICS_EMBEDDING_MODEL=text-embedding-3-small
+HARNETICS_EMBEDDING_BASE_URL=
+HARNETICS_EMBEDDING_API_KEY=sk-...
+```
+
+桌面安装包同样默认走云端 LLM 与云端 Embedding。首次启动后也可以在 Web UI 的**设置**页填写 API Key；未填写 Key 时状态页会显示模型不可用，但服务本身仍可启动。
+
+**方案 B：本地 Ollama**（自行部署，离线，无需 API Key）
 
 ```bash
 # .env 中填写：
@@ -141,30 +156,16 @@ HARNETICS_LLM_MODEL=qwen3.5:4b
 HARNETICS_LLM_BASE_URL=http://localhost:11434
 # HARNETICS_LLM_API_KEY 留空
 
-# Embedding 同样走本地（默认已内置 sentence-transformers，无需额外配置）
-# 若也想用 Ollama 做 embedding：
-# HARNETICS_EMBEDDING_MODEL=nomic-embed-text
-# HARNETICS_EMBEDDING_BASE_URL=http://localhost:11434
+HARNETICS_EMBEDDING_MODEL=nomic-embed-text
+HARNETICS_EMBEDDING_BASE_URL=http://localhost:11434
+# HARNETICS_EMBEDDING_API_KEY 留空
 ```
 
-在本机安装并启动 Ollama（[ollama.com](https://ollama.com)），然后拉取模型：
+在本机安装并启动 Ollama（[ollama.com](https://ollama.com)），然后拉取所需模型：
 
 ```bash
 ollama pull qwen3.5:4b
-```
-
-**方案 B：云端 OpenAI-compatible**（任意服务商）
-
-```bash
-# .env 中填写：
-HARNETICS_LLM_MODEL=gpt-4o-mini
-HARNETICS_LLM_BASE_URL=https://api.openai.com/v1
-HARNETICS_LLM_API_KEY=sk-...
-
-# 可选：同时配置云端 Embedding（留空则用本地 sentence-transformers）
-# HARNETICS_EMBEDDING_MODEL=text-embedding-3-small
-# HARNETICS_EMBEDDING_BASE_URL=https://api.openai.com/v1
-# HARNETICS_EMBEDDING_API_KEY=sk-...
+ollama pull nomic-embed-text
 ```
 
 > **提示**：也可以在启动服务后，进入 Web UI 的**设置**页面实时填写并保存 LLM / Embedding 配置，无需重启服务。完整配置项见 [.env.example](.env.example)。
