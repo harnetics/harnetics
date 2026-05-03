@@ -1,11 +1,29 @@
 # [INPUT]: 依赖 pytest、unittest.mock 与 harnetics.llm.client.HarneticsLLM/LocalLlmClient
-# [OUTPUT]: 提供模型归一化、Ollama availability 判定与 OpenAI-compatible 原生调用的回归测试
+# [OUTPUT]: 提供模型归一化、Ollama availability 判定、OpenAI-compatible 原生调用与请求超时的回归测试
 # [POS]: tests 目录中的 LLM 配置契约测试，锁定本地 Ollama 裸模型名、原始模型透传、模型存在性判断与错误脱敏行为
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
 from unittest.mock import Mock, patch
 
 from harnetics.llm.client import HarneticsLLM, LocalLlmClient
+
+
+def test_chat_completion_uses_configured_timeout(monkeypatch) -> None:
+    monkeypatch.setenv("HARNETICS_LLM_TIMEOUT_SECONDS", "42.5")
+    llm = HarneticsLLM(
+        model="claude-sonnet-4-6-think",
+        api_base="https://aihubmix.com/v1",
+        api_key="sk-test",
+    )
+
+    with patch("harnetics.llm.client.OpenAI") as MockOpenAI:
+        MockOpenAI.return_value.chat.completions.create.return_value.choices = [
+            Mock(message=Mock(content="ok"))
+        ]
+
+        assert llm.generate_draft("system", "context", "request") == "ok"
+
+    assert MockOpenAI.call_args.kwargs["timeout"] == 42.5
 
 
 def test_ollama_model_name_is_normalized_from_bare_tag() -> None:
@@ -99,7 +117,7 @@ def test_generate_draft_uses_openai_client_with_raw_model_name() -> None:
     MockOpenAI.assert_called_once_with(
         base_url="https://aihubmix.com/v1",
         api_key="sk-test",
-        timeout=600.0,
+        timeout=180.0,
     )
     MockOpenAI.return_value.chat.completions.create.assert_called_once()
     kwargs = MockOpenAI.return_value.chat.completions.create.call_args.kwargs
@@ -149,7 +167,7 @@ def test_local_client_uses_ollama_openai_compatible_endpoint() -> None:
     MockOpenAI.assert_called_once_with(
         base_url="http://localhost:11434/v1",
         api_key="ollama",
-        timeout=600.0,
+        timeout=180.0,
     )
     kwargs = MockOpenAI.return_value.chat.completions.create.call_args.kwargs
     assert kwargs["model"] == "gemma4:26b"

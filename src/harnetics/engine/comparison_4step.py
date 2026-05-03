@@ -1,5 +1,5 @@
 """
-# [INPUT]: 依赖 llm.client.HarneticsLLM、models.document.Section、chromadb（临时集合）、sentence-transformers、comparison_analyzer 的报告辅助
+# [INPUT]: 依赖 config.get_settings、llm.client.HarneticsLLM、models.document.Section、chromadb（临时集合）、sentence-transformers、comparison_analyzer 的报告辅助
 # [OUTPUT]: 对外提供 Comparison4StepEngine 类，analyze_4step_streaming() 生成器，yield 四步 SSE 事件与最终 Markdown 报告
 # [POS]: engine 包的四步比对引擎，与 comparison_analyzer 并列，通过向量预筛选与全局校验提升审查精准度
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
@@ -34,8 +34,6 @@ from harnetics.engine.comparison_4step_support import (
 )
 
 logger = logging.getLogger("harnetics.comparison_4step")
-
-_EVAL_BATCH_SIZE = 10
 
 
 class Comparison4StepEngine:
@@ -184,13 +182,16 @@ class Comparison4StepEngine:
 
     def _step1_scan_requirements(self, req_sections: list[Section]) -> list[dict]:
         """LLM 解析审查大纲，返回结构化需求列表。JSON 失败时降级为 heading 列表。"""
+        from harnetics.config import get_settings
+
+        settings = get_settings()
         req_text = render_sections(req_sections, max_chars=200_000)
         try:
             raw = self._llm.generate_draft(
                 system_prompt=_STEP1_SYSTEM_PROMPT,
                 context=f"## 【审查大纲】\n\n{req_text}",
                 user_request=_STEP1_USER_REQUEST,
-                max_tokens=32_768,
+                max_tokens=settings.comparison_step1_max_tokens,
             )
             parsed = validate_scanned_requirements(parse_json_array(raw), req_sections)
             if parsed:
@@ -310,9 +311,12 @@ class Comparison4StepEngine:
         matches: dict[int, list[dict]],
         resp_sections: list[Section],
     ) -> Generator[list[dict], None, None]:
-        """每 _EVAL_BATCH_SIZE 条需求打包一次 LLM 调用，yield 本批 findings。"""
-        for batch_start in range(0, len(requirements), _EVAL_BATCH_SIZE):
-            batch_reqs = requirements[batch_start : batch_start + _EVAL_BATCH_SIZE]
+        """按配置批大小打包需求做 LLM 评估，yield 本批 findings。"""
+        from harnetics.config import get_settings
+
+        batch_size = get_settings().comparison_4step_batch_size
+        for batch_start in range(0, len(requirements), batch_size):
+            batch_reqs = requirements[batch_start : batch_start + batch_size]
             batch_matches = {
                 i: matches.get(batch_start + i, [])
                 for i in range(len(batch_reqs))
@@ -402,6 +406,9 @@ class Comparison4StepEngine:
 
     def _step4_global_review(self, findings: list[dict]) -> dict:
         """LLM 基于 findings 摘要做全局评估。"""
+        from harnetics.config import get_settings
+
+        settings = get_settings()
         # 只传 heading+status 摘要，避免超出上下文
         summary_lines = [
             f"{f.get('finding_id', '')} {f.get('requirement_heading', '')} → {f.get('status', '')}"
@@ -425,7 +432,7 @@ class Comparison4StepEngine:
             system_prompt=_STEP4_SYSTEM_PROMPT,
             context=context,
             user_request=user_request,
-            max_tokens=4096,
+            max_tokens=settings.comparison_step4_max_tokens,
         )
         result = parse_json_object(raw)
         if not result:

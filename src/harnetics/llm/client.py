@@ -1,5 +1,5 @@
-# [INPUT]: 依赖 os、httpx 与 openai SDK
-# [OUTPUT]: 对外提供 HarneticsLLM 与旧版 LocalLlmClient 后向/兼容；HarneticsLLM 支持 explainable availability status 与 OpenAI-compatible 原生调用
+# [INPUT]: 依赖 os、httpx、config.get_settings 与 openai SDK
+# [OUTPUT]: 对外提供 HarneticsLLM 与旧版 LocalLlmClient 后向/兼容；HarneticsLLM 支持 explainable availability status、有限超时与 OpenAI-compatible 原生调用
 # [POS]: llm 包的模型调用适配层，统一本地显式路径与 OpenAI-compatible 提供方接入
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -210,6 +210,9 @@ def _create_chat_completion(
 ) -> str:
     if not request_api_base:
         raise RuntimeError("missing api_base")
+    from harnetics.config import get_settings
+
+    timeout_seconds = get_settings().llm_timeout_seconds
 
     logger.info(
         "llm.chat.start model=%s api_base=%s messages=%d max_tokens=%d temperature=%.2f",
@@ -223,7 +226,7 @@ def _create_chat_completion(
     client = OpenAI(
         base_url=request_api_base,
         api_key=api_key,
-        timeout=6000.0,
+        timeout=timeout_seconds,
     )
     try:
         response = client.chat.completions.create(
@@ -358,4 +361,3 @@ def _ollama_model_available(payload: dict[str, Any], model: str) -> bool:
     if ":" in requested:
         return any(name == requested or name.startswith(f"{requested}-") for name in names)
     return any(name == requested or name.startswith(f"{requested}:") or name.startswith(f"{requested}-") for name in names)
-

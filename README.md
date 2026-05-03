@@ -170,6 +170,16 @@ ollama pull nomic-embed-text
 
 > **提示**：也可以在启动服务后，进入 Web UI 的**设置**页面实时填写并保存 LLM / Embedding 配置，无需重启服务。完整配置项见 [.env.example](.env.example)。
 
+比对审查遇到模型响应慢、供应商输出限制或大文件卡顿时，可在 `.env` 调整推理边界：
+
+```bash
+HARNETICS_LLM_TIMEOUT_SECONDS=180
+HARNETICS_LLM_MAX_TOKENS=16384
+HARNETICS_COMPARISON_STEP1_MAX_TOKENS=8192
+HARNETICS_COMPARISON_4STEP_BATCH_SIZE=10
+HARNETICS_COMPARISON_STEP4_MAX_TOKENS=4096
+```
+
 ### 初始化并启动
 
 ```bash

@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 os、pathlib、dotenv、threading
-# [OUTPUT]: 提供 Settings 数据对象、RuntimeSettingsManager 运行时覆盖层、write_dotenv_values() 回写函数、默认路径/模型常量、get_settings() 工厂
+# [OUTPUT]: 提供 Settings 数据对象、RuntimeSettingsManager 运行时覆盖层、write_dotenv_values() 回写函数、默认路径/模型/推理边界常量、get_settings() 工厂
 # [POS]: harnetics 的运行时配置中心，.env 文件是单一真相源，API 层写操作经 write_dotenv_values 回写，进程内经 RuntimeSettingsManager 即时可见
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -19,8 +19,12 @@ DEFAULT_SERVER_PORT = 8000
 DEFAULT_LLM_BASE_URL = ""  # 空字符串 → SDK 使用 api.openai.com/v1；本地 Ollama 设为 http://localhost:11434
 DEFAULT_LLM_MODEL = "gpt-4o-mini"
 DEFAULT_LLM_MAX_TOKENS = 16384
+DEFAULT_LLM_TIMEOUT_SECONDS = 180.0
 DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
 DEFAULT_EMBEDDING_BASE_URL = ""
+DEFAULT_COMPARISON_4STEP_BATCH_SIZE = 10
+DEFAULT_COMPARISON_STEP1_MAX_TOKENS = 500000
+DEFAULT_COMPARISON_STEP4_MAX_TOKENS = 500000
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -40,6 +44,7 @@ class Settings:
     llm_base_url: str = DEFAULT_LLM_BASE_URL
     llm_model: str = DEFAULT_LLM_MODEL
     llm_max_tokens: int = DEFAULT_LLM_MAX_TOKENS
+    llm_timeout_seconds: float = DEFAULT_LLM_TIMEOUT_SECONDS
 
     # ---- Embedding ----
     embedding_model: str = DEFAULT_EMBEDDING_MODEL
@@ -51,6 +56,11 @@ class Settings:
 
     # ---- Server ----
     server_port: int = DEFAULT_SERVER_PORT
+
+    # ---- Comparison ----
+    comparison_4step_batch_size: int = DEFAULT_COMPARISON_4STEP_BATCH_SIZE
+    comparison_step1_max_tokens: int = DEFAULT_COMPARISON_STEP1_MAX_TOKENS
+    comparison_step4_max_tokens: int = DEFAULT_COMPARISON_STEP4_MAX_TOKENS
 
 
 def get_dotenv_path() -> Path | None:
@@ -92,10 +102,14 @@ def get_settings() -> Settings:
     llm_url = _get("HARNETICS_LLM_BASE_URL")
     llm_api_key = _get("HARNETICS_LLM_API_KEY", "") or ""
     llm_max_tokens_raw = _get("HARNETICS_LLM_MAX_TOKENS")
+    llm_timeout_raw = _get("HARNETICS_LLM_TIMEOUT_SECONDS")
     embedding_model = _get("HARNETICS_EMBEDDING_MODEL")
     embedding_api_key = _get("HARNETICS_EMBEDDING_API_KEY", "") or ""
     embedding_base_url = _get("HARNETICS_EMBEDDING_BASE_URL", "") or ""
     server_port = _get("HARNETICS_SERVER_PORT")
+    comparison_batch_raw = _get("HARNETICS_COMPARISON_4STEP_BATCH_SIZE")
+    comparison_step1_tokens_raw = _get("HARNETICS_COMPARISON_STEP1_MAX_TOKENS")
+    comparison_step4_tokens_raw = _get("HARNETICS_COMPARISON_STEP4_MAX_TOKENS")
     return Settings(
         raw_upload_dir=Path(raw_upload_dir) if raw_upload_dir else DEFAULT_RAW_UPLOAD_DIR,
         export_dir=Path(export_dir) if export_dir else DEFAULT_EXPORT_DIR,
@@ -104,12 +118,42 @@ def get_settings() -> Settings:
         llm_model=llm_model or DEFAULT_LLM_MODEL,
         llm_base_url=llm_url or DEFAULT_LLM_BASE_URL,
         llm_api_key=llm_api_key,
-        llm_max_tokens=int(llm_max_tokens_raw) if llm_max_tokens_raw else DEFAULT_LLM_MAX_TOKENS,
+        llm_max_tokens=_int_setting(llm_max_tokens_raw, DEFAULT_LLM_MAX_TOKENS),
+        llm_timeout_seconds=_float_setting(llm_timeout_raw, DEFAULT_LLM_TIMEOUT_SECONDS),
         embedding_model=embedding_model or DEFAULT_EMBEDDING_MODEL,
         embedding_api_key=embedding_api_key,
         embedding_base_url=embedding_base_url or DEFAULT_EMBEDDING_BASE_URL,
         server_port=int(server_port) if server_port else DEFAULT_SERVER_PORT,
+        comparison_4step_batch_size=_int_setting(
+            comparison_batch_raw, DEFAULT_COMPARISON_4STEP_BATCH_SIZE
+        ),
+        comparison_step1_max_tokens=_int_setting(
+            comparison_step1_tokens_raw, DEFAULT_COMPARISON_STEP1_MAX_TOKENS
+        ),
+        comparison_step4_max_tokens=_int_setting(
+            comparison_step4_tokens_raw, DEFAULT_COMPARISON_STEP4_MAX_TOKENS
+        ),
     )
+
+
+def _int_setting(raw: str | None, default: int) -> int:
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def _float_setting(raw: str | None, default: float) -> float:
+    if not raw:
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
 
 
 # ================================================================

@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 fastapi.testclient、harnetics.api.app 的 create_api_app、harnetics.config
-# [OUTPUT]: 提供 API app 冒烟测试——healthcheck、settings、dotenv 加载、云端默认模型、dashboard 缓存
+# [OUTPUT]: 提供 API app 冒烟测试——healthcheck、settings、dotenv 加载、云端默认模型、可调推理边界、dashboard 缓存
 # [POS]: tests 目录中的应用骨架测试，验证 API app factory 行为
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -54,6 +54,10 @@ def test_get_settings_defaults_to_cloud_llm_and_embedding(tmp_path: Path, monkey
         "HARNETICS_EMBEDDING_MODEL",
         "HARNETICS_EMBEDDING_BASE_URL",
         "HARNETICS_EMBEDDING_API_KEY",
+        "HARNETICS_LLM_TIMEOUT_SECONDS",
+        "HARNETICS_COMPARISON_4STEP_BATCH_SIZE",
+        "HARNETICS_COMPARISON_STEP1_MAX_TOKENS",
+        "HARNETICS_COMPARISON_STEP4_MAX_TOKENS",
     ):
         monkeypatch.delenv(name, raising=False)
 
@@ -63,6 +67,32 @@ def test_get_settings_defaults_to_cloud_llm_and_embedding(tmp_path: Path, monkey
     assert settings.llm_base_url == ""
     assert settings.embedding_model == "text-embedding-3-small"
     assert settings.embedding_base_url == ""
+    assert settings.llm_timeout_seconds == 180.0
+    assert settings.comparison_4step_batch_size == 10
+    assert settings.comparison_step1_max_tokens == 8192
+    assert settings.comparison_step4_max_tokens == 4096
+
+
+def test_get_settings_loads_tunable_reasoning_limits(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text(
+        "\n".join(
+            [
+                "HARNETICS_LLM_TIMEOUT_SECONDS=45.5",
+                "HARNETICS_COMPARISON_4STEP_BATCH_SIZE=6",
+                "HARNETICS_COMPARISON_STEP1_MAX_TOKENS=4096",
+                "HARNETICS_COMPARISON_STEP4_MAX_TOKENS=2048",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    settings = get_settings()
+
+    assert settings.llm_timeout_seconds == 45.5
+    assert settings.comparison_4step_batch_size == 6
+    assert settings.comparison_step1_max_tokens == 4096
+    assert settings.comparison_step4_max_tokens == 2048
 
 
 def test_get_settings_falls_back_to_project_root_dotenv(tmp_path: Path, monkeypatch) -> None:
