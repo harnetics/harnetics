@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 无外部依赖
- * [OUTPUT]: 对外提供全部前端领域类型 (Document/Section/Edge/Draft/Impact/Dashboard)
+ * [OUTPUT]: 对外提供全部前端领域类型 (Document/Section/Edge/Draft/Impact/Dashboard/Comparison/Comparison4Step)
  * [POS]: types 的唯一入口，被 lib/api.ts 和各 page 组件消费
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
@@ -336,4 +336,41 @@ export interface ComparisonProgressEvent {
   analysis_md?: string
   message?: string
 }
+
+// ================================================================
+// 四步比对域 (016-comparison-4step-vector)
+// ================================================================
+
+export type ComparisonFlowMode = 'four_step' | 'classic'
+
+/** 步骤1扫描出的单条需求条款 */
+export interface RequirementItem {
+  id: string
+  heading: string
+  content: string
+  section_ref: string
+}
+
+/** 向量匹配候选章节 */
+export interface CandidateSection {
+  section_id: string
+  heading: string
+  text: string
+  distance: number
+}
+
+export interface ComparisonReviewCorrection {
+  type: string
+  description: string
+}
+
+/** 四步流水线 SSE 事件联合类型 */
+export type Comparison4StepEvent =
+  | { type: 'step_started'; step: 1 | 2 | 3 | 4; label: string }
+  | { type: 'scanning_done'; step: 1; total_requirements: number; requirements: RequirementItem[] }
+  | { type: 'matching_progress'; step: 2; matched: number; total: number }
+  | { type: 'finding_batch'; step: 3; findings: ComparisonFinding[]; evaluated: number; total: number }
+  | { type: 'review_done'; step: 4; compliance_rate: number; summary: string; corrections: ComparisonReviewCorrection[] }
+  | { type: 'completed'; session_id: string; total_findings: number; findings: ComparisonFinding[]; analysis_md: string; compliance_rate: number }
+  | { type: 'error'; message: string }
 

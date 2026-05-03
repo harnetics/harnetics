@@ -1,23 +1,25 @@
 """
-# [INPUT]: 依赖 FastAPI、engine.comparison_analyzer、graph.store、parsers (pdf/markdown/docx)、llm.client
+# [INPUT]: 依赖 FastAPI、engine.comparison_analyzer、engine.comparison_4step、graph.store、parsers (pdf/markdown/docx)、llm.client
 # [OUTPUT]: 对外提供 router: POST /api/comparison/analyze、POST /api/comparison/analyze-stream (SSE)、
+#           POST /api/comparison/analyze-4step (SSE 四步流水线)、
 #           GET /api/comparison、GET /api/comparison/{id}、DELETE /api/comparison/{id}、GET /api/comparison/{id}/export
-# [POS]: api/routes 的文档比对端点，接收双文件上传，调用 ComparisonAnalyzer，持久化并返回结构化审查意见
+# [POS]: api/routes 的文档比对端点，接收双文件上传，调用 ComparisonAnalyzer 或 Comparison4StepEngine，持久化并返回结构化审查意见
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
 from __future__ import annotations
 
 import json
 import logging
-import tempfile
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import PlainTextResponse, StreamingResponse
 
 from harnetics.engine.comparison_analyzer import ComparisonAnalyzer
+from harnetics.engine.comparison_4step import Comparison4StepEngine
 from harnetics.graph import store
 from harnetics.llm.client import HarneticsLLM
 from harnetics.models.document import Section
@@ -57,6 +59,41 @@ def _parse_file(file_path: Path, suffix: str, doc_id: str) -> list[Section]:
             order_index=0,
         )
     ]
+
+
+async def _parse_uploaded_sections(
+    req_file: UploadFile,
+    resp_file: UploadFile,
+    session_id: str,
+    req_suffix: str,
+    resp_suffix: str,
+) -> tuple[list[Section], list[Section]]:
+    """将上传文件落到临时目录后解析为章节列表。"""
+    with TemporaryDirectory() as req_dir, TemporaryDirectory() as resp_dir:
+        req_tmp = Path(req_dir) / Path(req_file.filename or "requirement.pdf").name
+        resp_tmp = Path(resp_dir) / Path(resp_file.filename or "response.pdf").name
+        req_tmp.write_bytes(await req_file.read())
+        resp_tmp.write_bytes(await resp_file.read())
+        req_sections = _parse_file(req_tmp, req_suffix, f"{session_id}-REQ")
+        resp_sections = _parse_file(resp_tmp, resp_suffix, f"{session_id}-RESP")
+    return req_sections, resp_sections
+
+
+def _mark_session_failed(session_id: str, message: str) -> None:
+    """统一写入失败态，避免会话只改 status 不留原因。"""
+    row = store.get_comparison_session(session_id)
+    if row is None:
+        return
+    try:
+        findings = json.loads(row.get("findings_json", "[]"))
+    except json.JSONDecodeError:
+        findings = []
+    store.update_comparison_session(
+        session_id=session_id,
+        analysis_md=f"分析失败：{message}",
+        findings=findings,
+        status="failed",
+    )
 
 
 # ================================================================
@@ -134,16 +171,9 @@ async def analyze_comparison(
     )
 
     # ---- 保存并解析文件 ----
-    req_tmp = Path(tempfile.mkdtemp()) / Path(req_filename).name
-    resp_tmp = Path(tempfile.mkdtemp()) / Path(resp_filename).name
-    try:
-        req_tmp.write_bytes(await req_file.read())
-        resp_tmp.write_bytes(await resp_file.read())
-        req_sections = _parse_file(req_tmp, req_suffix, f"{session_id}-REQ")
-        resp_sections = _parse_file(resp_tmp, resp_suffix, f"{session_id}-RESP")
-    finally:
-        req_tmp.unlink(missing_ok=True)
-        resp_tmp.unlink(missing_ok=True)
+    req_sections, resp_sections = await _parse_uploaded_sections(
+        req_file, resp_file, session_id, req_suffix, resp_suffix
+    )
 
     # ---- 持久化初始 session ----
     store.create_comparison_session(
@@ -225,16 +255,9 @@ async def analyze_comparison_stream(
     )
 
     # ---- 保存并解析文件 ----
-    req_tmp = Path(tempfile.mkdtemp()) / Path(req_filename).name
-    resp_tmp = Path(tempfile.mkdtemp()) / Path(resp_filename).name
-    req_tmp.write_bytes(await req_file.read())
-    resp_tmp.write_bytes(await resp_file.read())
-    try:
-        req_sections = _parse_file(req_tmp, req_suffix, f"{session_id}-REQ")
-        resp_sections = _parse_file(resp_tmp, resp_suffix, f"{session_id}-RESP")
-    finally:
-        req_tmp.unlink(missing_ok=True)
-        resp_tmp.unlink(missing_ok=True)
+    req_sections, resp_sections = await _parse_uploaded_sections(
+        req_file, resp_file, session_id, req_suffix, resp_suffix
+    )
 
     store.create_comparison_session(
         session_id=session_id,
@@ -305,12 +328,12 @@ async def analyze_comparison_stream(
                         session_id,
                         event.get("message", ""),
                     )
-                    store.append_comparison_findings(session_id, [], "failed")
+                    _mark_session_failed(session_id, event.get("message", "未知错误"))
 
                 yield _event(event)
         except Exception as exc:  # noqa: BLE001
             logger.exception("comparison.api.stream.abort session_id=%s", session_id)
-            store.append_comparison_findings(session_id, [], "failed")
+            _mark_session_failed(session_id, str(exc))
             yield _event({"type": "error", "message": str(exc)})
 
     return StreamingResponse(
@@ -319,6 +342,133 @@ async def analyze_comparison_stream(
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",  # 禁用 nginx 缓冲
+        },
+    )
+
+
+# ================================================================
+# 四步流水线 SSE 路由
+# ================================================================
+
+@router.post("/analyze-4step")
+async def analyze_comparison_4step(
+    request: Request,
+    req_file: UploadFile = File(..., description="要求文件（审查大纲）"),
+    resp_file: UploadFile = File(..., description="应答文件（安全分析报告）"),
+) -> StreamingResponse:
+    """四步流水线比对审查（向量匹配增强）：SSE 推送步骤事件。
+
+    步骤事件类型：
+      step_started      — 步骤开始（step: 1~4）
+      scanning_done     — 步骤1完成（需求列表）
+      matching_progress — 步骤2进度
+      finding_batch     — 步骤3每批评估结果
+      review_done       — 步骤4全局校验完成
+      completed         — 全部完成
+      error             — 错误
+    """
+    req_filename = req_file.filename or "requirement.pdf"
+    resp_filename = resp_file.filename or "response.pdf"
+    req_suffix = Path(req_filename).suffix
+    resp_suffix = Path(resp_filename).suffix
+
+    if req_suffix.lower() not in _ALLOWED_EXTS:
+        raise HTTPException(400, f"要求文件类型不支持：{req_suffix}，支持 {sorted(_ALLOWED_EXTS)}")
+    if resp_suffix.lower() not in _ALLOWED_EXTS:
+        raise HTTPException(400, f"应答文件类型不支持：{resp_suffix}，支持 {sorted(_ALLOWED_EXTS)}")
+
+    session_id = (
+        f"CMP4-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6].upper()}"
+    )
+
+    logger.info(
+        "comparison.api.4step.start session_id=%s req=%s resp=%s",
+        session_id, req_filename, resp_filename,
+    )
+
+    # ---- 保存并解析文件 ----
+    req_sections, resp_sections = await _parse_uploaded_sections(
+        req_file, resp_file, session_id, req_suffix, resp_suffix
+    )
+
+    store.create_comparison_session(
+        session_id=session_id,
+        req_filename=req_filename,
+        resp_filename=resp_filename,
+        req_sections=[_section_to_dict(s) for s in req_sections],
+        resp_sections=[_section_to_dict(s) for s in resp_sections],
+    )
+    store.append_comparison_findings(session_id, [], "analyzing")
+
+    logger.info(
+        "comparison.api.4step.session_created session_id=%s req_sections=%d resp_sections=%d",
+        session_id, len(req_sections), len(resp_sections),
+    )
+
+    rt = request.app.state.runtime_settings
+    llm = HarneticsLLM(
+        model=rt.get("llm_model"),
+        api_base=rt.get("llm_base_url"),
+        api_key=rt.get("llm_api_key") or None,
+    )
+    engine = Comparison4StepEngine(
+        llm=llm,
+        embedding_model=rt.get("embedding_model") or "",
+        embedding_api_key=rt.get("embedding_api_key") or "",
+        embedding_base_url=rt.get("embedding_base_url") or "",
+    )
+
+    def _event(data: dict) -> str:
+        return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+    def _generate():
+        try:
+            for event in engine.analyze_4step_streaming(
+                session_id=session_id,
+                req_sections=req_sections,
+                resp_sections=resp_sections,
+                req_filename=req_filename,
+                resp_filename=resp_filename,
+            ):
+                etype = event.get("type")
+                if etype == "finding_batch":
+                    logger.info(
+                        "comparison.api.4step.finding_batch session_id=%s evaluated=%s/%s",
+                        session_id, event.get("evaluated"), event.get("total"),
+                    )
+                    store.append_comparison_findings(
+                        session_id, event.get("findings", []), "analyzing"
+                    )
+                elif etype == "completed":
+                    logger.info(
+                        "comparison.api.4step.completed session_id=%s findings=%d",
+                        session_id, event.get("total_findings", 0),
+                    )
+                    store.update_comparison_session(
+                        session_id=session_id,
+                        analysis_md=event.get("analysis_md", ""),
+                        findings=event.get("findings", []),
+                        status="completed",
+                    )
+                elif etype == "error":
+                    logger.error(
+                        "comparison.api.4step.error session_id=%s message=%s",
+                        session_id, event.get("message", ""),
+                    )
+                    _mark_session_failed(session_id, event.get("message", "未知错误"))
+
+                yield _event(event)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("comparison.api.4step.abort session_id=%s", session_id)
+            _mark_session_failed(session_id, str(exc))
+            yield _event({"type": "error", "message": str(exc)})
+
+    return StreamingResponse(
+        _generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
         },
     )
 

@@ -18,8 +18,8 @@ src/main.tsx: ReactDOM 入口
 src/index.css: Tailwind v4 + amethyst-haze 主题变量
 src/vite-env.d.ts: Vite 类型声明
 
-src/types/index.ts: 全部前端领域类型 (Document/Section/Edge/Draft/Impact/Dashboard)
-src/lib/api.ts: fetch 封装 — fetchDocuments/fetchDocument/fetchDraft/generateDraft 等
+src/types/index.ts: 全部前端领域类型真相源，含 Comparison 四步/传统双模式事件与状态类型。
+src/lib/api.ts: fetch 封装与 SSE 流消费层，提供 documents/draft/impact/comparison 双通道 API。
 src/lib/utils.ts: cn() Tailwind 合并工具
 
 src/components/Header.tsx: 导航栏 (react-router-dom Link)
@@ -35,6 +35,7 @@ src/pages/DraftShow.tsx: 草稿详情 — 调用 /api/draft/:id
 src/pages/Impact.tsx: 影响分析首页 — 调用 /api/impact
 src/pages/ImpactReport.tsx: 影响报告详情 — 调用 /api/impact/:id
 src/pages/Graph.tsx: 文档图谱 SVG — 调用 /api/graph
+src/pages/Comparison.tsx: 文档比对工作台 — 四步向量流 / 传统流式切换、实时步骤状态、匹配进度与历史会话。
 src/pages/DesignSystem.tsx: 设计系统展示页 (静态)
 
 src/data/mock.ts: prototype2 原始 mock 数据 (开发参考用)
