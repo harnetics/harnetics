@@ -36,7 +36,8 @@ def test_macos_dmg_uses_fixed_installer_layout() -> None:
 def test_desktop_build_postprocesses_macos_dmg_volume_icon() -> None:
     package = json.loads(DESKTOP_PACKAGE.read_text(encoding="utf-8"))
 
-    assert "node scripts/fix-macos-dmg.mjs" in package["scripts"]["build"]
+    assert package["scripts"]["build"] == "tauri build"
+    assert package["scripts"]["postbuild"] == "node scripts/fix-macos-dmg.mjs"
 
     script = DMG_POSTPROCESS.read_text(encoding="utf-8")
     assert ".VolumeIcon.icns" in script

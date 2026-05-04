@@ -95,7 +95,7 @@ jobs:
 
       - name: Build desktop bundle
         working-directory: desktop
-        run: npm run tauri build -- --target ${{ matrix.target }}
+        run: npm run build -- --target ${{ matrix.target }}
 
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v5

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "harnetics"
-version = "0.1.1"
+version = "0.2.0"
 description = "商业航天文档对齐工作台——基于文档图谱与大语言模型（LLM），实现跨部门追溯、草稿生成与变更影响分析。"
 readme = "README.md"
 license = { text = "Apache-2.0" }

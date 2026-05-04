@@ -1,11 +1,12 @@
 {
   "name": "harnetics-desktop",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build && node scripts/fix-macos-dmg.mjs",
+    "build": "tauri build",
+    "postbuild": "node scripts/fix-macos-dmg.mjs",
     "tauri": "tauri"
   },
   "devDependencies": {
