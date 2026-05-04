@@ -4,10 +4,10 @@
 成员清单
 conftest.py: pytest 共享 fixture，提供 graph_db_path、graph_conn、fixture_root 与 fixture_doc_paths。
 test_app.py: API 冒烟测试——healthcheck、settings .env 解析回退语义、Step1/Step3/Step4 可调推理边界、comparison 北京时间出口与历史 summary 修复、dashboard 缓存。
-test_llm_client.py: LLM 配置契约测试，锁定 Ollama 裸模型名归一化、默认构造复用当前 settings、原始模型透传、目标模型存在性判断、请求超时与错误脱敏语义。
+test_llm_client.py: LLM 配置契约测试，锁定 Ollama 裸模型名归一化、默认构造复用当前 settings、原始模型透传、目标模型存在性判断、请求超时、结构化 temperature 与错误脱敏语义。
 test_graph_store.py: 图谱存储与索引回归测试，锁定 graph schema、legacy schema 拒绝、section 入库、边去重/折叠、bare OpenAI embedding 模型路由判定。
 test_impact_analyzer.py: 影响分析器单元测试，锁定 AI 精判按文档批量调用 LLM，而不是按候选章节重复外呼。
-test_comparison_4step.py: 四步比对引擎单元测试，锁定 Step1/Step3 输出预算、Step4 summary 兜底与 LLM 异常 fallback 行为。
+test_comparison_4step.py: 四步比对引擎单元测试，锁定 Step1 缓存与 fallback 稳定性、Step3 输出预算、Step4 summary 兜底与 LLM 异常 fallback 行为。
 test_e2e_mvp_scenario.py: 图谱栈端到端场景测试，覆盖上传、草稿、评估、影响分析、图谱与仪表盘契约。
 test_env_routing.py: 环境配置回归测试，使用本地 fake OpenAI-compatible provider 验证 bare LLM/Embedding 模型名经 .env + base_url 路由后可完成 completion 和 embedding。
 test_desktop_runtime.py: 桌面运行时路径契约测试，锁定 app data 下的 DB/Chroma/上传/导出/日志/.env 与 sidecar 环境变量。

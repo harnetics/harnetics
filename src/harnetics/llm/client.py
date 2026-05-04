@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 os、httpx、config.get_settings 与 openai SDK
-# [OUTPUT]: 对外提供 HarneticsLLM 与旧版 LocalLlmClient 后向/兼容；HarneticsLLM 支持 explainable availability status、有限超时、thinking body 开关与 OpenAI-compatible 原生调用
+# [OUTPUT]: 对外提供 HarneticsLLM 与旧版 LocalLlmClient 后向/兼容；HarneticsLLM 支持 explainable availability status、有限超时、可调 temperature、thinking body 开关与 OpenAI-compatible 原生调用
 # [POS]: llm 包的模型调用适配层，统一本地显式路径与 OpenAI-compatible 提供方接入
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -101,6 +101,7 @@ class HarneticsLLM:
         user_request: str,
         *,
         max_tokens: int | None = None,
+        temperature: float = 0.3,
     ) -> str:
         """调用 OpenAI-compatible 会话接口生成草稿 Markdown。"""
         if not _is_ollama_model(self.model) and not self.api_key:
@@ -122,7 +123,7 @@ class HarneticsLLM:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"## 参考文档\n\n{context}\n\n## 任务\n\n{user_request}"},
                 ],
-                temperature=0.3,
+                temperature=temperature,
                 max_tokens=max_tokens or self._max_tokens(),
             )
         except Exception as exc:

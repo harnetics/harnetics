@@ -1,6 +1,6 @@
 """
 # [INPUT]: 依赖 models.document.Section、comparison_analyzer 的 Markdown 报告构建器
-# [OUTPUT]: 对外提供 comparison_4step 所需的 prompt 常量、文本归一化、需求校验、结果对齐与报告拼装辅助
+# [OUTPUT]: 对外提供 comparison_4step 所需的 prompt 常量、文本归一化、确定性需求扫描、需求校验、结果对齐与报告拼装辅助
 # [POS]: engine/comparison_4step 的支撑模块，只承载纯函数与静态提示词，不参与四步流程编排
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
@@ -142,6 +142,74 @@ def fallback_requirements(req_sections: list[Section]) -> list[dict]:
             "section_ref": heading,
         })
     return requirements
+
+
+def deterministic_numbered_requirements(req_sections: list[Section]) -> list[dict]:
+    """从审查大纲正文中稳定抽取编号审查项，避免 LLM Step1 波动。"""
+    requirements: list[dict] = []
+    current_chapter = ""
+    per_chapter_counts: dict[str, int] = {}
+    for sec in req_sections:
+        normalized = normalize_outline_text(sec.content)
+        if not normalized or is_table_of_contents(normalized):
+            continue
+
+        chapter = find_outline_chapter(normalized)
+        if chapter:
+            current_chapter = chapter
+        if not current_chapter:
+            continue
+
+        for item in extract_numbered_items(sec.content):
+            per_chapter_counts[current_chapter] = per_chapter_counts.get(current_chapter, 0) + 1
+            item_index = per_chapter_counts[current_chapter]
+            title = item["title"]
+            content = item["content"]
+            requirements.append({
+                "id": f"R{len(requirements) + 1:03d}",
+                "heading": title or f"{current_chapter}.{item_index}",
+                "content": content[:200],
+                "section_ref": f"{current_chapter}.{item_index}",
+            })
+    return requirements
+
+
+def normalize_outline_text(value: str) -> str:
+    return re.sub(r"\s+", " ", text(value)).strip()
+
+
+def is_table_of_contents(value: str) -> bool:
+    compact = re.sub(r"\s+", "", value)
+    return ("目录" in compact or "目 录" in value) and "......" in value
+
+
+def find_outline_chapter(value: str) -> str:
+    match = re.search(r"\b(6(?:\.\d+)+(?:\.[A-Z])?)\s+[\u4e00-\u9fffA-Za-z]", value)
+    return match.group(1) if match else ""
+
+
+def extract_numbered_items(value: str) -> list[dict]:
+    lines = [line.strip() for line in value.splitlines()]
+    markers: list[tuple[int, str]] = []
+    for idx, line in enumerate(lines):
+        match = re.match(r"^([1-9]\d*)[.．](?!\d)\s*(.*)$", line)
+        if match:
+            markers.append((idx, match.group(2).strip()))
+    items: list[dict] = []
+    for idx, (line_index, inline_text) in enumerate(markers):
+        end_index = markers[idx + 1][0] if idx + 1 < len(markers) else len(lines)
+        body_lines = [inline_text] if inline_text else []
+        body_lines.extend(lines[line_index + 1 : end_index])
+        body = normalize_outline_text(" ".join(body_lines)).strip(" 。；;")
+        if not inline_text and find_outline_chapter(body):
+            continue
+        if len(body) < 8:
+            continue
+        title, _, rest = body.partition("。")
+        title = title.strip(" ：:；;")
+        content = body if not rest else f"{title}。{rest.strip()}"
+        items.append({"title": title[:80], "content": content})
+    return items
 
 
 def keyword_fallback_match(requirement: dict, resp_sections: list[Section]) -> list[dict]:

@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 pytest、unittest.mock 与 harnetics.llm.client.HarneticsLLM/LocalLlmClient
-# [OUTPUT]: 提供模型归一化、Ollama availability 判定、OpenAI-compatible 原生调用与请求超时的回归测试
+# [OUTPUT]: 提供模型归一化、Ollama availability 判定、OpenAI-compatible 原生调用、请求超时与结构化温度的回归测试
 # [POS]: tests 目录中的 LLM 配置契约测试，锁定本地 Ollama 裸模型名、原始模型透传、模型存在性判断与错误脱敏行为
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -134,6 +134,25 @@ def test_generate_draft_uses_openai_client_with_raw_model_name(tmp_path: Path, m
     assert kwargs["messages"][0]["role"] == "system"
     assert "top_p" not in kwargs
     assert "enable_thinking" not in kwargs
+
+
+def test_generate_draft_accepts_low_temperature_for_structured_calls(tmp_path: Path, monkeypatch) -> None:
+    _isolate_settings(tmp_path, monkeypatch)
+    llm = HarneticsLLM(
+        model="Qwen/Qwen3.6-27B",
+        api_base="https://api.siliconflow.cn/v1",
+        api_key="sk-test",
+    )
+
+    with patch("harnetics.llm.client.OpenAI") as MockOpenAI:
+        MockOpenAI.return_value.chat.completions.create.return_value.choices = [
+            Mock(message=Mock(content="ok"))
+        ]
+
+        assert llm.generate_draft("system", "context", "request", temperature=0.0) == "ok"
+
+    kwargs = MockOpenAI.return_value.chat.completions.create.call_args.kwargs
+    assert kwargs["temperature"] == 0.0
 
 
 def test_generate_draft_sends_enable_thinking_when_model_supports_it(tmp_path: Path, monkeypatch) -> None:

@@ -1,5 +1,5 @@
 """
-# [INPUT]: 依赖 config.get_settings、llm.client.HarneticsLLM、models.document.Section、chromadb（临时集合）、sentence-transformers、comparison_analyzer 的报告辅助
+# [INPUT]: 依赖 config.get_settings、llm.client.HarneticsLLM、models.document.Section、chromadb（临时集合）、sentence-transformers、comparison_analyzer 的报告辅助与确定性需求扫描
 # [OUTPUT]: 对外提供 Comparison4StepEngine 类，analyze_4step_streaming() 生成器，yield 四步 SSE 事件与带兜底全局结论的最终 Markdown 报告
 # [POS]: engine 包的四步比对引擎，与 comparison_analyzer 并列，通过向量预筛选与全局校验提升审查精准度
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
 import logging
 from typing import Generator
@@ -24,6 +26,7 @@ from harnetics.engine.comparison_4step_support import (
     build_4step_analysis_md,
     build_step3_request,
     coerce_compliance_rate,
+    deterministic_numbered_requirements,
     fallback_requirements,
     keyword_fallback_match,
     parse_json_array,
@@ -34,6 +37,8 @@ from harnetics.engine.comparison_4step_support import (
 )
 
 logger = logging.getLogger("harnetics.comparison_4step")
+_STEP1_REQUIREMENT_CACHE: dict[str, list[dict]] = {}
+_DETERMINISTIC_STEP1_MAX_REQUIREMENTS = 200
 
 
 class Comparison4StepEngine:
@@ -181,10 +186,16 @@ class Comparison4StepEngine:
     # ------------------------------------------------------------------
 
     def _step1_scan_requirements(self, req_sections: list[Section]) -> list[dict]:
-        """LLM 解析审查大纲，返回结构化需求列表。JSON 失败时降级为 heading 列表。"""
+        """稳定解析审查大纲：同一文件复用需求缓存，必要时调用 LLM。"""
         from harnetics.config import get_settings
 
         settings = get_settings()
+        cache_key = self._step1_cache_key(req_sections)
+        if cache_key in _STEP1_REQUIREMENT_CACHE:
+            cached = copy.deepcopy(_STEP1_REQUIREMENT_CACHE[cache_key])
+            logger.info("4step.step1_cache_hit requirements=%d", len(cached))
+            return cached
+
         req_text = render_sections(req_sections, max_chars=200_000)
         try:
             raw = self._llm.generate_draft(
@@ -192,17 +203,43 @@ class Comparison4StepEngine:
                 context=f"## 【审查大纲】\n\n{req_text}",
                 user_request=_STEP1_USER_REQUEST,
                 max_tokens=settings.comparison_step1_max_tokens,
+                temperature=0.0,
             )
             parsed = validate_scanned_requirements(parse_json_array(raw), req_sections)
             if parsed:
+                _STEP1_REQUIREMENT_CACHE[cache_key] = copy.deepcopy(parsed)
                 logger.info("4step.step1_llm_ok requirements=%d", len(parsed))
                 return parsed
         except Exception as exc:  # noqa: BLE001
             logger.warning("4step.step1_llm_error exc=%s", exc)
 
-        # 降级：直接用章节 heading 列表
-        logger.info("4step.step1_fallback req_sections=%d", len(req_sections))
-        return fallback_requirements(req_sections)
+        deterministic = deterministic_numbered_requirements(req_sections)
+        if 0 < len(deterministic) <= _DETERMINISTIC_STEP1_MAX_REQUIREMENTS:
+            _STEP1_REQUIREMENT_CACHE[cache_key] = copy.deepcopy(deterministic)
+            logger.info("4step.step1_deterministic_fallback requirements=%d", len(deterministic))
+            return deterministic
+        if deterministic:
+            logger.warning(
+                "4step.step1_deterministic_ignored requirements=%d max=%d",
+                len(deterministic),
+                _DETERMINISTIC_STEP1_MAX_REQUIREMENTS,
+            )
+
+        fallback = fallback_requirements(req_sections)
+        _STEP1_REQUIREMENT_CACHE[cache_key] = copy.deepcopy(fallback)
+        logger.info("4step.step1_heading_fallback req_sections=%d", len(req_sections))
+        return fallback
+
+    @staticmethod
+    def _step1_cache_key(req_sections: list[Section]) -> str:
+        """按审查大纲解析结果生成稳定缓存键。"""
+        digest = hashlib.sha256()
+        for sec in req_sections:
+            digest.update(sec.heading.encode("utf-8", errors="ignore"))
+            digest.update(b"\0")
+            digest.update(sec.content.encode("utf-8", errors="ignore"))
+            digest.update(b"\0")
+        return digest.hexdigest()
 
     # ------------------------------------------------------------------
     # Step 2 — 向量匹配（单条需求）
@@ -369,6 +406,7 @@ class Comparison4StepEngine:
                 context=context,
                 user_request=build_step3_request(batch_reqs, attempt),
                 max_tokens=max_tokens,
+                temperature=0.0,
             )
             parsed = parse_json_array(raw)
             aligned, missing_filled, extra_ignored = align_batch_findings(
@@ -435,6 +473,7 @@ class Comparison4StepEngine:
             context=context,
             user_request=user_request,
             max_tokens=settings.comparison_step4_max_tokens,
+            temperature=0.0,
         )
         result = parse_json_object(raw)
         if not result:
