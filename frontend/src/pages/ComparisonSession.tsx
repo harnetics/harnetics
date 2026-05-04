@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 fetchComparisonSession，依赖 @/types 的 ComparisonSession/ComparisonFinding/ComparisonSectionItem
+ * [INPUT]: 依赖 @/lib/api 的 fetchComparisonSession，依赖 @/lib/utils 的 formatBeijingTime，依赖 @/types 的 ComparisonSession/ComparisonFinding/ComparisonSectionItem
  * [OUTPUT]: 对外提供 ComparisonSession 页面组件（审查结果详情 + 溯源 + 文件预览）
  * [POS]: pages 的文档比对结果页，展示 findings 列表、两份文件章节预览，支持点击引用溯源跳转
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
@@ -12,6 +12,7 @@ import {
   Download, ChevronDown, ChevronUp, ArrowLeft, GitCompare,
 } from 'lucide-react'
 import { fetchComparisonSession } from '@/lib/api'
+import { formatBeijingTime } from '@/lib/utils'
 import type { ComparisonSession, ComparisonFinding, ComparisonSectionItem } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -311,7 +312,7 @@ export default function ComparisonSessionPage() {
             <span className="text-primary font-medium">{session.req_filename}</span>
             <span className="mx-2 text-muted-foreground">vs</span>
             <span>{session.resp_filename}</span>
-            <span className="ml-3 text-xs">{session.created_at.slice(0, 19).replace('T', ' ')}</span>
+            <span className="ml-3 text-xs">{formatBeijingTime(session.created_at)}</span>
           </p>
         </div>
         <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={handleExport}>

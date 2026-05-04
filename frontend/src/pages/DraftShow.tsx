@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 fetchDraft，依赖 @/types 的 Draft
+ * [INPUT]: 依赖 @/lib/api 的 fetchDraft，依赖 @/lib/utils 的 formatBeijingTime，依赖 @/types 的 Draft
  * [OUTPUT]: 对外提供 DraftShow 页面组件
  * [POS]: pages 的草稿详情页，US2 草稿预览 + 评估 + 引用
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Download, CheckCircle, AlertTriangle, XCircle, BookOpen, ChevronDown, ChevronUp } from 'lucide-react'
 import { fetchDraft } from '@/lib/api'
+import { formatBeijingTime } from '@/lib/utils'
 import type { Draft, EvalResult, Citation } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -93,7 +94,7 @@ export default function DraftShow() {
             <Badge variant={statusVariant[draft.status] ?? 'secondary'}>{draft.status}</Badge>
             <code className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{draft.draft_id}</code>
           </div>
-          <p className="text-sm text-muted-foreground">{draft.generated_by} · {draft.created_at}</p>
+          <p className="text-sm text-muted-foreground">{draft.generated_by} · {formatBeijingTime(draft.created_at)}</p>
         </div>
         <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleExport}>
           <Download className="h-4 w-4" />导出草稿

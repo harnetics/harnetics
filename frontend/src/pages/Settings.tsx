@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 @/lib/api 的 fetchSettings/updateSettings/fetchDeveloperLogs
- * [OUTPUT]: 对外提供 Settings 页面组件，含 LLM thinking 开关、高级推理边界配置与开发者模式实时日志窗口
+ * [OUTPUT]: 对外提供 Settings 页面组件，含 LLM thinking 开关、四步比对高级推理边界配置与开发者模式实时日志窗口
  * [POS]: pages 的运行时配置与调试页，允许用户查看/修改 LLM/Embedding 参数、thinking 请求开关、比对推理边界并观察后端日志
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
@@ -25,6 +25,7 @@ const EMPTY: SettingsData = {
   llm_timeout_seconds: '',
   comparison_4step_batch_size: '',
   comparison_step1_max_tokens: '',
+  comparison_step3_max_tokens: '',
   comparison_step4_max_tokens: '',
 }
 
@@ -53,6 +54,7 @@ const ADVANCED_FIELDS: FieldDef[] = [
   { key: 'llm_max_tokens', label: '通用输出上限', placeholder: '16384', numeric: true },
   { key: 'comparison_step1_max_tokens', label: 'Step1 输出上限', placeholder: '500000', numeric: true },
   { key: 'comparison_4step_batch_size', label: 'Step3 批大小', placeholder: '10', numeric: true },
+  { key: 'comparison_step3_max_tokens', label: 'Step3 输出上限', placeholder: '16384', numeric: true },
   { key: 'comparison_step4_max_tokens', label: 'Step4 输出上限', placeholder: '500000', numeric: true },
 ]
 

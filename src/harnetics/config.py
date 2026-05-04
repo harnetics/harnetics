@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 os、pathlib、dotenv、threading
-# [OUTPUT]: 提供 Settings 数据对象、RuntimeSettingsManager 运行时覆盖层、write_dotenv_values() 回写函数、默认路径/模型/thinking/推理边界常量、get_settings() 工厂
+# [OUTPUT]: 提供 Settings 数据对象、RuntimeSettingsManager 运行时覆盖层、write_dotenv_values() 回写函数、默认路径/模型/thinking/四步比对推理边界常量、get_settings() 工厂
 # [POS]: harnetics 的运行时配置中心，.env 文件是单一真相源，API 层写操作经 write_dotenv_values 回写，进程内经 RuntimeSettingsManager 即时可见
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -26,6 +26,7 @@ DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
 DEFAULT_EMBEDDING_BASE_URL = ""
 DEFAULT_COMPARISON_4STEP_BATCH_SIZE = 10
 DEFAULT_COMPARISON_STEP1_MAX_TOKENS = 500000
+DEFAULT_COMPARISON_STEP3_MAX_TOKENS = 16384
 DEFAULT_COMPARISON_STEP4_MAX_TOKENS = 500000
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -64,6 +65,7 @@ class Settings:
     # ---- Comparison ----
     comparison_4step_batch_size: int = DEFAULT_COMPARISON_4STEP_BATCH_SIZE
     comparison_step1_max_tokens: int = DEFAULT_COMPARISON_STEP1_MAX_TOKENS
+    comparison_step3_max_tokens: int = DEFAULT_COMPARISON_STEP3_MAX_TOKENS
     comparison_step4_max_tokens: int = DEFAULT_COMPARISON_STEP4_MAX_TOKENS
 
 
@@ -115,6 +117,7 @@ def get_settings() -> Settings:
     server_port = _get("HARNETICS_SERVER_PORT")
     comparison_batch_raw = _get("HARNETICS_COMPARISON_4STEP_BATCH_SIZE")
     comparison_step1_tokens_raw = _get("HARNETICS_COMPARISON_STEP1_MAX_TOKENS")
+    comparison_step3_tokens_raw = _get("HARNETICS_COMPARISON_STEP3_MAX_TOKENS")
     comparison_step4_tokens_raw = _get("HARNETICS_COMPARISON_STEP4_MAX_TOKENS")
     return Settings(
         raw_upload_dir=Path(raw_upload_dir) if raw_upload_dir else DEFAULT_RAW_UPLOAD_DIR,
@@ -139,6 +142,9 @@ def get_settings() -> Settings:
         ),
         comparison_step1_max_tokens=_int_setting(
             comparison_step1_tokens_raw, DEFAULT_COMPARISON_STEP1_MAX_TOKENS
+        ),
+        comparison_step3_max_tokens=_int_setting(
+            comparison_step3_tokens_raw, DEFAULT_COMPARISON_STEP3_MAX_TOKENS
         ),
         comparison_step4_max_tokens=_int_setting(
             comparison_step4_tokens_raw, DEFAULT_COMPARISON_STEP4_MAX_TOKENS
@@ -187,7 +193,8 @@ _MUTABLE_KEYS = frozenset({
     "embedding_model", "embedding_base_url", "embedding_api_key",
     "llm_thinking_supported", "llm_enable_thinking",
     "llm_max_tokens", "llm_timeout_seconds",
-    "comparison_4step_batch_size", "comparison_step1_max_tokens", "comparison_step4_max_tokens",
+    "comparison_4step_batch_size", "comparison_step1_max_tokens",
+    "comparison_step3_max_tokens", "comparison_step4_max_tokens",
 })
 
 # Settings 字段名 → .env 键名映射（用于回写）
@@ -204,6 +211,7 @@ _MUTABLE_KEY_TO_ENV: dict[str, str] = {
     "llm_timeout_seconds": "HARNETICS_LLM_TIMEOUT_SECONDS",
     "comparison_4step_batch_size":  "HARNETICS_COMPARISON_4STEP_BATCH_SIZE",
     "comparison_step1_max_tokens":  "HARNETICS_COMPARISON_STEP1_MAX_TOKENS",
+    "comparison_step3_max_tokens":  "HARNETICS_COMPARISON_STEP3_MAX_TOKENS",
     "comparison_step4_max_tokens":  "HARNETICS_COMPARISON_STEP4_MAX_TOKENS",
 }
 

@@ -1,6 +1,6 @@
 """
 # [INPUT]: 依赖 config.get_settings、llm.client.HarneticsLLM、models.document.Section、chromadb（临时集合）、sentence-transformers、comparison_analyzer 的报告辅助
-# [OUTPUT]: 对外提供 Comparison4StepEngine 类，analyze_4step_streaming() 生成器，yield 四步 SSE 事件与最终 Markdown 报告
+# [OUTPUT]: 对外提供 Comparison4StepEngine 类，analyze_4step_streaming() 生成器，yield 四步 SSE 事件与带兜底全局结论的最终 Markdown 报告
 # [POS]: engine 包的四步比对引擎，与 comparison_analyzer 并列，通过向量预筛选与全局校验提升审查精准度
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
@@ -150,7 +150,7 @@ class Comparison4StepEngine:
         compliance_rate = coerce_compliance_rate(
             global_result.get("compliance_rate"), all_findings, self._calc_compliance_rate
         )
-        summary = text(global_result.get("summary"))
+        summary = text(global_result.get("summary")) or self._fallback_global_summary(all_findings)
         raw_corrections = global_result.get("corrections", [])
         corrections = raw_corrections if isinstance(raw_corrections, list) else []
         yield {
@@ -359,7 +359,9 @@ class Comparison4StepEngine:
             )
         context = "\n".join(parts)
         expected = len(batch_reqs)
-        max_tokens = max(4096, min(16_384, expected * 700))
+        from harnetics.config import get_settings
+
+        max_tokens = get_settings().comparison_step3_max_tokens
 
         for attempt in range(1, 4):
             raw = self._llm.generate_draft(
@@ -454,3 +456,15 @@ class Comparison4StepEngine:
             for f in findings
         )
         return round(score / len(findings), 4)
+
+    @staticmethod
+    def _fallback_global_summary(findings: list[dict]) -> str:
+        """模型缺少 summary 时生成确定性全局结论。"""
+        covered = sum(1 for f in findings if f.get("status") == "covered")
+        partial = sum(1 for f in findings if f.get("status") == "partial")
+        missing = sum(1 for f in findings if f.get("status") == "missing")
+        unclear = sum(1 for f in findings if f.get("status") == "unclear")
+        return (
+            f"自动计算：共审查{len(findings)}项，已覆盖{covered}项，部分覆盖{partial}项，"
+            f"未覆盖{missing}项，待明确{unclear}项。"
+        )

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 fetchImpactReport，依赖 @/types (AffectedSection)
+ * [INPUT]: 依赖 @/lib/api 的 fetchImpactReport，依赖 @/lib/utils 的 severity/时间格式化工具，依赖 @/types (AffectedSection)
  * [OUTPUT]: 对外提供 ImpactReportPage 页面组件
  * [POS]: pages 的影响分析报告详情页，US3 报告汇总 + 表格 + 详情 + 草稿预填导航
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { severityKey, severityLabel } from '@/lib/utils'
+import { formatBeijingTime, severityKey, severityLabel } from '@/lib/utils'
 
 const impactBadge: Record<string, 'destructive' | 'warning' | 'secondary'> = {
   critical: 'destructive',
@@ -94,7 +94,7 @@ export default function ImpactReportPage() {
               <ArrowRight className="h-3.5 w-3.5" />
               <code className="bg-primary/10 text-primary px-1 rounded text-xs font-semibold">{rpt.new_version}</code>
             </span>
-            <Badge variant="secondary">{rpt.created_at}</Badge>
+            <Badge variant="secondary">{formatBeijingTime(rpt.created_at)}</Badge>
             {rpt.analysis_mode && <Badge variant="outline" className="text-xs">{rpt.analysis_mode === 'ai_vector' ? 'AI 向量分析' : '规则引擎'}</Badge>}
           </div>
         </div>

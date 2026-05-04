@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 FastAPI、pathlib、os、collections.deque、config.RuntimeSettingsManager、config.write_dotenv_values
-# [OUTPUT]: 对外提供 settings_router (GET/PUT /api/settings、GET /api/settings/logs)，支持常用模型配置、thinking 开关与高级推理边界配置
+# [OUTPUT]: 对外提供 settings_router (GET/PUT /api/settings、GET /api/settings/logs)，支持常用模型配置、thinking 开关与四步比对高级推理边界配置
 # [POS]: api/routes 的设置与调试域 REST 端点，被 api/app.py 注册；PUT 写操作经 write_dotenv_values 回写到 .env，日志端点只读后端运行日志
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -30,6 +30,7 @@ class SettingsPayload(BaseModel):
     llm_timeout_seconds: str | None = None
     comparison_4step_batch_size: str | None = None
     comparison_step1_max_tokens: str | None = None
+    comparison_step3_max_tokens: str | None = None
     comparison_step4_max_tokens: str | None = None
 
 

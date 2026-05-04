@@ -3,7 +3,7 @@
 
 成员清单
 __init__.py: 包级入口，导出 create_app（映射 api.app.create_api_app）、Settings 与 get_settings。
-config.py: 运行时设置对象——统一 graph DB、上传、云端优先 LLM/Embedding 默认值、LLM 超时、比对四步 token/batch 边界、ChromaDB、端口参数与 `.env` 解析路径（显式文件 > cwd > 仓库根）；含 RuntimeSettingsManager 内存态覆盖层。
+config.py: 运行时设置对象——统一 graph DB、上传、云端优先 LLM/Embedding 默认值、LLM 超时、比对 Step1/Step3/Step4 token 与 Step3 batch 边界、ChromaDB、端口参数与 `.env` 解析路径（显式文件 > cwd > 仓库根）；含 RuntimeSettingsManager 内存态覆盖层。
 models/: 领域 dataclass 包——document/icd/draft/impact 四个子模块。
 graph/: 图谱 SQLite 连接管理器、DDL、索引、查询、向量检索与导入引擎；支持 section-aware 引用边与 edge collapse。
 llm/: LLM 客户端包，承载 OpenAI-compatible 会话调用与显式本地 Ollama 兼容路径；负责原始模型名/诊断模型名分离、路由归一化、模型探测与错误脱敏。

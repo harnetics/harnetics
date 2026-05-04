@@ -1,9 +1,9 @@
 """
-# [INPUT]: 依赖 FastAPI、engine.comparison_analyzer、engine.comparison_4step、graph.store、parsers (pdf/markdown/docx)、llm.client
+# [INPUT]: 依赖 FastAPI、engine.comparison_analyzer、engine.comparison_4step、graph.store、parsers (pdf/markdown/docx)、llm.client、datetime 时区转换
 # [OUTPUT]: 对外提供 router: POST /api/comparison/analyze、POST /api/comparison/analyze-stream (SSE)、
 #           POST /api/comparison/analyze-4step (SSE 四步流水线)、
 #           GET /api/comparison、GET /api/comparison/{id}、DELETE /api/comparison/{id}、GET /api/comparison/{id}/export
-# [POS]: api/routes 的文档比对端点，接收双文件上传，调用 ComparisonAnalyzer 或 Comparison4StepEngine，持久化并返回结构化审查意见
+# [POS]: api/routes 的文档比对端点，接收双文件上传，调用 ComparisonAnalyzer 或 Comparison4StepEngine，持久化并返回北京时间与结构化审查意见
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -28,6 +28,8 @@ router = APIRouter(prefix="/api/comparison", tags=["comparison"])
 logger = logging.getLogger("harnetics.comparison.api")
 
 _ALLOWED_EXTS = frozenset((".pdf", ".md", ".txt", ".docx"))
+_BEIJING_TZ = timezone(timedelta(hours=8))
+_MISSING_GLOBAL_SUMMARY = "全局结论：未生成全局结论"
 
 
 # ================================================================
@@ -111,7 +113,58 @@ def _section_to_dict(s: Section) -> dict:
     }
 
 
+def _to_beijing_time(value: str) -> str:
+    """将 SQLite/ISO UTC 时间统一输出为北京时间字符串。"""
+    raw = (value or "").strip()
+    if not raw:
+        return ""
+    normalized = raw.replace("Z", "+00:00")
+    try:
+        dt = datetime.fromisoformat(normalized)
+    except ValueError:
+        return raw
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(_BEIJING_TZ).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _fallback_global_summary(findings: list[dict]) -> str:
+    covered = sum(1 for f in findings if f.get("status") == "covered")
+    partial = sum(1 for f in findings if f.get("status") == "partial")
+    missing = sum(1 for f in findings if f.get("status") == "missing")
+    unclear = sum(1 for f in findings if f.get("status") == "unclear")
+    return (
+        f"自动计算：共审查{len(findings)}项，已覆盖{covered}项，部分覆盖{partial}项，"
+        f"未覆盖{missing}项，待明确{unclear}项。"
+    )
+
+
+def _repair_legacy_global_summary(analysis_md: str, findings: list[dict]) -> str:
+    """历史报告曾持久化占位全局结论，读取时用 findings 确定性修复。"""
+    if _MISSING_GLOBAL_SUMMARY not in analysis_md:
+        return analysis_md
+    return analysis_md.replace(_MISSING_GLOBAL_SUMMARY, f"全局结论：{_fallback_global_summary(findings)}")
+
+
+def _normalized_comparison_row(row: dict) -> dict:
+    findings = json.loads(row["findings_json"])
+    normalized = dict(row)
+    normalized["findings_json"] = json.dumps(findings, ensure_ascii=False)
+    if "analysis_md" in normalized:
+        normalized["analysis_md"] = _repair_legacy_global_summary(row["analysis_md"], findings)
+    normalized["created_at"] = _to_beijing_time(row["created_at"])
+    if "analysis_md" in normalized and normalized["analysis_md"] != row["analysis_md"]:
+        store.update_comparison_session(
+            session_id=row["session_id"],
+            analysis_md=normalized["analysis_md"],
+            findings=findings,
+            status=row["status"],
+        )
+    return normalized
+
+
 def _session_full(row: dict) -> dict:
+    row = _normalized_comparison_row(row)
     return {
         "session_id": row["session_id"],
         "req_filename": row["req_filename"],
@@ -126,6 +179,7 @@ def _session_full(row: dict) -> dict:
 
 
 def _session_summary(row: dict) -> dict:
+    row = _normalized_comparison_row(row)
     findings = json.loads(row["findings_json"])
     covered = sum(1 for f in findings if f.get("status") == "covered")
     partial = sum(1 for f in findings if f.get("status") == "partial")
@@ -484,6 +538,7 @@ def export_comparison_session(session_id: str) -> PlainTextResponse:
     row = store.get_comparison_session(session_id)
     if not row:
         raise HTTPException(404, "比对会话不存在")
+    row = _normalized_comparison_row(row)
     filename = f"{session_id}-审查报告.md"
     return PlainTextResponse(
         content=row["analysis_md"],

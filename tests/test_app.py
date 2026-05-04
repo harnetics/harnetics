@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 fastapi.testclient、harnetics.api.app 的 create_api_app、harnetics.config
-# [OUTPUT]: 提供 API app 冒烟测试——healthcheck、settings、dotenv 加载、云端默认模型、可调推理边界、dashboard 缓存
+# [OUTPUT]: 提供 API app 冒烟测试——healthcheck、settings、dotenv 加载、云端默认模型、可调推理边界、北京时间出口、dashboard 缓存
 # [POS]: tests 目录中的应用骨架测试，验证 API app factory 行为
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from harnetics.api.app import create_api_app
 from harnetics.config import Settings, get_dotenv_path, get_settings
+from harnetics.graph import store
 
 
 def test_healthcheck_returns_ok() -> None:
@@ -60,6 +61,7 @@ def test_get_settings_defaults_to_cloud_llm_and_embedding(tmp_path: Path, monkey
         "HARNETICS_LLM_ENABLE_THINKING",
         "HARNETICS_COMPARISON_4STEP_BATCH_SIZE",
         "HARNETICS_COMPARISON_STEP1_MAX_TOKENS",
+        "HARNETICS_COMPARISON_STEP3_MAX_TOKENS",
         "HARNETICS_COMPARISON_STEP4_MAX_TOKENS",
     ):
         monkeypatch.delenv(name, raising=False)
@@ -75,6 +77,7 @@ def test_get_settings_defaults_to_cloud_llm_and_embedding(tmp_path: Path, monkey
     assert settings.llm_enable_thinking is False
     assert settings.comparison_4step_batch_size == 10
     assert settings.comparison_step1_max_tokens == 500000
+    assert settings.comparison_step3_max_tokens == 16384
     assert settings.comparison_step4_max_tokens == 500000
 
 
@@ -86,6 +89,7 @@ def test_get_settings_loads_tunable_reasoning_limits(tmp_path: Path, monkeypatch
                 "HARNETICS_LLM_TIMEOUT_SECONDS=45.5",
                 "HARNETICS_COMPARISON_4STEP_BATCH_SIZE=6",
                 "HARNETICS_COMPARISON_STEP1_MAX_TOKENS=4096",
+                "HARNETICS_COMPARISON_STEP3_MAX_TOKENS=12345",
                 "HARNETICS_COMPARISON_STEP4_MAX_TOKENS=2048",
             ]
         ),
@@ -97,6 +101,7 @@ def test_get_settings_loads_tunable_reasoning_limits(tmp_path: Path, monkeypatch
     assert settings.llm_timeout_seconds == 45.5
     assert settings.comparison_4step_batch_size == 6
     assert settings.comparison_step1_max_tokens == 4096
+    assert settings.comparison_step3_max_tokens == 12345
     assert settings.comparison_step4_max_tokens == 2048
 
 
@@ -112,6 +117,7 @@ def test_settings_api_updates_advanced_runtime_limits(tmp_path: Path, monkeypatc
             "llm_max_tokens": "32768",
             "comparison_4step_batch_size": "5",
             "comparison_step1_max_tokens": "12000",
+            "comparison_step3_max_tokens": "9000",
             "comparison_step4_max_tokens": "6000",
         },
     )
@@ -122,11 +128,13 @@ def test_settings_api_updates_advanced_runtime_limits(tmp_path: Path, monkeypatc
     assert data["llm_max_tokens"] == "32768"
     assert data["comparison_4step_batch_size"] == "5"
     assert data["comparison_step1_max_tokens"] == "12000"
+    assert data["comparison_step3_max_tokens"] == "9000"
     assert data["comparison_step4_max_tokens"] == "6000"
 
     env_text = (tmp_path / ".env").read_text(encoding="utf-8")
     assert "HARNETICS_LLM_TIMEOUT_SECONDS='90'" in env_text
     assert "HARNETICS_COMPARISON_4STEP_BATCH_SIZE='5'" in env_text
+    assert "HARNETICS_COMPARISON_STEP3_MAX_TOKENS='9000'" in env_text
 
 
 def test_settings_api_updates_llm_thinking_flags(tmp_path: Path, monkeypatch) -> None:
@@ -150,6 +158,60 @@ def test_settings_api_updates_llm_thinking_flags(tmp_path: Path, monkeypatch) ->
     env_text = (tmp_path / ".env").read_text(encoding="utf-8")
     assert "HARNETICS_LLM_THINKING_SUPPORTED='true'" in env_text
     assert "HARNETICS_LLM_ENABLE_THINKING='false'" in env_text
+
+
+def test_comparison_api_repairs_legacy_missing_global_summary(graph_db_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("HARNETICS_GRAPH_DB_PATH", str(graph_db_path))
+    session_id = "CMP4-LEGACY"
+    findings = [
+        {"status": "covered", "requirement_heading": "要求1"},
+        {"status": "missing", "requirement_heading": "要求2"},
+    ]
+    store.create_comparison_session(
+        session_id=session_id,
+        req_filename="req.pdf",
+        resp_filename="resp.pdf",
+        req_sections=[],
+        resp_sections=[],
+    )
+    store.update_comparison_session(
+        session_id=session_id,
+        analysis_md="# 报告\n\n## 四步全局校验\n\n- 整体符合性：50.0%\n- 全局结论：未生成全局结论",
+        findings=findings,
+        status="completed",
+    )
+
+    client = TestClient(create_api_app())
+    response = client.get(f"/api/comparison/{session_id}")
+
+    assert response.status_code == 200
+    analysis_md = response.json()["analysis_md"]
+    assert "未生成全局结论" not in analysis_md
+    assert "全局结论：自动计算：共审查2项，已覆盖1项，部分覆盖0项，未覆盖1项，待明确0项。" in analysis_md
+
+
+def test_comparison_api_returns_beijing_time(graph_db_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("HARNETICS_GRAPH_DB_PATH", str(graph_db_path))
+    session_id = "CMP4-TIME"
+    store.create_comparison_session(
+        session_id=session_id,
+        req_filename="req.pdf",
+        resp_filename="resp.pdf",
+        req_sections=[],
+        resp_sections=[],
+    )
+    with store.get_connection() as conn:
+        conn.execute(
+            "UPDATE comparison_sessions SET created_at = ? WHERE session_id = ?",
+            ("2026-05-04 01:27:23", session_id),
+        )
+
+    client = TestClient(create_api_app())
+
+    detail = client.get(f"/api/comparison/{session_id}").json()
+    listing = client.get("/api/comparison").json()["sessions"][0]
+    assert detail["created_at"] == "2026-05-04 09:27:23"
+    assert listing["created_at"] == "2026-05-04 09:27:23"
 
 
 def test_get_settings_falls_back_to_project_root_dotenv(tmp_path: Path, monkeypatch) -> None:

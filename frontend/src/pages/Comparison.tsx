@@ -36,6 +36,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { formatBeijingTime } from '@/lib/utils'
 // ================================================================
 // 状态样式
 // ================================================================
@@ -558,14 +559,14 @@ export default function Comparison() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <FileZone
-              label="要求文件（审查大纲）"
+              label="要求文件（如审查大纲）"
               hint="拖放文件到此处，或点击选择"
               file={reqFile}
               onFile={setReqFile}
               disabled={analyzing}
             />
             <FileZone
-              label="应答文件（安全分析报告）"
+              label="应答文件（如安全分析报告）"
               hint="拖放文件到此处，或点击选择"
               file={respFile}
               onFile={setRespFile}
@@ -757,7 +758,7 @@ export default function Comparison() {
                       <span>{session.resp_filename}</span>
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {session.created_at.slice(0, 19).replace('T', ' ')}
+                      {formatBeijingTime(session.created_at)}
                     </p>
                   </div>
                   {session.status === 'completed' && session.findings_count > 0 && (

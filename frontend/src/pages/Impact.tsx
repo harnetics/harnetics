@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 fetchImpactReports/analyzeImpact/fetchDocuments
+ * [INPUT]: 依赖 @/lib/api 的 fetchImpactReports/analyzeImpact/fetchDocuments，依赖 @/lib/utils 的 severityKey/formatBeijingTime
  * [OUTPUT]: 对外提供 Impact 页面组件
  * [POS]: pages 的影响分析首页，US3 报告列表 + 发起新分析
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { severityKey } from '@/lib/utils'
+import { formatBeijingTime, severityKey } from '@/lib/utils'
 
 export default function Impact() {
   const navigate = useNavigate()
@@ -98,7 +98,7 @@ export default function Impact() {
                           <ArrowRight className="h-3.5 w-3.5" />
                           <code className="bg-primary/10 text-primary px-1 rounded text-xs font-semibold">{rpt.new_version}</code>
                         </span>
-                        <Badge variant="secondary" className="text-xs">{rpt.created_at}</Badge>
+                        <Badge variant="secondary" className="text-xs">{formatBeijingTime(rpt.created_at)}</Badge>
                       </div>
                       <p className="text-sm font-medium truncate">{rpt.summary}</p>
                       <Separator />

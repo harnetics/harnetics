@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 fetchDrafts/deleteDraft，依赖 @/types 的 DraftSummary
+ * [INPUT]: 依赖 @/lib/api 的 fetchDrafts/deleteDraft，依赖 @/lib/utils 的 formatBeijingTime，依赖 @/types 的 DraftSummary
  * [OUTPUT]: 对外提供 DraftHistory 页面组件
  * [POS]: pages 的历史草稿列表页，US6 展示所有草稿及其状态，支持逐条删除
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FileText, Plus, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import { fetchDrafts, deleteDraft } from '@/lib/api'
+import { formatBeijingTime } from '@/lib/utils'
 import type { DraftSummary } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -88,7 +89,7 @@ export default function DraftHistory() {
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                       <code className="bg-muted px-1 py-0.5 rounded">{d.draft_id}</code>
                       <span>{d.generated_by}</span>
-                      <span>{d.created_at}</span>
+                      <span>{formatBeijingTime(d.created_at)}</span>
                     </div>
                   </div>
                   {d.eval_summary && (

@@ -191,6 +191,7 @@ export interface SettingsData {
   llm_timeout_seconds: string
   comparison_4step_batch_size: string
   comparison_step1_max_tokens: string
+  comparison_step3_max_tokens: string
   comparison_step4_max_tokens: string
 }
 
