@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build",
+    "build": "tauri build && node scripts/fix-macos-dmg.mjs",
     "tauri": "tauri"
   },
   "devDependencies": {

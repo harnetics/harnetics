@@ -22,6 +22,7 @@ SECURITY.md: 本地部署、安全边界与数据处理约束。
 design-docs/: 设计原则、领域调研、架构叙事与长期稳定判断。
 exec-plans/: 执行中的计划、已完成计划与技术债跟踪。
 generated/: 生成物与结构化工件的落点。
+image/: 品牌与文档图片资源，当前 `logo.png` 作为桌面安装包图标源图。
 product-specs/: 产品规格、用户流程与 PRD。
 references/: 外部参考、工具说明与 LLM 辅助材料。
 superpowers/: 通过技能流程产出的工作文档与阶段性设计 spec。

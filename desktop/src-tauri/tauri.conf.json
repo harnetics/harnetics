@@ -17,6 +17,7 @@
         "height": 860,
         "minWidth": 1024,
         "minHeight": 720,
+        "visible": false,
         "url": "http://127.0.0.1:8000"
       }
     ],
@@ -27,12 +28,31 @@
   "bundle": {
     "active": true,
     "targets": ["dmg", "nsis"],
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
+    ],
     "category": "Productivity",
     "shortDescription": "Commercial aerospace document alignment workbench",
     "longDescription": "Harnetics packages a local document alignment API and React workbench as a desktop application.",
     "externalBin": ["binaries/harnetics-server"],
     "macOS": {
-      "minimumSystemVersion": "12.0"
+      "minimumSystemVersion": "12.0",
+      "dmg": {
+        "windowSize": {
+          "width": 660,
+          "height": 420
+        },
+        "appPosition": {
+          "x": 180,
+          "y": 190
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 190
+        }
+      }
     },
     "windows": {
       "nsis": {

@@ -1,5 +1,5 @@
 // [INPUT]: 依赖 tauri、portpicker、ureq 与 harnetics-server sidecar
-// [OUTPUT]: 提供 Harnetics 桌面壳 main 入口，启动/健康检查/清理本地后端，并优先从可执行文件目录解析 sidecar
+// [OUTPUT]: 提供 Harnetics 桌面壳 main 入口，启动/健康检查/日志转发/清理本地后端，并优先从可执行文件目录解析 sidecar
 // [POS]: desktop/src-tauri 的进程编排核心，业务请求全部转交 Python FastAPI sidecar
 // [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -68,7 +68,7 @@ fn sidecar_path(app: &AppHandle) -> Result<PathBuf, String> {
 
 fn wait_for_health(port: u16) -> Result<(), String> {
     let url = format!("http://127.0.0.1:{port}/health");
-    let deadline = Instant::now() + Duration::from_secs(20);
+    let deadline = Instant::now() + Duration::from_secs(60);
     while Instant::now() < deadline {
         if let Ok(response) = ureq::get(&url).timeout(Duration::from_secs(2)).call() {
             if response.status() == 200 {
@@ -92,6 +92,13 @@ fn start_backend(app: &AppHandle, state: State<BackendProcess>) -> Result<u16, S
     std::fs::create_dir_all(var_dir.join("exports")).map_err(|error| error.to_string())?;
     std::fs::create_dir_all(var_dir.join("chroma")).map_err(|error| error.to_string())?;
     std::fs::create_dir_all(&logs_dir).map_err(|error| error.to_string())?;
+    let sidecar_log = logs_dir.join("sidecar-bootstrap.log");
+    let stdout = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&sidecar_log)
+        .map_err(|error| error.to_string())?;
+    let stderr = stdout.try_clone().map_err(|error| error.to_string())?;
     std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -114,8 +121,8 @@ fn start_backend(app: &AppHandle, state: State<BackendProcess>) -> Result<u16, S
         .env("HARNETICS_EXPORT_DIR", var_dir.join("exports"))
         .env("HARNETICS_LOG_DIR", logs_dir)
         .env("HARNETICS_SERVER_PORT", port.to_string())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stdout(Stdio::from(stdout))
+        .stderr(Stdio::from(stderr))
         .spawn()
         .map_err(|error| format!("failed to start backend sidecar: {error}"))?;
 
@@ -152,6 +159,7 @@ pub fn run() {
                 window
                     .navigate(url)
                     .map_err(|error| error.to_string())?;
+                window.show().map_err(|error| error.to_string())?;
             }
             Ok(())
         })

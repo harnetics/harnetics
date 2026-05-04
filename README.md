@@ -1,8 +1,12 @@
-# 🚀Harnetics
+# 🚀驭天 Harnetics
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Node.js 20+](https://img.shields.io/badge/node-20+-green.svg)](https://nodejs.org/)
+
+![alt text](docs/image/cover.png)
+
+> “驭”即 Harness，直接对应驾驭之意。典出《楚辞》“驭飞龙而上游”，象征以高超的技术操控复杂的航天系统（Cybernetic System）。
 
 **商业航天文档对齐工作台** —— 基于文档图谱与大语言模型（LLM），实现跨部门可追溯性、对齐草稿生成与变更影响分析。
 
@@ -10,7 +14,9 @@
 
 > English documentation: [README_EN.md](README_EN.md)
 
-![alt text](docs/image/home.png)
+<video controls width="600">
+  <source src="docs/image/demo.mp4" type="video/mp4">
+</video>
 
 ## 为什么是 Harnetics
 
@@ -98,7 +104,7 @@ docker compose up -d
 Harnetics 的自进化模块参考并对接了 [EvoMap / Evolver](https://github.com/EvoMap/evolver) 的部分公开设计与工作流，尤其是 **GEP（Genome Evolution Protocol）**、Gene / Capsule / EvolutionEvent 等概念，以及围绕 `evolver` CLI 的本机演化上下文注入方式。在此对 Evolver 项目及其作者表示感谢。
 
 - 上游项目：`EvoMap/evolver`
-- 项目地址：<https://github.com/EvoMap/evolver>
+- 项目地址：[https://github.com/EvoMap/evolver](https://github.com/EvoMap/evolver)
 - 上游许可证：`GPL-3.0-or-later`（以其仓库当前声明为准）
 - Harnetics 中的相关位置：`src/harnetics/engine/evolution/`、Evolution 视图、相关 README / CHANGELOG 说明
 
@@ -113,7 +119,7 @@ Harnetics 的自进化模块参考并对接了 [EvoMap / Evolver](https://github
 | Python  | ≥ 3.12 | [python.org](https://www.python.org/downloads/)        |
 | uv      | 最新版  | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | Node.js | ≥ 22   | [nodejs.org](https://nodejs.org/)                      |
-| Rust    | stable  | 仅桌面安装包构建需要，[rustup.rs](https://rustup.rs/) |
+| Rust    | stable  | 仅桌面安装包构建需要，[rustup.rs](https://rustup.rs/)  |
 
 ### 安装
 
@@ -314,13 +320,13 @@ docker exec ollama ollama pull nomic-embed-text
 
 ### Qwen3.5 本地模型参考
 
-| 模型                       | 参数量 | 本地硬件显存建议 | Ollama 名称      | 适合机器                        |
-| -------------------------- | ------ | ---------------- | ---------------- | ------------------------------- |
-| Qwen3.5 0.8B               | 0.8B   | 2–4 GB          | `qwen3.5:0.8b` | 轻薄本、CPU                     |
-| Qwen3.5 2B                 | 2B     | 4–6 GB          | `qwen3.5:2b`   | 普通笔记本                      |
-| Qwen3.5 4B                 | 4B     | 6–8 GB          | `qwen3.5:4b`   | 入门独显 / Apple Silicon 入门机 |
+| 模型                     | 参数量 | 本地硬件显存建议 | Ollama 名称      | 适合机器                        |
+| ------------------------ | ------ | ---------------- | ---------------- | ------------------------------- |
+| Qwen3.5 0.8B             | 0.8B   | 2–4 GB          | `qwen3.5:0.8b` | 轻薄本、CPU                     |
+| Qwen3.5 2B               | 2B     | 4–6 GB          | `qwen3.5:2b`   | 普通笔记本                      |
+| Qwen3.5 4B               | 4B     | 6–8 GB          | `qwen3.5:4b`   | 入门独显 / Apple Silicon 入门机 |
 | Qwen3.5 9B*(latest)*     | 9B     | 10–14 GB        | `qwen3.5:9b`   | RTX 3060/4060、24GB Mac         |
-| Qwen3.5 27B                | 27B    | 22–28 GB        | `qwen3.5:27b`  | 24GB+ 显存 / 48–64GB Mac       |
+| Qwen3.5 27B              | 27B    | 22–28 GB        | `qwen3.5:27b`  | 24GB+ 显存 / 48–64GB Mac       |
 | Qwen3.5 35B-A3B*(MoE)*   | 35B    | 24–32 GB        | `qwen3.5:35b`  | 32GB+ 高显存卡                  |
 | Qwen3.5 122B-A10B*(MoE)* | 122B   | 90–120 GB       | `qwen3.5:122b` | 多卡工作站 / 服务器             |
 
