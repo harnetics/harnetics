@@ -6,6 +6,7 @@ alert.tsx: 提示框变体。
 badge.tsx: 标签状态组件。
 button.tsx: 按钮组件。
 card.tsx: 卡片骨架。
+confirm-dialog.tsx: 应用内确认弹窗，替代浏览器原生 confirm 以兼容桌面 WebView。
 input.tsx: 单行输入框。
 label.tsx: 表单标签。
 progress.tsx: 进度条。

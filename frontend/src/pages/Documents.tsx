@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 const statusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'secondary' | 'destructive' }> = {
   Approved: { label: '已审批', variant: 'success' },
@@ -40,9 +41,11 @@ export default function Documents() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Document | null>(null)
   // 多选批量删除
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false)
   // Embedding 冲突提示
   const [embReset, setEmbReset] = useState(false)
   const [reindexing, setReindexing] = useState(false)
@@ -97,7 +100,12 @@ export default function Documents() {
 
   const handleDelete = async (e: React.MouseEvent, doc: Document) => {
     e.stopPropagation()
-    if (!window.confirm(`确认删除文档 "${doc.title}"？此操作不可撤销。`)) return
+    setPendingDelete(doc)
+  }
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    const doc = pendingDelete
     setDeletingId(doc.doc_id)
     try {
       await deleteDocument(doc.doc_id)
@@ -106,15 +114,21 @@ export default function Documents() {
       alert(`删除失败：${err instanceof Error ? err.message : '未知错误'}`)
     } finally {
       setDeletingId(null)
+      setPendingDelete(null)
     }
   }
 
   const handleBulkDelete = async () => {
     if (selected.size === 0) return
-    if (!window.confirm(`确认删除选中的 ${selected.size} 份文档？此操作不可撤销。`)) return
+    setBulkConfirmOpen(true)
+  }
+
+  const confirmBulkDelete = async () => {
+    if (selected.size === 0) return
     setBulkDeleting(true)
     const { failed } = await batchDeleteDocuments(Array.from(selected))
     setBulkDeleting(false)
+    setBulkConfirmOpen(false)
     if (failed.length) alert(`以下文档删除失败：\n${failed.join('\n')}`)
     loadDocs()
   }
@@ -315,6 +329,29 @@ export default function Documents() {
         显示 {docs.length} / {total} 条
         {selected.size > 0 && <span className="ml-2 text-foreground">· 已选中 {selected.size} 份</span>}
       </p>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="删除文档"
+        description={pendingDelete ? `确认删除文档 "${pendingDelete.title}"？此操作不可撤销。` : ''}
+        confirmLabel="删除"
+        busy={deletingId !== null}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (deletingId === null) setPendingDelete(null)
+        }}
+      />
+      <ConfirmDialog
+        open={bulkConfirmOpen}
+        title="批量删除文档"
+        description={`确认删除选中的 ${selected.size} 份文档？此操作不可撤销。`}
+        confirmLabel="删除"
+        busy={bulkDeleting}
+        onConfirm={confirmBulkDelete}
+        onCancel={() => {
+          if (!bulkDeleting) setBulkConfirmOpen(false)
+        }}
+      />
     </div>
   )
 }

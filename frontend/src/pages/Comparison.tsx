@@ -35,6 +35,7 @@ import type {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 // ================================================================
 // 状态样式
 // ================================================================
@@ -327,6 +328,7 @@ export default function Comparison() {
   const [analyzeError, setAnalyzeError] = useState('')
   const [sessions, setSessions] = useState<ComparisonSessionSummary[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   const [streamProgress, setStreamProgress] = useState<{ batch: number; total: number } | null>(null)
   const [streamFindings, setStreamFindings] = useState<ComparisonFinding[]>([])
@@ -488,8 +490,12 @@ export default function Comparison() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
-    if (!window.confirm('确认删除此比对记录？')) return
+    setPendingDeleteId(id)
+  }
 
+  const confirmDelete = async () => {
+    if (!pendingDeleteId) return
+    const id = pendingDeleteId
     setDeletingId(id)
     try {
       await deleteComparisonSession(id)
@@ -498,6 +504,7 @@ export default function Comparison() {
       // ignore
     } finally {
       setDeletingId(null)
+      setPendingDeleteId(null)
     }
   }
 
@@ -793,6 +800,18 @@ export default function Comparison() {
       {sessions.length === 0 && !analyzing && (
         <p className="py-4 text-center text-sm text-muted-foreground">暂无历史比对记录</p>
       )}
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="删除比对记录"
+        description="确认删除此比对记录？此操作不可撤销。"
+        confirmLabel="删除"
+        busy={deletingId !== null}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (deletingId === null) setPendingDeleteId(null)
+        }}
+      />
     </div>
   )
 }

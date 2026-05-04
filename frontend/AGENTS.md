@@ -25,7 +25,7 @@ src/lib/utils.ts: cn() Tailwind 合并工具
 src/components/Header.tsx: 导航栏 (react-router-dom Link)
 src/components/Footer.tsx: 页脚
 src/components/Hero.tsx: 首页英雄区 (未使用)
-src/components/ui/*.tsx: 13 个 shadcn/ui 组件 (alert/badge/button/card/input/label/progress/scroll-area/select/separator/table/tabs/textarea)
+src/components/ui/*.tsx: 14 个 shadcn/ui 组件 (alert/badge/button/card/confirm-dialog/input/label/progress/scroll-area/select/separator/table/tabs/textarea)
 
 src/pages/Dashboard.tsx: 仪表盘 — 调用 /api/dashboard/stats
 src/pages/Documents.tsx: 文档库列表 — 调用 /api/documents
