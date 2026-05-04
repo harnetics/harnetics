@@ -221,7 +221,7 @@ def _create_chat_completion(
         "max_tokens": max_tokens,
     }
     if settings.llm_thinking_supported:
-        chat_kwargs["enable_thinking"] = settings.llm_enable_thinking
+        chat_kwargs["extra_body"] = {"enable_thinking": settings.llm_enable_thinking}
 
     logger.info(
         "llm.chat.start model=%s api_base=%s messages=%d max_tokens=%d temperature=%.2f",

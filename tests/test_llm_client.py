@@ -161,7 +161,8 @@ def test_generate_draft_sends_enable_thinking_when_model_supports_it(tmp_path: P
         assert llm.generate_draft("system", "context", "request") == "ok"
 
     kwargs = MockOpenAI.return_value.chat.completions.create.call_args.kwargs
-    assert kwargs["enable_thinking"] is False
+    assert "enable_thinking" not in kwargs
+    assert kwargs["extra_body"] == {"enable_thinking": False}
 
 
 def test_generate_draft_error_masks_api_key() -> None:
