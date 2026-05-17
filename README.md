@@ -16,7 +16,7 @@
 
 [![Harnetics Demo Preview](docs/image/demo-preview.gif)](https://www.bilibili.com/video/BV1QVLp6dE3J/)
 
-> 点击上方预览图可跳转观看完整 Demo 视频（GitHub README 不支持稳定内嵌播放 Bilibili iframe / 本地 mp4，因此这里改为 GIF 预览 + 外链播放）。
+> 点击上方预览图可跳转观看完整 Demo 视频。
 
 ## 为什么是 Harnetics
 
