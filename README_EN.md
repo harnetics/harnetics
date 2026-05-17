@@ -10,6 +10,10 @@
 
 ![alt text](docs/image/home.png)
 
+[![Harnetics Demo Preview](docs/image/demo-preview.gif)](https://www.bilibili.com/video/BV1QVLp6dE3J/)
+
+> Click the preview above to watch the full demo video. GitHub README does not reliably support embedded Bilibili iframes or local mp4 playback, so this uses a GIF preview plus an external video link.
+
 ## Why Harnetics
 
 Commercial aerospace engineers pay an alignment tax every day: 40–60% of their working time disappears into hunting upstream documents, checking ICD parameters, and verifying version consistency before they can write a single usable draft.
