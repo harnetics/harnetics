@@ -13,6 +13,7 @@ from fastapi import APIRouter, Request
 from harnetics.config import get_dotenv_path
 from harnetics.graph import store
 from harnetics.graph.query import get_graph
+from harnetics.llm.client import _sanitize_error_message
 
 router = APIRouter(prefix="/api", tags=["status"])
 
@@ -38,8 +39,8 @@ def system_status(request: Request) -> dict:
     stale = get_graph().get_stale_references()
 
     settings = request.app.state.settings
+    llm_snapshot = request.app.state.runtime_settings.snapshot()
     dotenv_path = get_dotenv_path()
-
     llm_status = _get_llm_status(request)
 
     # ---- Embedding 可用性 ----
@@ -59,8 +60,8 @@ def system_status(request: Request) -> dict:
         "impact_reports": impact_count,
         "stale_references": len(stale),
         "llm_available": llm_status["available"],
-        "llm_model": settings.llm_model,
-        "llm_base_url": settings.llm_base_url,
+        "llm_model": llm_snapshot.get("llm_model", ""),
+        "llm_base_url": llm_snapshot.get("llm_base_url", ""),
         "llm_effective_model": llm_status["effective_model"],
         "llm_effective_base_url": llm_status["effective_base_url"],
         "llm_error": llm_status["error"],
@@ -78,11 +79,14 @@ def system_status(request: Request) -> dict:
 
 
 def _get_llm_status(request: Request) -> dict[str, str | bool]:
-    settings = request.app.state.settings
+    llm_snapshot = request.app.state.runtime_settings.snapshot()
+    llm_model = llm_snapshot.get("llm_model", "")
+    llm_base_url = llm_snapshot.get("llm_base_url", "")
+    llm_api_key = llm_snapshot.get("llm_api_key", "")
     cache_key = (
-        settings.llm_model,
-        settings.llm_base_url,
-        bool(settings.llm_api_key),
+        llm_model,
+        llm_base_url,
+        llm_api_key,
     )
     now = monotonic()
     cached = getattr(request.app.state, "_llm_status_cache", None)
@@ -99,19 +103,22 @@ def _get_llm_status(request: Request) -> dict[str, str | bool]:
         from harnetics.llm.client import HarneticsLLM
 
         llm_client = HarneticsLLM(
-            model=settings.llm_model,
-            api_base=settings.llm_base_url,
-            api_key=settings.llm_api_key or None,
+            model=llm_model,
+            api_base=llm_base_url,
+            api_key=llm_api_key or None,
         )
         available, error = llm_client.availability_status()
         value = {
             "available": available,
-            "error": error,
+            "error": _sanitize_error_message(error, llm_api_key or None),
             "effective_model": llm_client.model,
             "effective_base_url": llm_client.api_base or "",
         }
     except Exception as exc:
-        value["error"] = f"{type(exc).__name__}: {exc}"
+        value["error"] = _sanitize_error_message(
+            f"{type(exc).__name__}: {exc}",
+            llm_api_key or None,
+        )
 
     request.app.state._llm_status_cache = {
         "key": cache_key,

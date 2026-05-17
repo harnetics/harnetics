@@ -1,5 +1,5 @@
 # [INPUT]: 依赖 FastAPI、pathlib、os、collections.deque、config.RuntimeSettingsManager、config.write_dotenv_values
-# [OUTPUT]: 对外提供 settings_router (GET/PUT /api/settings、GET /api/settings/logs)，支持常用模型配置、thinking 开关与四步比对高级推理边界配置
+# [OUTPUT]: 对外提供 settings_router (GET/PUT /api/settings、GET /api/settings/logs、POST /api/settings/test-llm)，支持常用模型配置、thinking 开关与四步比对高级推理边界配置
 # [POS]: api/routes 的设置与调试域 REST 端点，被 api/app.py 注册；PUT 写操作经 write_dotenv_values 回写到 .env，日志端点只读后端运行日志
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 
@@ -13,6 +13,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from harnetics.config import write_dotenv_values
+from harnetics.llm.client import _sanitize_error_message
 
 router = APIRouter(prefix="/api")
 
@@ -77,6 +78,15 @@ def _tail_lines(path: Path, limit: int) -> list[str]:
         return [line.rstrip("\n") for line in deque(fh, maxlen=count)]
 
 
+def _effective_llm_settings(request: Request) -> dict[str, str]:
+    snapshot = request.app.state.runtime_settings.snapshot()
+    return {
+        "llm_model": snapshot.get("llm_model", ""),
+        "llm_base_url": snapshot.get("llm_base_url", ""),
+        "llm_api_key": snapshot.get("llm_api_key", ""),
+    }
+
+
 @router.get("/settings")
 def get_settings(request: Request):
     mgr = request.app.state.runtime_settings
@@ -98,3 +108,38 @@ def get_developer_logs(limit: int = 200) -> DeveloperLogsResponse:
     if path is None:
         return DeveloperLogsResponse(path="", lines=[])
     return DeveloperLogsResponse(path=str(path), lines=_tail_lines(path, limit))
+
+
+@router.post("/settings/test-llm")
+def test_llm_settings(request: Request):
+    from harnetics.llm.client import HarneticsLLM
+
+    effective = _effective_llm_settings(request)
+    effective_model = effective["llm_model"]
+    effective_base_url = effective["llm_base_url"]
+    try:
+        llm = HarneticsLLM(
+            model=effective["llm_model"],
+            api_base=effective["llm_base_url"],
+            api_key=effective["llm_api_key"] or None,
+        )
+        effective_model = llm.model
+        effective_base_url = llm.api_base or ""
+        ok, error = llm.availability_status()
+    except Exception as exc:
+        return {
+            "ok": False,
+            "effective_model": effective_model,
+            "effective_base_url": effective_base_url,
+            "error": _sanitize_error_message(
+                f"{type(exc).__name__}: {exc}",
+                effective["llm_api_key"] or None,
+            ),
+        }
+
+    return {
+        "ok": ok,
+        "effective_model": effective_model,
+        "effective_base_url": effective_base_url,
+        "error": _sanitize_error_message(error, effective["llm_api_key"] or None),
+    }

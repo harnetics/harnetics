@@ -1,16 +1,16 @@
 /**
- * [INPUT]: 依赖 @/lib/api 的 fetchSettings/updateSettings/fetchDeveloperLogs
- * [OUTPUT]: 对外提供 Settings 页面组件，含 LLM thinking 开关、四步比对高级推理边界配置与开发者模式实时日志窗口
+ * [INPUT]: 依赖 @/lib/api 的 fetchSettings/updateSettings/fetchDeveloperLogs/testLlmSettings
+ * [OUTPUT]: 对外提供 Settings 页面组件，含 LLM 测试动作、thinking 开关、四步比对高级推理边界配置与开发者模式实时日志窗口
  * [POS]: pages 的运行时配置与调试页，允许用户查看/修改 LLM/Embedding 参数、thinking 请求开关、比对推理边界并观察后端日志
  * [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
  */
 
 import { useState, useEffect } from 'react'
-import { fetchDeveloperLogs, fetchSettings, updateSettings, type SettingsData } from '@/lib/api'
+import { fetchDeveloperLogs, fetchSettings, testLlmSettings, updateSettings, type LlmTestResult, type SettingsData } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { DeveloperLogs } from '@/types'
-import { Bug, Save, ScrollText } from 'lucide-react'
+import { Bug, LoaderCircle, Save, ScrollText } from 'lucide-react'
 
 const EMPTY: SettingsData = {
   llm_model: '',
@@ -62,11 +62,13 @@ export default function Settings() {
   const [data, setData] = useState<SettingsData>(EMPTY)
   const [form, setForm] = useState<SettingsData>(EMPTY)
   const [saving, setSaving] = useState(false)
+  const [testingLlm, setTestingLlm] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [developerMode, setDeveloperMode] = useState(false)
   const [logs, setLogs] = useState<DeveloperLogs>({ path: '', lines: [] })
   const [logError, setLogError] = useState('')
+  const [llmTestResult, setLlmTestResult] = useState<LlmTestResult | null>(null)
   const thinkingSupported = form.llm_thinking_supported === 'true'
 
   useEffect(() => {
@@ -100,14 +102,19 @@ export default function Settings() {
     }
   }, [developerMode])
 
-  const handleSave = async () => {
-    setSaving(true)
-    setMessage('')
-    setError('')
+  const buildChanges = () => {
     const changes: Record<string, string> = {}
     for (const k of Object.keys(form) as (keyof SettingsData)[]) {
       if (form[k] !== data[k]) changes[k] = form[k]
     }
+    return changes
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    setMessage('')
+    setError('')
+    const changes = buildChanges()
     if (!Object.keys(changes).length) {
       setMessage('无变更')
       setSaving(false)
@@ -122,6 +129,28 @@ export default function Settings() {
       setError(e instanceof Error ? e.message : '保存失败')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleTestLlm = async () => {
+    setTestingLlm(true)
+    setMessage('')
+    setError('')
+    setLlmTestResult(null)
+    try {
+      const changes = buildChanges()
+      if (Object.keys(changes).length) {
+        const updated = await updateSettings(changes)
+        setData(updated)
+        setForm(updated)
+        setMessage('已保存最新配置，开始测试…')
+      }
+      const result = await testLlmSettings()
+      setLlmTestResult(result)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'LLM 测试失败')
+    } finally {
+      setTestingLlm(false)
     }
   }
 
@@ -208,6 +237,21 @@ export default function Settings() {
           <div className="rounded-xl border bg-card p-6 space-y-6">
             {renderFields('LLM 配置', LLM_FIELDS)}
             {renderThinkingControls()}
+            <div className="flex flex-wrap items-center gap-3 border-t pt-4">
+              <Button variant="outline" className="gap-2" onClick={handleTestLlm} disabled={testingLlm}>
+                {testingLlm ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                {testingLlm ? '测试中…' : '测试 LLM'}
+              </Button>
+              <p className="text-sm text-muted-foreground">点击后会先保存当前 LLM 配置，再发起一次轻量连通性探测。</p>
+            </div>
+            {llmTestResult ? (
+              <div className={`rounded-lg border px-4 py-3 text-sm ${llmTestResult.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-destructive/30 bg-destructive/5 text-destructive'}`}>
+                <p className="font-medium">{llmTestResult.ok ? 'LLM 测试成功' : 'LLM 测试失败'}</p>
+                <p className="mt-1 break-all">生效模型：{llmTestResult.effective_model || '未识别'}</p>
+                <p className="mt-1 break-all">生效 Base URL：{llmTestResult.effective_base_url || '默认'}</p>
+                {!llmTestResult.ok && llmTestResult.error ? <p className="mt-1 break-all">失败原因：{llmTestResult.error}</p> : null}
+              </div>
+            ) : null}
           </div>
           <div className="rounded-xl border bg-card p-6 space-y-6">
             {renderFields('Embedding 配置', EMBEDDING_FIELDS)}

@@ -263,3 +263,138 @@ def test_dashboard_stats_alias_reuses_cached_llm_status(monkeypatch) -> None:
     assert stats_res.status_code == 200
     assert status_res.json() == stats_res.json()
     assert calls == ["availability"]
+
+
+def test_status_uses_runtime_settings_snapshot(monkeypatch) -> None:
+    app = create_api_app()
+    app.state.runtime_settings.update(
+        {
+            "llm_model": "claude-sonnet-4-6",
+            "llm_base_url": "https://aihubmix.com/v1",
+            "llm_api_key": "sk-runtime",
+        }
+    )
+    client = TestClient(app)
+
+    class FakeLLM:
+        def __init__(self, model: str, api_base: str, api_key: str | None) -> None:
+            assert model == "claude-sonnet-4-6"
+            assert api_base == "https://aihubmix.com/v1"
+            assert api_key == "sk-runtime"
+            self.model = f"openai/{model}"
+            self.api_base = api_base
+
+        def availability_status(self) -> tuple[bool, str]:
+            return True, ""
+
+    monkeypatch.setattr("harnetics.llm.client.HarneticsLLM", FakeLLM)
+
+    response = client.get("/api/status")
+
+    assert response.status_code == 200
+    assert response.json()["llm_model"] == "claude-sonnet-4-6"
+    assert response.json()["llm_base_url"] == "https://aihubmix.com/v1"
+    assert response.json()["llm_effective_model"] == "openai/claude-sonnet-4-6"
+
+
+def test_test_llm_endpoint_uses_runtime_settings_and_masks_errors(monkeypatch) -> None:
+    app = create_api_app()
+    app.state.runtime_settings.update(
+        {
+            "llm_model": "claude-sonnet-4-6",
+            "llm_base_url": "https://aihubmix.com/v1",
+            "llm_api_key": "sk-live-secret",
+        }
+    )
+    client = TestClient(app)
+
+    class FakeLLM:
+        def __init__(self, model: str, api_base: str, api_key: str | None) -> None:
+            assert model == "claude-sonnet-4-6"
+            assert api_base == "https://aihubmix.com/v1"
+            assert api_key == "sk-live-secret"
+            self.model = f"openai/{model}"
+            self.api_base = api_base
+
+        def availability_status(self) -> tuple[bool, str]:
+            return False, "provider rejected sk-live-secret"
+
+    monkeypatch.setattr("harnetics.llm.client.HarneticsLLM", FakeLLM)
+
+    response = client.post("/api/settings/test-llm")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ok": False,
+        "effective_model": "openai/claude-sonnet-4-6",
+        "effective_base_url": "https://aihubmix.com/v1",
+        "error": "provider rejected [REDACTED]",
+    }
+
+
+def test_test_llm_endpoint_returns_structured_error_when_probe_raises(monkeypatch) -> None:
+    app = create_api_app()
+    app.state.runtime_settings.update(
+        {
+            "llm_model": "claude-sonnet-4-6",
+            "llm_base_url": "https://aihubmix.com/v1",
+            "llm_api_key": "sk-live-secret",
+        }
+    )
+    client = TestClient(app)
+
+    class FakeLLM:
+        def __init__(self, model: str, api_base: str, api_key: str | None) -> None:
+            self.model = f"openai/{model}"
+            self.api_base = api_base
+
+        def availability_status(self) -> tuple[bool, str]:
+            raise RuntimeError("boom sk-live-secret")
+
+    monkeypatch.setattr("harnetics.llm.client.HarneticsLLM", FakeLLM)
+
+    response = client.post("/api/settings/test-llm")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ok": False,
+        "effective_model": "openai/claude-sonnet-4-6",
+        "effective_base_url": "https://aihubmix.com/v1",
+        "error": "RuntimeError: boom [REDACTED]",
+    }
+
+
+def test_status_sanitizes_errors_and_invalidates_cache_when_api_key_changes(monkeypatch) -> None:
+    app = create_api_app()
+    client = TestClient(app)
+    calls: list[str | None] = []
+
+    class FakeLLM:
+        def __init__(self, model: str, api_base: str, api_key: str | None) -> None:
+            self.model = f"openai/{model}"
+            self.api_base = api_base
+            self.api_key = api_key
+
+        def availability_status(self) -> tuple[bool, str]:
+            calls.append(self.api_key)
+            return False, f"provider rejected {self.api_key}"
+
+    monkeypatch.setattr("harnetics.llm.client.HarneticsLLM", FakeLLM)
+
+    app.state.runtime_settings.update(
+        {
+            "llm_model": "claude-sonnet-4-6",
+            "llm_base_url": "https://aihubmix.com/v1",
+            "llm_api_key": "sk-first",
+        }
+    )
+    first = client.get("/api/status")
+
+    app.state.runtime_settings.update({"llm_api_key": "sk-second"})
+    second = client.get("/api/status")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["llm_error"] == "provider rejected [REDACTED]"
+    assert second.json()["llm_error"] == "provider rejected [REDACTED]"
+    assert calls == ["sk-first", "sk-second"]

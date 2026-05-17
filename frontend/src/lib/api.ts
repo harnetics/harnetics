@@ -195,6 +195,13 @@ export interface SettingsData {
   comparison_step4_max_tokens: string
 }
 
+export interface LlmTestResult {
+  ok: boolean
+  effective_model: string
+  effective_base_url: string
+  error: string
+}
+
 export function fetchSettings(): Promise<SettingsData> {
   return request<SettingsData>('/api/settings')
 }
@@ -204,6 +211,12 @@ export function updateSettings(data: Partial<SettingsData>): Promise<SettingsDat
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+  })
+}
+
+export function testLlmSettings(): Promise<LlmTestResult> {
+  return request<LlmTestResult>('/api/settings/test-llm', {
+    method: 'POST',
   })
 }
 
