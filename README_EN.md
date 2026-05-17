@@ -8,11 +8,9 @@
 
 > 中文优先文档：[README.md](README.md)
 
-![alt text](docs/image/home.png)
-
 [![Harnetics Demo Preview](docs/image/demo-preview.gif)](https://www.bilibili.com/video/BV1QVLp6dE3J/)
 
-> Click the preview above to watch the full demo video. GitHub README does not reliably support embedded Bilibili iframes or local mp4 playback, so this uses a GIF preview plus an external video link.
+> Click the preview above to watch the full demo video.
 
 ## Why Harnetics
 
