@@ -4,10 +4,11 @@ Harnetics 是一个**商业航天文档对齐工作台**，面向航天工程团
 
 ## 导航
 
-- [快速开始](Quick-Start.md)
-- [架构总览](Architecture-Overview.md)
-- [贡献入口](Contributor-Guide.md)
-- [术语与场景](Glossary-and-Use-Cases.md)
+- [快速开始](Quick-Start)
+- [架构总览](Architecture-Overview)
+- [API 参考](API-Reference)
+- [贡献入口](Contributor-Guide)
+- [术语与场景](Glossary-and-Use-Cases)
 
 ## 当前重点能力
 

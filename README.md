@@ -263,6 +263,8 @@ curl http://localhost:8000/api/documents
 
 ## API 路由
 
+更完整的接口说明、输入输出字段和 curl 示例见 GitHub Wiki：[`API Reference`](https://github.com/harnetics/harnetics/wiki/API-Reference)。
+
 | 路由                            | 说明                               |
 | ------------------------------- | ---------------------------------- |
 | `GET /health`                 | 健康检查                           |

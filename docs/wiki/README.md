@@ -4,7 +4,9 @@
 
 当前页面：
 - `Home.md`
+- `_Sidebar.md`
 - `Quick-Start.md`
 - `Architecture-Overview.md`
+- `API-Reference.md`
 - `Contributor-Guide.md`
 - `Glossary-and-Use-Cases.md`
