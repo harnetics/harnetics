@@ -120,8 +120,65 @@ jobs:
         with:
           path: release-artifacts
 
+      - name: Prepare release install guide
+        shell: bash
+        run: |
+          TAG="${{ inputs.release_tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          cat > release-install-guide.md <<EOF
+          <!-- hermes-install-guide:start -->
+          ## 下载哪个安装包？
+
+          如果你是第一次下载安装包，请先看这里：
+
+          - **Windows 10 / 11（64 位）**：下载 `Harnetics_${VERSION}_x64-setup.exe`
+          - **macOS Apple Silicon（M1 / M2 / M3 / M4）**：下载 `Harnetics_${VERSION}_aarch64.dmg`
+          - **macOS Intel（老款 Intel 芯片 Mac）**：下载 `Harnetics_${VERSION}_x64.dmg`
+          - **Linux**：当前 release **不提供** Linux 桌面安装包
+
+          ### 不确定自己是哪种 Mac？
+
+          在 macOS 左上角点 ** → 关于本机**：
+
+          - 如果看到 **芯片：Apple M1 / M2 / M3 / M4**，请下载 `aarch64.dmg`
+          - 如果看到 **处理器：Intel**，请下载 `x64.dmg`
+
+          ### 额外说明
+
+          - 当前 macOS 安装包尚未完成 Apple notarization；如果遇到系统拦截，需要按未签名应用方式手动放行
+          - 桌面安装包默认连接云端 OpenAI-compatible LLM / Embedding 服务；如需本地模型，请自行配置 Ollama
+          <!-- hermes-install-guide:end -->
+          EOF
+
       - name: Publish release assets
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.release_tag || github.ref_name }}
           files: release-artifacts/**/*
+
+      - name: Upsert install guide in release body
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="${{ inputs.release_tag || github.ref_name }}"
+          gh release view "$TAG" --json body -q .body > current-release-body.md
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          body_path = Path("current-release-body.md")
+          guide_path = Path("release-install-guide.md")
+          body = body_path.read_text(encoding="utf-8").rstrip()
+          guide = guide_path.read_text(encoding="utf-8").strip()
+          pattern = re.compile(
+              r"\n*<!-- hermes-install-guide:start -->.*?<!-- hermes-install-guide:end -->\n*",
+              re.S,
+          )
+          if pattern.search(body):
+              new_body = pattern.sub("\n\n" + guide + "\n", body).strip() + "\n"
+          else:
+              new_body = (body + "\n\n" + guide + "\n").strip() + "\n"
+          Path("updated-release-body.md").write_text(new_body, encoding="utf-8")
+          PY
+          gh release edit "$TAG" --notes-file updated-release-body.md
