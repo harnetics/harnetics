@@ -13,13 +13,13 @@ tsconfig.app.json: App 代码 TypeScript 配置
 tsconfig.node.json: Node 工具链 TypeScript 配置
 vite.config.ts: Vite 构建 + Tailwind v4 插件 + /api 代理 → localhost:8000
 
-src/App.tsx: 根组件，BrowserRouter 路由表 (9 路由)
+src/App.tsx: 根组件，BrowserRouter 路由表 (13 路由)
 src/main.tsx: ReactDOM 入口
 src/index.css: Tailwind v4 + amethyst-haze 主题变量
 src/vite-env.d.ts: Vite 类型声明
 
-src/types/index.ts: 全部前端领域类型真相源，含 DeveloperLogs 与 Comparison 四步/传统双模式事件和状态类型。
-src/lib/api.ts: fetch 封装与 SSE 流消费层，提供 documents/draft/impact/settings logs/comparison 双通道 API。
+src/types/index.ts: 全部前端领域类型真相源，含 DeveloperLogs、Fixture Test Lab 与 Comparison 四步/传统双模式事件和状态类型。
+src/lib/api.ts: fetch 封装与 SSE 流消费层，提供 documents/draft/impact/settings logs/fixture/comparison API。
 src/lib/utils.ts: cn() Tailwind 合并、严重级别文案与北京时间格式化工具
 
 src/components/Header.tsx: 导航栏 (react-router-dom Link)

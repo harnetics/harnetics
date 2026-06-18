@@ -87,7 +87,7 @@ def fixture_scenarios(base_dir: str = _DEFAULT_BASE) -> list[dict]:
 
 @router.post("/run")
 def fixture_run(req: RunRequest) -> dict:
-    """运行单个场景：评估夹具草稿 → 写进化信号 → 返回结果。"""
+    """运行单个场景：评估夹具草稿并返回结果。"""
     try:
         result = run_scenario(req.scenario_id, req.base_dir)
     except ValueError as exc:

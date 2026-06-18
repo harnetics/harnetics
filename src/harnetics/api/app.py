@@ -11,7 +11,7 @@ import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -24,7 +24,6 @@ from harnetics.api.routes.impact import router as impact_router
 from harnetics.api.routes.graph import router as graph_router
 from harnetics.api.routes.status import router as status_router
 from harnetics.api.routes.settings import router as settings_router
-from harnetics.api.routes.evolution import router as evolution_router
 from harnetics.api.routes.fixture import router as fixture_router
 from harnetics.api.routes.comparison import router as comparison_router
 
@@ -103,7 +102,6 @@ def create_api_app() -> FastAPI:
     app.include_router(graph_router)
     app.include_router(status_router)
     app.include_router(settings_router)
-    app.include_router(evolution_router)
     app.include_router(fixture_router)
     app.include_router(comparison_router)
 
@@ -119,6 +117,8 @@ def create_api_app() -> FastAPI:
         @app.get("/{full_path:path}")
         async def spa_fallback(request: Request, full_path: str):
             """SPA fallback: 非 API 路由一律返回 index.html。"""
+            if full_path.startswith("api/"):
+                raise HTTPException(status_code=404, detail="Not Found")
             file_path = dist_dir / full_path
             if file_path.is_file():
                 return FileResponse(str(file_path))

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, FileEdit, History, GitMerge, Share2, Settings, Dna, GitCompare, Moon, Sun } from 'lucide-react'
+import { LayoutDashboard, BookOpen, FileEdit, History, GitMerge, Share2, Settings, GitCompare, Moon, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/context/ThemeContext'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,6 @@ const navItems = [
   { to: '/impact', label: '变更影响', icon: GitMerge },
   { to: '/graph', label: '图谱', icon: Share2 },
   { to: '/comparison', label: '比对', icon: GitCompare },
-  { to: '/evolution', label: '进化', icon: Dna },
   { to: '/settings', label: '设置', icon: Settings },
 ]
 

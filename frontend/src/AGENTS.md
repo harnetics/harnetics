@@ -2,7 +2,7 @@
 > L2 | 父级: /frontend/AGENTS.md
 
 成员清单
-App.tsx: 根路由装配，串联 Header/Footer 与 9 个页面路由。
+App.tsx: 根路由装配，串联 Header/Footer 与主要页面路由。
 main.tsx: React 挂载入口。
 index.css: Tailwind v4 主题变量与全局样式。
 vite-env.d.ts: Vite 客户端类型声明。

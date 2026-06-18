@@ -3,7 +3,8 @@
 
 成员清单
 conftest.py: pytest 共享 fixture，提供 graph_db_path、graph_conn、fixture_root 与 fixture_doc_paths。
-test_app.py: API 冒烟测试——healthcheck、settings .env 解析回退语义、Step1/Step3/Step4 可调推理边界、comparison 北京时间出口与历史 summary 修复、dashboard 缓存。
+test_app.py: API 冒烟测试——healthcheck、已下线路径返回 404、settings .env 解析回退语义、Step1/Step3/Step4 可调推理边界、comparison 北京时间出口与历史 summary 修复、dashboard 缓存。
+test_draft_generator.py: 草稿生成器单元测试，锁定当前 system prompt 保持基础提示词，不再注入已移除实验链路的额外上下文。
 test_llm_client.py: LLM 配置契约测试，锁定 Ollama 裸模型名归一化、默认构造复用当前 settings、原始模型透传、目标模型存在性判断、请求超时、结构化 temperature 与错误脱敏语义。
 test_graph_store.py: 图谱存储与索引回归测试，锁定 graph schema、legacy schema 拒绝、section 入库、边去重/折叠、bare OpenAI embedding 模型路由判定。
 test_impact_analyzer.py: 影响分析器单元测试，锁定 AI 精判按文档批量调用 LLM，而不是按候选章节重复外呼。

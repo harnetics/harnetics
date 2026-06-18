@@ -13,7 +13,6 @@ import ImpactReport from './pages/ImpactReport';
 import Graph from './pages/Graph';
 import DesignSystem from './pages/DesignSystem';
 import Settings from './pages/Settings';
-import Evolution from './pages/Evolution';
 import Comparison from './pages/Comparison';
 import ComparisonSession from './pages/ComparisonSession';
 
@@ -35,7 +34,6 @@ function App() {
             <Route path="/impact/:id" element={<ImpactReport />} />
             <Route path="/graph" element={<Graph />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/evolution" element={<Evolution />} />
             <Route path="/comparison" element={<Comparison />} />
             <Route path="/comparison/:id" element={<ComparisonSession />} />
             <Route path="/design-system" element={<DesignSystem />} />

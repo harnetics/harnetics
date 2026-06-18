@@ -15,7 +15,6 @@ import type {
   DashboardStats,
   GraphData,
   DocumentEdge,
-  EvolutionStats,
   FixtureScenario,
   FixtureRunResult,
   FixtureImportResult,
@@ -327,30 +326,6 @@ export function fetchGraphEdges(): Promise<DocumentEdge[]> {
 
 export function fetchDashboardStats(): Promise<DashboardStats> {
   return request<DashboardStats>('/api/dashboard/stats')
-}
-
-// ================================================================
-// 进化 (GEP)
-// ================================================================
-
-export function fetchEvolutionStats(): Promise<EvolutionStats> {
-  return request<EvolutionStats>('/api/evolution/stats')
-}
-
-export async function deleteEvolutionSignal(draftId: string): Promise<void> {
-  const res = await fetch(`/api/evolution/signals/${encodeURIComponent(draftId)}`, { method: 'DELETE' })
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new Error(`${res.status} ${res.statusText}: ${body}`)
-  }
-}
-
-export function renameEvolutionSignal(draftId: string, subject: string): Promise<{ draft_id: string; subject: string }> {
-  return request(`/api/evolution/signals/${encodeURIComponent(draftId)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ subject }),
-  })
 }
 
 // ================================================================

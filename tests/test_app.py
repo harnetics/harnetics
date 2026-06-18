@@ -19,6 +19,12 @@ def test_healthcheck_returns_ok() -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_evolution_api_is_not_exposed() -> None:
+    client = TestClient(create_api_app())
+    response = client.get("/api/evolution/stats")
+    assert response.status_code == 404
+
+
 def test_get_settings_loads_dotenv(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("HARNETICS_LLM_MODEL", raising=False)

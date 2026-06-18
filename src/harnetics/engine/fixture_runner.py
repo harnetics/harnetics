@@ -1,7 +1,7 @@
 """
-# [INPUT]: 依赖 pathlib, yaml, re, uuid, datetime; evaluators.build_default_bus; engine.evolution.signals.write_draft_signal
+# [INPUT]: 依赖 pathlib, yaml, re, uuid, datetime; evaluators.build_default_bus
 # [OUTPUT]: 对外提供 list_scenarios()、run_scenario()、import_fixture_dir()；无 LLM 调用，直接评估夹具草稿
-# [POS]: engine 包的夹具场景引擎；读取 fixtures/evaluator-test/ 下的 DRAFT 文档 → 评估 → 写进化信号
+# [POS]: engine 包的夹具场景引擎；读取 fixtures/evaluator-test/ 下的 DRAFT 文档 → 评估，供本地回归演示
 # [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 """
 from __future__ import annotations
@@ -171,7 +171,7 @@ _ED3_MOCK_CONFLICTS = [
 
 def run_scenario(scenario_id: str, base_dir: str | Path | None = None) -> FixtureRunResult:
     """
-    读取夹具 DRAFT 文件 → 构造 draft_dict → 评估 → 写进化信号。
+    读取夹具 DRAFT 文件 → 构造 draft_dict → 评估。
     绕过 LLM，不依赖 EmbeddingStore。
     """
     root = Path(base_dir) if base_dir else Path("fixtures") / "evaluator-test"
@@ -240,20 +240,6 @@ def run_scenario(scenario_id: str, base_dir: str | Path | None = None) -> Fixtur
     ]
 
     outcome = "blocked" if has_blocking else "pass"
-
-    # ---- 写进化信号 ----
-    try:
-        from harnetics.engine.evolution.signals import write_draft_signal
-        write_draft_signal(
-            draft_id=draft_id,
-            subject=f"[fixture:{scenario_id}] {subject}",
-            eval_results=eval_results,
-            has_blocking=has_blocking,
-            sections_used=0,
-            icd_params_used=0,
-        )
-    except Exception as exc:
-        logger.debug("fixture.signal.write_failed scenario_id=%s error=%s", scenario_id, exc)
 
     # 推断预期结果
     m = _EXPECTED_PATTERN.search(scenario_id)
