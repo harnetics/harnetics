@@ -165,13 +165,20 @@ jobs:
         run: |
           TAG="${{ inputs.release_tag || github.ref_name }}"
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body -q .body > current-release-body.md
-          uv run python - <<'PY'
+          python3 - <<'PY'
+          from importlib.util import module_from_spec, spec_from_file_location
           from pathlib import Path
-          from harnetics.release_notes import merge_install_guide
+
+          module_path = Path("src/harnetics/release_notes.py")
+          spec = spec_from_file_location("release_notes_helper", module_path)
+          if spec is None or spec.loader is None:
+              raise RuntimeError(f"Unable to load release notes helper from {module_path}")
+          module = module_from_spec(spec)
+          spec.loader.exec_module(module)
 
           body = Path("current-release-body.md").read_text(encoding="utf-8")
           guide = Path("release-install-guide.md").read_text(encoding="utf-8")
-          merged = merge_install_guide(body, guide)
+          merged = module.merge_install_guide(body, guide)
           Path("updated-release-body.md").write_text(merged, encoding="utf-8")
           PY
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file updated-release-body.md
