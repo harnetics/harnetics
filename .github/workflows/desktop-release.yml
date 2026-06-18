@@ -127,12 +127,12 @@ jobs:
         run: |
           TAG="${{ inputs.release_tag || github.ref_name }}"
           VERSION="${TAG#v}"
-          python3 - <<'PY'
+          python3 - "$VERSION" <<'PY'
           from importlib.util import module_from_spec, spec_from_file_location
           from pathlib import Path
-          import os
+          import sys
 
-          version = os.environ["VERSION"]
+          version = sys.argv[1]
           module_path = Path("src/harnetics/release_notes.py")
           spec = spec_from_file_location("release_notes_helper", module_path)
           if spec is None or spec.loader is None:
