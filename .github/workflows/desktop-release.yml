@@ -115,6 +115,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/') || inputs.release_tag != ''
 
     steps:
+      - uses: actions/checkout@v6
+
       - name: Download desktop artifacts
         uses: actions/download-artifact@v6
         with:
@@ -162,23 +164,14 @@ jobs:
         shell: bash
         run: |
           TAG="${{ inputs.release_tag || github.ref_name }}"
-          gh release view "$TAG" --json body -q .body > current-release-body.md
-          python - <<'PY'
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body -q .body > current-release-body.md
+          uv run python - <<'PY'
           from pathlib import Path
-          import re
+          from harnetics.release_notes import merge_install_guide
 
-          body_path = Path("current-release-body.md")
-          guide_path = Path("release-install-guide.md")
-          body = body_path.read_text(encoding="utf-8").rstrip()
-          guide = guide_path.read_text(encoding="utf-8").strip()
-          pattern = re.compile(
-              r"\n*<!-- hermes-install-guide:start -->.*?<!-- hermes-install-guide:end -->\n*",
-              re.S,
-          )
-          if pattern.search(body):
-              new_body = pattern.sub("\n\n" + guide + "\n", body).strip() + "\n"
-          else:
-              new_body = (body + "\n\n" + guide + "\n").strip() + "\n"
-          Path("updated-release-body.md").write_text(new_body, encoding="utf-8")
+          body = Path("current-release-body.md").read_text(encoding="utf-8")
+          guide = Path("release-install-guide.md").read_text(encoding="utf-8")
+          merged = merge_install_guide(body, guide)
+          Path("updated-release-body.md").write_text(merged, encoding="utf-8")
           PY
-          gh release edit "$TAG" --notes-file updated-release-body.md
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file updated-release-body.md

@@ -13,6 +13,7 @@ parsers/: Markdown/YAML/ICD 解析器。
 engine/: 对齐草稿、冲突检测、影响分析等图谱工作流核心引擎。
 evaluators/: 草稿质量门评估器集合（EA/EB/ED）。
 cli/: typer CLI 命令，面向 graph DB 的 init/ingest/serve；serve 同时作为桌面 sidecar 后端入口。
+release_notes.py: GitHub release 正文拼装辅助模块，负责把安装包选择指引块合并进已有 release notes。
 
 法则: 业务逻辑留在服务层，包根只做装配与边界定义。
 
