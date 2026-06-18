@@ -1,4 +1,13 @@
-from harnetics.release_notes import merge_install_guide
+from harnetics.release_notes import build_install_guide, merge_install_guide
+
+
+def test_build_install_guide_includes_platform_specific_assets() -> None:
+    guide = build_install_guide("0.2.1")
+
+    assert "Harnetics_0.2.1_x64-setup.exe" in guide
+    assert "Harnetics_0.2.1_aarch64.dmg" in guide
+    assert "Harnetics_0.2.1_x64.dmg" in guide
+    assert guide.count("Harnetics_0.2.1_") == 5
 
 
 def test_merge_install_guide_appends_guide_when_missing() -> None:

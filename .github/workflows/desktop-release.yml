@@ -127,30 +127,23 @@ jobs:
         run: |
           TAG="${{ inputs.release_tag || github.ref_name }}"
           VERSION="${TAG#v}"
-          cat > release-install-guide.md <<EOF
-          <!-- hermes-install-guide:start -->
-          ## 下载哪个安装包？
+          python3 - <<'PY'
+          from importlib.util import module_from_spec, spec_from_file_location
+          from pathlib import Path
+          import os
 
-          如果你是第一次下载安装包，请先看这里：
-
-          - **Windows 10 / 11（64 位）**：下载 `Harnetics_${VERSION}_x64-setup.exe`
-          - **macOS Apple Silicon（M1 / M2 / M3 / M4）**：下载 `Harnetics_${VERSION}_aarch64.dmg`
-          - **macOS Intel（老款 Intel 芯片 Mac）**：下载 `Harnetics_${VERSION}_x64.dmg`
-          - **Linux**：当前 release **不提供** Linux 桌面安装包
-
-          ### 不确定自己是哪种 Mac？
-
-          在 macOS 左上角点 ** → 关于本机**：
-
-          - 如果看到 **芯片：Apple M1 / M2 / M3 / M4**，请下载 `aarch64.dmg`
-          - 如果看到 **处理器：Intel**，请下载 `x64.dmg`
-
-          ### 额外说明
-
-          - 当前 macOS 安装包尚未完成 Apple notarization；如果遇到系统拦截，需要按未签名应用方式手动放行
-          - 桌面安装包默认连接云端 OpenAI-compatible LLM / Embedding 服务；如需本地模型，请自行配置 Ollama
-          <!-- hermes-install-guide:end -->
-          EOF
+          version = os.environ["VERSION"]
+          module_path = Path("src/harnetics/release_notes.py")
+          spec = spec_from_file_location("release_notes_helper", module_path)
+          if spec is None or spec.loader is None:
+              raise RuntimeError(f"Unable to load release notes helper from {module_path}")
+          module = module_from_spec(spec)
+          spec.loader.exec_module(module)
+          Path("release-install-guide.md").write_text(
+              module.build_install_guide(version),
+              encoding="utf-8",
+          )
+          PY
 
       - name: Publish release assets
         uses: softprops/action-gh-release@v3
