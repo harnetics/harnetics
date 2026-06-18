@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 from pathlib import Path
 
 
@@ -13,10 +14,24 @@ ROOT = Path(__file__).resolve().parents[1]
 DESKTOP_PACKAGE = ROOT / "desktop" / "package.json"
 DMG_POSTPROCESS = ROOT / "desktop" / "scripts" / "fix-macos-dmg.mjs"
 TAURI_CONFIG = ROOT / "desktop" / "src-tauri" / "tauri.conf.json"
+DESKTOP_CARGO = ROOT / "desktop" / "src-tauri" / "Cargo.toml"
+PYPROJECT = ROOT / "pyproject.toml"
 
 
 def _tauri_config() -> dict:
     return json.loads(TAURI_CONFIG.read_text(encoding="utf-8"))
+
+
+def test_release_version_is_bumped_to_v021_across_project_metadata() -> None:
+    package = json.loads(DESKTOP_PACKAGE.read_text(encoding="utf-8"))
+    tauri = _tauri_config()
+    cargo = tomllib.loads(DESKTOP_CARGO.read_text(encoding="utf-8"))
+    pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+
+    assert package["version"] == "0.2.1"
+    assert tauri["version"] == "0.2.1"
+    assert cargo["package"]["version"] == "0.2.1"
+    assert pyproject["project"]["version"] == "0.2.1"
 
 
 def test_main_window_stays_hidden_until_backend_is_ready() -> None:
